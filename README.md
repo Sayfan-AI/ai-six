@@ -1,2 +1,2 @@
 # ai-6
-Agentic AI focus on ubiquitous tool using
+Agentic AI focused on ubiquitous tool using
