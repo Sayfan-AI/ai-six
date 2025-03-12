@@ -72,8 +72,13 @@ class Engine:
 
     def run(self, input_func, output_func):
         """ """
-        tool_dict = {t.spec.name: t.as_dict() for t in self.tools}
+        tool_dict = {t.spec.name: t for t in self.tools}
         tool_list = [t.as_dict() for t in self.tools]
-        while prompt := input_func():
-            response = self.send(prompt, tool_dict, tool_list)
+        messages = []
+        while user_input := input_func():
+            messages.append(dict(role='user', content=user_input))
+
+            response = self.send(messages, tool_dict, tool_list)
+            messages.append(dict(role='assistant',content=response))
             output_func(response)
+        print('Done!')
