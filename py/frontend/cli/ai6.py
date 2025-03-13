@@ -2,11 +2,13 @@ import os
 import sys
 from openai import OpenAI
 
+
 # Get the absolute path to the project root (ai-six)
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 
 from py.backend.engine.engine import Engine
 from py.backend.tools.file_system.ls import Ls
+from py.backend.tools.file_system.cat import Cat
 
 # Append it to sys.path
 sys.path.append(ROOT_DIR)
@@ -28,6 +30,7 @@ def main():
 
     engine = Engine(client, model_name)
     engine.register(Ls())
+    engine.register(Cat())
     engine.run(get_user_input, print_to_console)
 
 if __name__ == '__main__':
