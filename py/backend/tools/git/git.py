@@ -1,5 +1,6 @@
 from ..base.tool import Tool, Spec, Parameter
 import sh
+import shlex
 
 class Git(Tool):
     def __init__(self, user: str | None = None):
@@ -13,9 +14,12 @@ class Git(Tool):
         super().__init__(spec)
 
     def run(self, **kwargs):
-        args = kwargs['args'].split()
+        args = shlex.split(kwargs['args'])
         # Decide which user to run as (None means run as the current user)
-        if self.user is not None:
-            return sh.sudo('-u', self.user, 'git', *args)
-        else:
-            return sh.git(*args)
+        try:
+            if self.user is not None:
+                return sh.sudo('-u', self.user, 'git', '--no-pager', *args)
+            else:
+                return sh.git('--no-pager', *args)
+        except Exception as e:
+            raise

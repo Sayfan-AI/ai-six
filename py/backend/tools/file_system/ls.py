@@ -1,5 +1,6 @@
 from ..base.tool import Tool, Spec, Parameter
 import sh
+import shlex
 
 class Ls(Tool):
     def __init__(self, user: str | None):
@@ -13,7 +14,7 @@ class Ls(Tool):
         super().__init__(spec)
 
     def run(self, **kwargs):
-        args = kwargs['args'].split()
+        args = shlex.split(kwargs['args'])
         # Decide which user to run as (None means run as the current user)
         if self.user is not None:
             return sh.sudo('-u', self.user, 'ls', *args)
