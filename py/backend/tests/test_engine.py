@@ -7,12 +7,9 @@ from ..engine import engine
 from ..tools.base.tool_provider import ToolProvider
 
 
-class TestEngine(unittest.TestCase):
+class EngineTest(unittest.TestCase):
     def setUp(self):
-        # Mock the OpenAI client
         self.mock_client = MagicMock()
-
-        # Create the Engine instance with a fake model name
         self.engine = Engine(client=self.mock_client, model_name="gpt-test")
 
     def test_register_tool_and_tool_provider(self):
@@ -23,13 +20,14 @@ class TestEngine(unittest.TestCase):
         self.assertIn(test_tool1, self.engine.tools)
 
         self.engine.register(test_tool_provider)
-        self.assertIn(test_tool_provider.tools, self.engine.tools)
+        for t in test_tool_provider.tools:
+            self.assertIn(t, self.engine.tools)
 
         # Register invalid type
         with self.assertRaises(TypeError):
             self.engine.register("invalid-tool")
 
-    @patch.object(engine, "sh")  # Patching the sh module used in engine
+    @patch.object(engine, "sh")
     def test_send_tool_call_success(self, mock_sh):
         # Set up a mock tool
         test_tool = TestTool(1)

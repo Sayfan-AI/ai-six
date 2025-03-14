@@ -2,7 +2,7 @@ from ..base.tool import Tool, Spec, Parameter
 import sh
 
 class Cat(Tool):
-    def __init__(self, user: str = None):
+    def __init__(self, user: str | None):
         self.user = user
         desc = 'Concatenate and display file contents. See https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html'
         spec = Spec(name='cat',

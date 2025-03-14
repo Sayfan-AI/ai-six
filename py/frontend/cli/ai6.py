@@ -7,8 +7,7 @@ from openai import OpenAI
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
 
 from py.backend.engine.engine import Engine
-from py.backend.tools.file_system.ls import Ls
-from py.backend.tools.file_system.cat import Cat
+from py.backend.tools.file_system.file_system import FileSystem
 
 # Append it to sys.path
 sys.path.append(ROOT_DIR)
@@ -29,8 +28,7 @@ def main():
     model_name = "gpt-4o"
 
     engine = Engine(client, model_name)
-    engine.register(Ls())
-    engine.register(Cat())
+    engine.register(FileSystem())
     engine.run(get_user_input, print_to_console)
 
 if __name__ == '__main__':

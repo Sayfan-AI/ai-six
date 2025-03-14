@@ -15,7 +15,7 @@ class Engine:
 
     def register(self, tool_provider: Tool | ToolProvider):
         if isinstance(tool_provider, ToolProvider):
-            self.tools.append(tool_provider.tools)
+            self.tools += tool_provider.tools
         elif isinstance(tool_provider, Tool):
             self.tools.append(tool_provider)
         else:

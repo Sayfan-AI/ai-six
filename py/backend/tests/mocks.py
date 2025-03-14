@@ -1,5 +1,4 @@
 from ..tools.base.tool import Tool, Spec
-from ..tools.base.tool_provider import ToolProvider
 
 class TestTool(Tool):
     def __init__(self, index):

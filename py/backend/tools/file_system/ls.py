@@ -1,10 +1,8 @@
-from getpass import getpass
-
 from ..base.tool import Tool, Spec, Parameter
 import sh
 
 class Ls(Tool):
-    def __init__(self, user: str = None):
+    def __init__(self, user: str | None):
         self.user = user
 
         desc = 'List directory contents. See https://www.gnu.org/software/coreutils/manual/html_node/ls-invocation.html'
