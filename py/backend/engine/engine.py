@@ -25,9 +25,12 @@ class Engine:
              messages: list[dict[str, any]],
              tool_dict: dict[str, Tool],
              tool_list: list[dict[str, any]]):
-        response = self.client.chat.completions.create(
-            model=self.model_name, messages=messages, tools=tool_list, tool_choice="auto")
-        r = response.choices[0].message
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name, messages=messages, tools=tool_list, tool_choice="auto")
+            r = response.choices[0].message
+        except Exception as e:
+            raise
         if r.tool_calls:
             message = dict(
                 role=r.role,
@@ -55,7 +58,7 @@ class Engine:
                             "tool_call_id": t.id,
                             "role": "tool",
                             "name": t.function.name,
-                            "content": result,
+                            "content": str(result),
                         }
                     )
                 except sh.ErrorReturnCode as e:
