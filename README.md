@@ -1,6 +1,8 @@
 # AI-6
 Agentic AI focused on ubiquitous tool using.
 
+![](ai-6.png)
+
 The current implementation is in Python. check out the [py](py/README.MD) directory.
 
 There may be implementations in other languages too, in the near future.

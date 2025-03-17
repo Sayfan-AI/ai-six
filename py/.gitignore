@@ -50,3 +50,7 @@ workspace.xml
 *.iml
 out/
 shelf/
+
+# Environment files
+**/.env
+**/.env.*
