@@ -35,7 +35,7 @@ It is focused on tool use and management.
 
 ### Items for discussion
 
-
+- [MCP - Model Context Protocol](https://modelcontextprotocol.io)
 
 
 ## Project Meeting 16-mar-2025 
@@ -51,14 +51,6 @@ It is focused on tool use and management.
     - Org :  [Sayfan-AI](https://github.com/Sayfan-AI)
     - Repo: [ai-six](https://github.com/Sayfan-AI/ai-six)
 - [x] All - Think about automated actions vs human approval
-
-### Noteable Refernces
-
-- [Building an Agentic System](https://gerred.github.io/building-an-agentic-system/introduction.html)
-- [Anon Kode](https://github.com/dnakov/anon-kode)
-- [OpenAI Agent SDK](https://platform.openai.com/docs/guides/agents-sdk)
-- [OpenAI agents guide](https://platform.openai.com/docs/guides/agents) 
-- [Robasta.dev HolmesGPT](https://github.com/robusta-dev/holmesgpt/tree/master) 
 
 ### Current Status
 
@@ -184,6 +176,17 @@ Decision: staart with Github organization + monorepo. Move to hybrid if needed
 
 # Reference
 
-[k8s-ai](https://github.com/the-gigi/) - A Simple Python CLI PoC of a Kubernetes AI agent
-[slacker](https://github.com/the-gigi/slacker) - Control Slack programmatically
+- [k8s-ai](https://github.com/the-gigi/) - A Simple Python CLI PoC of a Kubernetes AI agent
+- [slacker](https://github.com/the-gigi/slacker) - Control Slack programmatically
 
+# Resources
+
+- [Building Agents with Model Context Protocol - Full Workshop](https://www.youtube.com/watch?v=kQmXtrmQ5Zg&t=2s)
+- [Building an Agentic System](https://gerred.github.io/building-an-agentic-system/introduction.html)
+- [Anon Kode](https://github.com/dnakov/anon-kode)
+- [OpenAI Agent SDK](https://platform.openai.com/docs/guides/agents-sdk)
+- [OpenAI agents guide](https://platform.openai.com/docs/guides/agents) 
+- [Robasta.dev HolmesGPT](https://github.com/robusta-dev/holmesgpt/tree/master) 
+- [MCP-Agent](https://github.com/lastmile-ai/mcp-agent)
+- [AI Agent framework on Kubernetes](https://github.com/kagent-dev/kagent)
+- [Ollam + Gemma 3](https://www.youtube.com/watch?v=m2rG6zHoxBo)

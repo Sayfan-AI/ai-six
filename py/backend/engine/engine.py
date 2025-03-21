@@ -70,6 +70,16 @@ class Engine:
                             "content": e.stderr.decode(),
                         }
                     )
+                except Exception as e:
+                    messages.append(
+                        {
+                            "tool_call_id": t.id,
+                            "role": "tool",
+                            "name": t.function.name,
+                            "content": str(e),
+                        }
+                    )
+
             return self.send(messages, tool_dict, tool_list)
         return r.content.strip()
 
