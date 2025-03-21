@@ -1,3 +1,4 @@
+import subprocess
 import unittest
 from unittest.mock import patch, MagicMock
 from py.backend.tools.test_runner.test_runner import TestRunner

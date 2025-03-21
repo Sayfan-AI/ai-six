@@ -1,4 +1,4 @@
-from ..tools.base.tool import Tool, Spec
+from py.backend.tools.base.tool import Tool, Spec
 
 class TestTool(Tool):
     def __init__(self, index):

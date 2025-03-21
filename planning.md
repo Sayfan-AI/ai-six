@@ -29,14 +29,14 @@ It is focused on tool use and management.
 
 ### Action Items for next meeting
 - [x] Gigi - Put this in the repo as planning.md
-- [ ] Gigi - Implement Slack UI
+- [x] Gigi - Implement Slack UI
 - [ ] Gigi - Auto-discovery of tools
 - [ ] Saar - Local AI end to end
 
 ### Items for discussion
 
 - [MCP - Model Context Protocol](https://modelcontextprotocol.io)
-
+- Local AI models
 
 ## Project Meeting 16-mar-2025 
 
@@ -164,7 +164,7 @@ Session persistence not needed. Tools can persist WIP themselves (e.g. in github
 - Github organization (never done it)
 
 
-Decision: staart with Github organization + monorepo. Move to hybrid if needed
+Decision: start with Github organization + monorepo. Move to hybrid if needed
 
 ### MVP
 
@@ -182,11 +182,13 @@ Decision: staart with Github organization + monorepo. Move to hybrid if needed
 # Resources
 
 - [Building Agents with Model Context Protocol - Full Workshop](https://www.youtube.com/watch?v=kQmXtrmQ5Zg&t=2s)
+- [A Deep Dive into MCP and the future of AI tooling](https://a16z.com/a-deep-dive-into-mcp-and-the-future-of-ai-tooling)
 - [Building an Agentic System](https://gerred.github.io/building-an-agentic-system/introduction.html)
 - [Anon Kode](https://github.com/dnakov/anon-kode)
 - [OpenAI Agent SDK](https://platform.openai.com/docs/guides/agents-sdk)
 - [OpenAI agents guide](https://platform.openai.com/docs/guides/agents) 
 - [Robasta.dev HolmesGPT](https://github.com/robusta-dev/holmesgpt/tree/master) 
 - [MCP-Agent](https://github.com/lastmile-ai/mcp-agent)
+- [mcp-cli](https://github.com/chrishayuk/mcp-cli)
 - [AI Agent framework on Kubernetes](https://github.com/kagent-dev/kagent)
 - [Ollam + Gemma 3](https://www.youtube.com/watch?v=m2rG6zHoxBo)

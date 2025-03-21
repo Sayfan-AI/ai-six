@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 
 from .mocks import TestTool
-from ..engine.engine import Engine
-from ..engine import engine
-from ..tools.base.tool_provider import ToolProvider
+from py.backend.engine.engine import Engine
+from py.backend.engine import engine
+from py.backend.tools.base.tool_provider import ToolProvider
 
 
 class EngineTest(unittest.TestCase):
