@@ -10,7 +10,7 @@ It is focused on tool use and management.
 
 - [ ] AI-6 (recursive agent mesh) 
 - [ ] Slack tool
-- [ ] Kubernetes
+- [x] Kubectl
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration
 - [ ] aws
 - [ ] Cloudflare
