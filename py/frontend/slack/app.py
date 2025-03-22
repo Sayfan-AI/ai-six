@@ -1,8 +1,9 @@
 import os
+import re
 from functools import partial
 
-import time
-from multiprocessing import Process
+from multiprocessing import Process, Queue
+from time import sleep
 
 from dotenv import load_dotenv
 from slack_bolt import App
@@ -28,18 +29,24 @@ app = App(token=bot_token)
 
 last_message = ""
 
-
-from multiprocessing import Process, Queue
-
 message_queue = Queue()
 
-@app.event("message")
-def handle_message(message, say):
-    if not 'text' in message:
-        return
-    message_text = message['text']
-    message_queue.put(message_text)
-    #say(text=f"AI-6 is thinking... <@{message['user']}>!")
+
+# @app.event("message")
+# def handle_message(message, ack, say):
+#     ack()  # Acknowledge ASAP
+#
+#     text = message.get("text")
+#     if not text:
+#         return
+#
+#     print(f"New user message: {text}")
+#
+#     message_queue.put(text)
+#
+#     # If you want to respond:
+#     # say(text=f"AI-6 is thinking... <@{user}>!", thread_ts=ts)
+
 
 # @app.action("button_click")
 # def action_button_click(body, ack, say):
@@ -87,9 +94,31 @@ def join_channel(client):
 
     return channel
 
+
 def get_user_message(message_queue: Queue):
     new_message = message_queue.get()  # blocks until message is available
     return new_message
+
+def read_latest_message(channel_id):
+    try:
+        response = app.client.conversations_history(
+            channel=channel_id,
+            limit=1  # Only fetch the latest message
+        )
+        messages = response.get("messages", [])
+        if messages:
+            msg = messages[0]
+            if 'bot_id' in msg:
+                return None
+            return msg
+        else:
+            print("No messages found.")
+            return None
+
+    except SlackApiError as e:
+        print(f"Error fetching latest message: {e.response['error']}")
+        return None
+
 
 def post_to_channel(message, channel_id):
     try:
@@ -112,6 +141,7 @@ def start_ai6_engine(input_func, output_func):
     engine.register(TestRunner())
     engine.run(input_func, output_func)
 
+
 def main():
     channel = join_channel(app.client)
     print(f'Joined {channel['name']}')
@@ -124,9 +154,29 @@ def main():
     engine_process.start()
 
     # Start the Slack app
-    SocketModeHandler(app, app_token).start()
+    # SocketModeHandler(app, app_token).start()
 
-    engine_process.join()
+    try:
+        latest_ts = None
+        while True:
+            try:
+                message = read_latest_message(channel['id'])
+
+                if message is not None and (latest_ts is None or message['ts'] > latest_ts):
+                    latest_ts = message['ts']
+                    message_queue.put(message['text'])
+                else:
+                    sleep(1)
+            except KeyboardInterrupt:
+                print("\nCtrl+C detected. Exiting loop...")
+                break
+
+    finally:
+        print("Shutting down AI-6 engine...")
+        engine_process.terminate()
+        engine_process.join()
+        print("Shutdown complete.")
+
 
 if __name__ == "__main__":
     main()
