@@ -1,6 +1,9 @@
 import json
+import os.path
+from pathlib import Path
 from typing import Callable
-
+import importlib.util
+import inspect
 import sh
 from openai import OpenAI
 
@@ -9,18 +12,62 @@ from ..tools.base.tool_provider import ToolProvider
 
 
 class Engine:
-    def __init__(self, client: OpenAI, model_name: str):
+    def __init__(self, client: OpenAI, model_name: str, tools_dir: str):
+        assert (os.path.isdir(tools_dir))
         self.client = client
         self.model_name = model_name
-        self.tools = []
+        self.tools = Engine.discover_tools(tools_dir)
 
-    def register(self, tool_provider: Tool | ToolProvider):
-        if isinstance(tool_provider, ToolProvider):
-            self.tools += tool_provider.tools
-        elif isinstance(tool_provider, Tool):
-            self.tools.append(tool_provider)
-        else:
-            raise TypeError('tool_provider must be a Tool or a ToolProvider')
+    @staticmethod
+    def discover_tools(tools_dir):
+        tools = []
+
+        base_path = Path(tools_dir).resolve()  # e.g., /Users/gigi/git/ai-six/py/backend/tools
+        module_root_path = base_path.parents[2]  # Three levels up → /Users/gigi/git/ai-six
+        base_module = 'py.backend.tools'  # Static base module for tools
+
+        # Walk through all .py files in the directory (recursive)
+        for file_path in base_path.rglob("*.py"):
+            if file_path.name == '__init__.py':
+                continue
+
+            try:
+                # Get the path relative to the Python root dir
+                relative_path = file_path.relative_to(module_root_path)
+
+                # Convert path parts to a valid Python module name
+                module_name = '.'.join(relative_path.with_suffix('').parts)
+
+                # Validate it starts with the expected base_module
+                if not module_name.startswith(base_module):
+                    print(f"Skipping {module_name} (outside of {base_module})")
+                    continue
+
+                # Load module from file
+                spec = importlib.util.spec_from_file_location(module_name, file_path)
+                if spec is None:
+                    print(f"Could not create spec for {module_name}")
+                    continue
+
+                module = importlib.util.module_from_spec(spec)
+
+                try:
+                    spec.loader.exec_module(module)
+                except Exception as e:
+                    print(f"Failed to import {module_name}: {e}")
+                    continue
+
+                # Inspect module for subclasses of Tool
+                for name, obj in inspect.getmembers(module, inspect.isclass):
+                    if issubclass(obj, Tool) and obj is not Tool:
+                        print(f"Found Tool subclass: {name} in {module_name}")
+                        tool = obj()
+                        tools.append(tool)
+
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")
+
+        return tools
 
     def send(self,
              messages: list[dict[str, any]],
@@ -55,12 +102,12 @@ class Engine:
                     raise RuntimeError(f"Invalid arguments JSON for tool '{t.function.name}'")
                 try:
                     result = tool.run(**kwargs)
-                    tool_call =                         {
-                            "tool_call_id": t.id,
-                            "role": "tool",
-                            "name": t.function.name,
-                            "content": str(result),
-                        }
+                    tool_call = {
+                        "tool_call_id": t.id,
+                        "role": "tool",
+                        "name": t.function.name,
+                        "content": str(result),
+                    }
                     messages.append(tool_call)
                     if tool_call_func is not None:
                         tool_call_func(tool_call['name'], kwargs, tool_call['content'])
@@ -98,6 +145,6 @@ class Engine:
             messages.append(dict(role='user', content=user_input))
 
             response = self.send(messages, tool_dict, tool_list, tool_call_func)
-            messages.append(dict(role='assistant',content=response))
+            messages.append(dict(role='assistant', content=response))
             output_func(response)
         print('Done!')

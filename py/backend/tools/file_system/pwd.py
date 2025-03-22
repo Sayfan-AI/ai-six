@@ -6,7 +6,7 @@ import sh
 from ..base.tool import Tool, Spec
 
 class Pwd(Tool):
-    def __init__(self, user: str | None):
+    def __init__(self, user: str | None = None):
         self.user = user
 
         desc = 'Print the name of the current/working directory. See https://www.gnu.org/software/coreutils/manual/html_node/pwd-invocation.html'

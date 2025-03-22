@@ -4,6 +4,7 @@ from functools import partial
 from multiprocessing import Process, Queue
 from time import sleep
 
+import pathology.path
 from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -13,9 +14,8 @@ from slack_sdk.errors import SlackApiError
 from openai import OpenAI
 
 from ...backend.engine.engine import Engine
-from ...backend.tools.file_system.file_system import FileSystem
-from ...backend.tools.git.git import Git
-from ...backend.tools.test_runner.test_runner import TestRunner
+
+tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -143,10 +143,7 @@ def start_ai6_engine(input_func, tool_call_func, output_func):
     client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
     model_name = "gpt-4o"
 
-    engine = Engine(client, model_name)
-    engine.register(FileSystem())
-    engine.register(Git())
-    engine.register(TestRunner())
+    engine = Engine(client, model_name, tools_dir)
     engine.run(input_func, tool_call_func, output_func)
 
 

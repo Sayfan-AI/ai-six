@@ -3,3 +3,4 @@ sh
 slack_bolt
 python-dotenv
 mcp
+pathology

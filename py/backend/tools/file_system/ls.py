@@ -3,7 +3,7 @@ import sh
 import shlex
 
 class Ls(Tool):
-    def __init__(self, user: str | None):
+    def __init__(self, user: str | None = None):
         self.user = user
 
         desc = 'List directory contents. See https://www.gnu.org/software/coreutils/manual/html_node/ls-invocation.html'

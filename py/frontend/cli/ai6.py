@@ -1,11 +1,11 @@
 import os
 
+import pathology.path
 from openai import OpenAI
 
 from ...backend.engine.engine import Engine
-from ...backend.tools.file_system.file_system import FileSystem
-from ...backend.tools.git.git import Git
-from ...backend.tools.test_runner.test_runner import TestRunner
+
+tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
 
 def get_user_input():
     user_input = input("[You]: ")
@@ -27,10 +27,7 @@ def main():
     client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
     model_name = "gpt-4o"
 
-    engine = Engine(client, model_name)
-    engine.register(FileSystem())
-    engine.register(Git())
-    engine.register(TestRunner())
+    engine = Engine(client, model_name, tools_dir)
     engine.run(get_user_input, handle_tool_call, handle_response)
 
 if __name__ == '__main__':
