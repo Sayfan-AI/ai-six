@@ -1,5 +1,5 @@
 import os
-import sys
+
 from openai import OpenAI
 
 from ...backend.engine.engine import Engine
@@ -13,8 +13,13 @@ def get_user_input():
         return None
     return user_input
 
-def print_to_console(response):
+def handle_response(response):
     print(f"[AI-6]: {response}")
+    print('----------')
+
+def handle_tool_call(name, args, result):
+    print(f"[AI-6 tool call]: {name} {', '.join(args.values()) if args else ''}")
+    print(result)
     print('----------')
 
 
@@ -26,7 +31,7 @@ def main():
     engine.register(FileSystem())
     engine.register(Git())
     engine.register(TestRunner())
-    engine.run(get_user_input, print_to_console)
+    engine.run(get_user_input, handle_tool_call, handle_response)
 
 if __name__ == '__main__':
     main()

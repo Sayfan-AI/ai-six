@@ -1,5 +1,4 @@
 import os
-import re
 from functools import partial
 
 from multiprocessing import Process, Queue
@@ -30,6 +29,7 @@ app = App(token=bot_token)
 last_message = ""
 
 message_queue = Queue()
+latest_ts = None
 
 
 # @app.event("message")
@@ -99,6 +99,7 @@ def get_user_message(message_queue: Queue):
     new_message = message_queue.get()  # blocks until message is available
     return new_message
 
+
 def read_latest_message(channel_id):
     try:
         response = app.client.conversations_history(
@@ -120,18 +121,25 @@ def read_latest_message(channel_id):
         return None
 
 
-def post_to_channel(message, channel_id):
+def post_to_channel(message, new_message, channel_id):
     try:
+        thread_ts = None if new_message else read_latest_message(channel_id).get('ts')
         response = app.client.chat_postMessage(
             channel=channel_id,
-            text=message  # Fixed variable name
+            thread_ts=thread_ts,
+            text=message
         )
         print(f"Message sent to {channel_id}: {response['ts']}")
     except SlackApiError as e:
         print(f"Error posting message: {e.response['error']}")
 
 
-def start_ai6_engine(input_func, output_func):
+def handle_tool_call(name, args, result, channel_id):
+    message = f"{name} {', '.join(args.values()) if args else ''}\n{result}\n{'-' * 10}"
+    post_to_channel(message, False, channel_id)
+
+
+def start_ai6_engine(input_func, tool_call_func, output_func):
     client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
     model_name = "gpt-4o"
 
@@ -139,7 +147,7 @@ def start_ai6_engine(input_func, output_func):
     engine.register(FileSystem())
     engine.register(Git())
     engine.register(TestRunner())
-    engine.run(input_func, output_func)
+    engine.run(input_func, tool_call_func, output_func)
 
 
 def main():
@@ -150,18 +158,17 @@ def main():
     engine_process = Process(
         target=start_ai6_engine,
         args=(partial(get_user_message, message_queue),
-              partial(post_to_channel, channel_id=channel['id'])))
+              partial(handle_tool_call, channel_id=channel['id']),
+              partial(post_to_channel, channel_id=channel['id'], new_message=True)))
     engine_process.start()
 
     # Start the Slack app
     # SocketModeHandler(app, app_token).start()
-
+    global latest_ts
     try:
-        latest_ts = None
         while True:
             try:
                 message = read_latest_message(channel['id'])
-
                 if message is not None and (latest_ts is None or message['ts'] > latest_ts):
                     latest_ts = message['ts']
                     message_queue.put(message['text'])

@@ -1,4 +1,5 @@
 import json
+from typing import Callable
 
 import sh
 from openai import OpenAI
@@ -24,7 +25,8 @@ class Engine:
     def send(self,
              messages: list[dict[str, any]],
              tool_dict: dict[str, Tool],
-             tool_list: list[dict[str, any]]):
+             tool_list: list[dict[str, any]],
+             tool_call_func: Callable[[str, dict, str], None] | None):
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name, messages=messages, tools=tool_list, tool_choice="auto")
@@ -53,14 +55,15 @@ class Engine:
                     raise RuntimeError(f"Invalid arguments JSON for tool '{t.function.name}'")
                 try:
                     result = tool.run(**kwargs)
-                    messages.append(
-                        {
+                    tool_call =                         {
                             "tool_call_id": t.id,
                             "role": "tool",
                             "name": t.function.name,
                             "content": str(result),
                         }
-                    )
+                    messages.append(tool_call)
+                    if tool_call_func is not None:
+                        tool_call_func(tool_call['name'], kwargs, tool_call['content'])
                 except sh.ErrorReturnCode as e:
                     messages.append(
                         {
@@ -80,10 +83,13 @@ class Engine:
                         }
                     )
 
-            return self.send(messages, tool_dict, tool_list)
+            return self.send(messages, tool_dict, tool_list, tool_call_func)
         return r.content.strip()
 
-    def run(self, input_func, output_func):
+    def run(self,
+            input_func: Callable[[str], None],
+            tool_call_func: Callable[[str, dict, str], None] | None,
+            output_func: Callable[[str], None]):
         """ """
         tool_dict = {t.spec.name: t for t in self.tools}
         tool_list = [t.as_dict() for t in self.tools]
@@ -91,7 +97,7 @@ class Engine:
         while user_input := input_func():
             messages.append(dict(role='user', content=user_input))
 
-            response = self.send(messages, tool_dict, tool_list)
+            response = self.send(messages, tool_dict, tool_list, tool_call_func)
             messages.append(dict(role='assistant',content=response))
             output_func(response)
         print('Done!')
