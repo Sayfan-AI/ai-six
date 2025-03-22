@@ -15,11 +15,14 @@ class Git(Tool):
 
     def run(self, **kwargs):
         args = shlex.split(kwargs['args'])
+
+        if "--no-pager" not in args:
+            args = ["--no-pager"] + args
         # Decide which user to run as (None means run as the current user)
         try:
             if self.user is not None:
-                return sh.sudo('-u', self.user, 'git', '--no-pager', *args)
+                return sh.sudo('-u', self.user, 'git', *args)
             else:
-                return sh.git('--no-pager', *args)
+                return sh.git(*args)
         except Exception as e:
             raise
