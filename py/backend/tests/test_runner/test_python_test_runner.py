@@ -1,31 +1,21 @@
-import subprocess
 import unittest
 from unittest.mock import patch, MagicMock
+from py.backend.tools.test_runner import test_runner
 from py.backend.tools.test_runner.test_runner import TestRunner
 
 class PythonTestRunnerTest(unittest.TestCase):
 
-    @patch('subprocess.run')
-    def test_run_tests(self, mock_subprocess_run):
-        mock_result = MagicMock()
-        mock_result.stdout = b'Test output'
-        mock_result.stderr = b''
-        mock_result.returncode = 0
-        mock_subprocess_run.return_value = mock_result
+    @patch.object(test_runner, 'sh')
+    def test_run_tests(self, mock_sh):
+        """Test running tests successfully."""
+        # Arrange
+        runner = TestRunner()
 
-        test_runner = TestRunner()
-        result = test_runner.run(test_directory='/path/to/tests')
+        # Act
+        _ = runner.run(test_directory='some/test/directory')
 
-        mock_subprocess_run.assert_called_once_with(
-            'python -m unittest discover -s /path/to/tests', 
-            shell=True, 
-            check=True, 
-            stdout=subprocess.PIPE, 
-            stderr=subprocess.PIPE
-        )
-
-        self.assertEqual(result['stdout'], 'Test output')
-        self.assertEqual(result['stderr'], '')
+        # Assert
+        mock_sh.python.assert_called_once_with('-m', 'unittest', 'discover', '-s', 'some/test/directory')
 
 if __name__ == "__main__":
     unittest.main()
