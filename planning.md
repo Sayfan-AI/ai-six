@@ -19,7 +19,7 @@ It is focused on tool use and management.
 
 ## Permission model
 
-- [] - [ ] Document the security model (OS user based)
+- [] Document the security model (OS user based)
 - [] Support for defining OS model and permissions for AI-6 and specific tools 
 
 
@@ -30,13 +30,29 @@ It is focused on tool use and management.
 ### Action Items for next meeting
 - [x] Gigi - Put this in the repo as planning.md
 - [x] Gigi - Implement Slack UI
-- [ ] Gigi - Auto-discovery of tools
+- [x] Gigi - Auto-discovery of tools
 - [ ] Saar - Local AI end to end
+
+### Status check
+
+
+### Code walk
+
 
 ### Items for discussion
 
+- MVP is done. should we do Github release or at least tag it? Give people (and us) some reference points to progress. 
 - [MCP - Model Context Protocol](https://modelcontextprotocol.io)
 - Local AI models
+- Tool configuration
+  - Currently only env variables are available
+  - Proposal
+    - pass optional config file path via env variable
+    - Each tool can have its own config file format and know how to parse it
+    - All tool config files must be placed under a standard root directory
+    - This way all tools can get permissions to read this directory only and not get access to arbitrary dirs
+    - Subdirs based on tool hierarchy are recommended to avoid conflicts
+    - If the config file is Python module the tool may import it dynamically (tool's business. AI-6 doesn't care)
 
 ## Project Meeting 16-mar-2025 
 

@@ -129,7 +129,6 @@ def post_to_channel(message, new_message, channel_id):
             thread_ts=thread_ts,
             text=message
         )
-        print(f"Message sent to {channel_id}: {response['ts']}")
     except SlackApiError as e:
         print(f"Error posting message: {e.response['error']}")
 
