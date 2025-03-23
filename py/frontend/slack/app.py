@@ -40,6 +40,10 @@ def handle_message(message, ack, say):
     if not text:
         return
 
+    # Ignore messages with mention
+    if "<@" in text:
+        return
+
     channel_id = message['channel']
 
     # If you want to respond:

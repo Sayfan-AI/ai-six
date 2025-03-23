@@ -76,7 +76,7 @@ class Engine:
                 model=self.model_name, messages=self.messages, tools=self.tool_list, tool_choice="auto")
             r = response.choices[0].message
         except Exception as e:
-            raise
+            raise RuntimeError(f"Chat completion failed. error: {e}")
         if r.tool_calls:
             message = dict(
                 role=r.role,
