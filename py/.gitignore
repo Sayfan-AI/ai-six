@@ -54,3 +54,8 @@ shelf/
 # Environment files
 **/.env
 **/.env.*
+
+# Chainlit
+**/.chailit
+**/.files
+**/cainlit.md

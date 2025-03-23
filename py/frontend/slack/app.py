@@ -95,6 +95,16 @@ def join_channel(client):
 
     return channel
 
+def leave_channels(client):
+    """Leave all the channels
+    """
+    channels = client.conversations_list()['channels']
+    channels = [c for c in channels if c['name'].startswith('ai-6-') and c['is_member']]
+
+    for c in channels:
+        post_to_channel(f"Leaving channel #{c['name']}", True, c['id'])
+        client.conversations_leave(channel=c['id'])
+
 
 def read_latest_message(channel_id):
     try:
@@ -138,9 +148,15 @@ def main():
     channel = join_channel(app.client)
     print(f'Joined {channel['name']}')
 
-    # Start the Slack app
-    SocketModeHandler(app, app_token).start()
-
+    try:
+        # Run the Slack app
+        SocketModeHandler(app, app_token).start()
+    except KeyboardInterrupt:
+        print("Ctrl+C detected.")
+    except Exception as e:
+        print(f"Unhandled exception: {e}")
+    finally:
+        leave_channels(app.client)
 
 if __name__ == "__main__":
     main()

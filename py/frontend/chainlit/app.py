@@ -24,15 +24,13 @@ engine = Engine(client, model_name, tools_dir)
 
 @cl.on_message
 async def main(message: cl.Message):
-    print('Got message:', message)
-
-    response = engine.send_message(message.content)
+    response = engine.send_message(message.content, None)
     await cl.Message(content=response).send()
 
 
 @cl.on_chat_start
 async def chat_start():
-    welcome_msg = "Chainlit is ready and connected to AI-6."
+    welcome_msg = "AI-6 is ready 🚀"
     await cl.Message(content=welcome_msg).send()
 
 

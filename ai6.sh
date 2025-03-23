@@ -9,6 +9,8 @@ if [[ "$1" == "cli" ]]; then
   python -m py.frontend.cli.ai6
 elif [[ "$1" == "slack" ]]; then
   python -m py.frontend.slack.app
+elif [[ "$1" == "chainlit" ]]; then
+  python py/frontend/chainlit/app.py
 else
-  echo 'Usage: ai6.sh <cli | slack>'
+  echo 'Usage: ai6.sh <cli | slack | chainlit>'
 fi

@@ -34,10 +34,10 @@ It is focused on tool use and management.
 - [ ] Saar - Research Ollama + Gemma 3 function calling
 - [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
 - [x] Gigi - Check out chainlit
-- [ ] Gigi - Issues
-  - AI-6 slack should ignore messages that mention other users
-  - AI-6 slack bot should leave the channel on app exit
-  - Bootstrap tool to restart itself (AI-6 runs new code afte changes)
+- [x] Gigi - Issues
+  - [x] AI-6 slack should ignore messages that mention other users
+  - [x] AI-6 slack bot should leave the channel on app exit
+  - [x] Bootstrap tool to restart itself (AI-6 runs new code after changes)
 - [ ] Gigi - Look into MCP
 - [ ] Gigi - Engine + Tool configuration
  
