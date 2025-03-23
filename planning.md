@@ -8,7 +8,7 @@ It is focused on tool use and management.
 
 ## Tools
 
-- [ ] AI-6 (recursive agent mesh) 
+- [ ] AI-6 (recursive agent mesh)
 - [ ] Slack tool
 - [x] Kubectl
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration
@@ -20,41 +20,65 @@ It is focused on tool use and management.
 ## Permission model
 
 - [] Document the security model (OS user based)
-- [] Support for defining OS model and permissions for AI-6 and specific tools 
+- [] Support for defining OS model and permissions for AI-6 and specific tools
 
+## Fully-autonomous
 
 # Meetings
 
+## Project Meeting 29-mar-2025
+
+### Action Items
+
+- [ ] Saar - Multiple LLM Providers
+- [ ] Saar - Research Ollama + Gemma 3 function calling
+- [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
+- [x] Gigi - Check out chainlit
+- [ ] Gigi - Issues
+  - AI-6 slack should ignore messages that mention other users
+  - AI-6 slack bot should leave the channel on app exit
+  - Bootstrap tool to restart itself (AI-6 runs new code afte changes)
+- [ ] Gigi - Look into MCP
+- [ ] Gigi - Engine + Tool configuration
+ 
+
 ## Project Meeting 22-mar-2025
 
-### Action Items for next meeting
+### Action Items
+
 - [x] Gigi - Put this in the repo as planning.md
 - [x] Gigi - Implement Slack UI
 - [x] Gigi - Auto-discovery of tools
-- [ ] Saar - Local AI end to end
-
-### Status check
-
-
-### Code walk
-
+- [x] Saar - Local AI end to end
 
 ### Items for discussion
 
-- MVP is done. should we do Github release or at least tag it? Give people (and us) some reference points to progress. 
+- MVP is done. should we do Github release or at least tag it? Give people (and us) some reference points to progress.
+    - Just a tag!
 - [MCP - Model Context Protocol](https://modelcontextprotocol.io)
+- Multiple LLM providers
+    - Engine receives multiple OpenAI instances + metadata on each one
+    - AI-6 may swtich providers depending on task
+    - User can always request specific provider
+    - Default provider will be configured
 - Local AI models
+    - Lamma 3.2 works, but not great
+    - Need to experiment with others and find at least one good model
 - Tool configuration
-  - Currently only env variables are available
-  - Proposal
-    - pass optional config file path via env variable
-    - Each tool can have its own config file format and know how to parse it
-    - All tool config files must be placed under a standard root directory
-    - This way all tools can get permissions to read this directory only and not get access to arbitrary dirs
-    - Subdirs based on tool hierarchy are recommended to avoid conflicts
-    - If the config file is Python module the tool may import it dynamically (tool's business. AI-6 doesn't care)
+    - Currently only env variables are available
+    - Proposal
+        - pass optional config file path via env variable
+        - Each tool can have its own config file format and know how to parse it
+        - All tool config files must be placed under a standard root directory
+        - This way all tools can get permissions to read this directory only and not get access to arbitrary dirs
+        - Subdirs based on tool hierarchy are recommended to avoid conflicts
+        - If the config file is Python module the tool may import it dynamically (tool's business. AI-6 doesn't care)
+        - It's possible to aggregate all config files into one big config file (one stop shop for users) and then some
+          config helper will break it down into separate files expected by tools and update the environment.
 
-## Project Meeting 16-mar-2025 
+### Code walk
+
+## Project Meeting 16-mar-2025
 
 ### Action Items
 
@@ -70,7 +94,7 @@ It is focused on tool use and management.
 
 ### Current Status
 
-- AI-6 
+- AI-6
     - Works end to end
     - The engine implements the agentic loop
     - An extensible tool system exists with one implemented tool (ls)
@@ -90,9 +114,9 @@ It is focused on tool use and management.
     - Single user or perhaps optional users for specific tools.
 - Voice UI
 - Observability
-   - tokens (input and output)
-   - for Slack UI capture tool calls as messages on a thread
-   - context window size?
+    - tokens (input and output)
+    - for Slack UI capture tool calls as messages on a thread
+    - context window size?
 - Inception - AI-6 launching AI-6 as a tool (parent doesn't see context of child, just final output)
 
 - Non user input - Some server can listen to events and invoke AI-6 and based on the answer take some action
@@ -110,12 +134,11 @@ It is focused on tool use and management.
 ### Pick a name
 
 - AI Whisperer
-- AI-6 (MI-6 and SEAL Team 6) 
+- AI-6 (MI-6 and SEAL Team 6)
 - Xeno AI (sci-fi, non-human)
 - Agent Smith (Matrix)
 - AI Stein (Einstein)
 - Tool AI
-
 
 ChatGPT was very impressed with AI-6!
 ![image](https://hackmd.io/_uploads/BkrSARKjye.png)
@@ -132,7 +155,6 @@ ChatGPT was very impressed with AI-6!
 - Support multiple LLM providers (local + managed)
 - engine plugin API (programming language native, REST, gRPC)
 - engine API - allow programmatic access to AI-6
-
 
 Question: do we need an architecture document?
 Answer: No! later.
@@ -165,10 +187,10 @@ Answer: No! later.
 Session persistence not needed. Tools can persist WIP themselves (e.g. in github PRs for a coding project)
 
 ### UI
+
 - Slack
 - CLI
 - Web (can run on mobile too)
-
 
 ### Github repo structure
 
@@ -179,7 +201,6 @@ Session persistence not needed. Tools can persist WIP themselves (e.g. in github
     - Separate repos for standalone libraries (e.g. slacker)
 - Github organization (never done it)
 
-
 Decision: start with Github organization + monorepo. Move to hybrid if needed
 
 ### MVP
@@ -189,6 +210,7 @@ Decision: start with Github organization + monorepo. Move to hybrid if needed
 - Initial built-in Tools (k8s + git)
 - No plugins
 
+Done!
 
 # Reference
 
@@ -202,8 +224,8 @@ Decision: start with Github organization + monorepo. Move to hybrid if needed
 - [Building an Agentic System](https://gerred.github.io/building-an-agentic-system/introduction.html)
 - [Anon Kode](https://github.com/dnakov/anon-kode)
 - [OpenAI Agent SDK](https://platform.openai.com/docs/guides/agents-sdk)
-- [OpenAI agents guide](https://platform.openai.com/docs/guides/agents) 
-- [Robasta.dev HolmesGPT](https://github.com/robusta-dev/holmesgpt/tree/master) 
+- [OpenAI agents guide](https://platform.openai.com/docs/guides/agents)
+- [Robasta.dev HolmesGPT](https://github.com/robusta-dev/holmesgpt/tree/master)
 - [MCP-Agent](https://github.com/lastmile-ai/mcp-agent)
 - [mcp-cli](https://github.com/chrishayuk/mcp-cli)
 - [AI Agent framework on Kubernetes](https://github.com/kagent-dev/kagent)

@@ -8,15 +8,16 @@ import sh
 from openai import OpenAI
 
 from ..tools.base.tool import Tool
-from ..tools.base.tool_provider import ToolProvider
-
 
 class Engine:
     def __init__(self, client: OpenAI, model_name: str, tools_dir: str):
         assert (os.path.isdir(tools_dir))
         self.client = client
         self.model_name = model_name
-        self.tools = Engine.discover_tools(tools_dir)
+        tools = Engine.discover_tools(tools_dir)
+        self.tool_dict = {t.spec.name: t for t in tools}
+        self.tool_list = [t.as_dict() for t in tools]
+        self.messages = []
 
     @staticmethod
     def discover_tools(tools_dir):
@@ -69,14 +70,10 @@ class Engine:
 
         return tools
 
-    def send(self,
-             messages: list[dict[str, any]],
-             tool_dict: dict[str, Tool],
-             tool_list: list[dict[str, any]],
-             tool_call_func: Callable[[str, dict, str], None] | None):
+    def send(self, on_tool_call_func: Callable[[str, dict, str], None] | None = None):
         try:
             response = self.client.chat.completions.create(
-                model=self.model_name, messages=messages, tools=tool_list, tool_choice="auto")
+                model=self.model_name, messages=self.messages, tools=self.tool_list, tool_choice="auto")
             r = response.choices[0].message
         except Exception as e:
             raise
@@ -91,9 +88,9 @@ class Engine:
                         name=t.function.name,
                         arguments=t.function.arguments
                     )) for t in r.tool_calls if t.function])
-            messages.append(message)
+            self.messages.append(message)
             for t in r.tool_calls:
-                tool = tool_dict.get(t.function.name)
+                tool = self.tool_dict.get(t.function.name)
                 if tool is None:
                     raise RuntimeError(f'Unknown tool: {t.function.name}')
                 try:
@@ -108,11 +105,11 @@ class Engine:
                         "name": t.function.name,
                         "content": str(result),
                     }
-                    messages.append(tool_call)
-                    if tool_call_func is not None:
-                        tool_call_func(tool_call['name'], kwargs, tool_call['content'])
+                    self.messages.append(tool_call)
+                    if on_tool_call_func is not None:
+                        on_tool_call_func(tool_call['name'], kwargs, tool_call['content'])
                 except sh.ErrorReturnCode as e:
-                    messages.append(
+                    self.messages.append(
                         {
                             "tool_call_id": t.id,
                             "role": "tool",
@@ -121,7 +118,7 @@ class Engine:
                         }
                     )
                 except Exception as e:
-                    messages.append(
+                    self.messages.append(
                         {
                             "tool_call_id": t.id,
                             "role": "tool",
@@ -130,21 +127,23 @@ class Engine:
                         }
                     )
 
-            return self.send(messages, tool_dict, tool_list, tool_call_func)
+            return self.send(on_tool_call_func)
         return r.content.strip()
 
     def run(self,
-            input_func: Callable[[str], None],
-            tool_call_func: Callable[[str, dict, str], None] | None,
-            output_func: Callable[[str], None]):
+            get_input_func: Callable[[], None],
+            on_tool_call_func: Callable[[str, dict, str], None] | None,
+            on_response_func: Callable[[str], None]):
         """ """
-        tool_dict = {t.spec.name: t for t in self.tools}
-        tool_list = [t.as_dict() for t in self.tools]
-        messages = []
-        while user_input := input_func():
-            messages.append(dict(role='user', content=user_input))
+        while user_input := get_input_func():
+            self.messages.append(dict(role='user', content=user_input))
 
-            response = self.send(messages, tool_dict, tool_list, tool_call_func)
-            messages.append(dict(role='assistant', content=response))
-            output_func(response)
+            response = self.send(on_tool_call_func)
+            self.messages.append(dict(role='assistant', content=response))
+            on_response_func(response)
         print('Done!')
+
+    def send_message(self, message) -> str:
+        self.messages.append(dict(role='user', content=message))
+        response = self.send()
+        return response
