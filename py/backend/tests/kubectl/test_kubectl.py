@@ -1,5 +1,5 @@
 import unittest
-from backend.tools.kubectl.kubectl import Kubectl
+from py.backend.tools.kubectl.kubectl import Kubectl
 from unittest.mock import Mock
 
 class TestKubectl(unittest.TestCase):

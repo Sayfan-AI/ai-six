@@ -70,7 +70,7 @@ class Engine:
 
         return tools
 
-    def send(self, on_tool_call_func: Callable[[str, dict, str], None] | None = None):
+    def _send(self, on_tool_call_func: Callable[[str, dict, str], None] | None):
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name, messages=self.messages, tools=self.tool_list, tool_choice="auto")
@@ -127,7 +127,7 @@ class Engine:
                         }
                     )
 
-            return self.send(on_tool_call_func)
+            return self._send(on_tool_call_func)
         return r.content.strip()
 
     def run(self,
@@ -138,12 +138,12 @@ class Engine:
         while user_input := get_input_func():
             self.messages.append(dict(role='user', content=user_input))
 
-            response = self.send(on_tool_call_func)
+            response = self._send(on_tool_call_func)
             self.messages.append(dict(role='assistant', content=response))
             on_response_func(response)
         print('Done!')
 
-    def send_message(self, message) -> str:
+    def send_message(self, message: str, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
         self.messages.append(dict(role='user', content=message))
-        response = self.send()
+        response = self._send(on_tool_call_func)
         return response

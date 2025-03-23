@@ -1,9 +1,6 @@
 import os
 from functools import partial
 
-from multiprocessing import Process, Queue
-from time import sleep
-
 import pathology.path
 from dotenv import load_dotenv
 from slack_bolt import App
@@ -17,7 +14,6 @@ from ...backend.engine.engine import Engine
 
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
 
-# Load environment variables from a .env file
 load_dotenv()
 
 app_token = os.environ.get("AI6_APP_TOKEN")
@@ -28,30 +24,31 @@ app = App(token=bot_token)
 
 last_message = ""
 
-message_queue = Queue()
 latest_ts = None
 
+llm_client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+model_name = "gpt-4o"
 
-# @app.event("message")
-# def handle_message(message, ack, say):
-#     ack()  # Acknowledge ASAP
-#
-#     text = message.get("text")
-#     if not text:
-#         return
-#
-#     print(f"New user message: {text}")
-#
-#     message_queue.put(text)
-#
-#     # If you want to respond:
-#     # say(text=f"AI-6 is thinking... <@{user}>!", thread_ts=ts)
+engine = Engine(llm_client, model_name, tools_dir)
 
 
-# @app.action("button_click")
-# def action_button_click(body, ack, say):
-#     ack()
-#     say(f"<@{body['user']['id']}> clicked the button", thread_ts=body['message']['ts'])
+@app.event("message")
+def handle_message(message, ack, say):
+    ack()  # Acknowledge ASAP
+
+    text = message.get("text")
+    if not text:
+        return
+
+    channel_id = message['channel']
+
+    # If you want to respond:
+    # say(text=f"AI-6 is thinking... <@{user}>!", thread_ts=ts)
+
+    response = engine.send_message(text, partial(handle_tool_call, channel_id=channel_id))
+
+    post_to_channel(response, True, channel_id)
+
 
 @app.event("channel_created")
 def handle_channel_created(event, client, logger):
@@ -95,11 +92,6 @@ def join_channel(client):
     return channel
 
 
-def get_user_message(message_queue: Queue):
-    new_message = message_queue.get()  # blocks until message is available
-    return new_message
-
-
 def read_latest_message(channel_id):
     try:
         response = app.client.conversations_history(
@@ -121,10 +113,10 @@ def read_latest_message(channel_id):
         return None
 
 
-def post_to_channel(message, new_message, channel_id):
+def post_to_channel(message: str, new_message: bool, channel_id: str):
     try:
         thread_ts = None if new_message else read_latest_message(channel_id).get('ts')
-        response = app.client.chat_postMessage(
+        app.client.chat_postMessage(
             channel=channel_id,
             thread_ts=thread_ts,
             text=message
@@ -138,47 +130,12 @@ def handle_tool_call(name, args, result, channel_id):
     post_to_channel(message, False, channel_id)
 
 
-def start_ai6_engine(input_func, tool_call_func, output_func):
-    client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
-    model_name = "gpt-4o"
-
-    engine = Engine(client, model_name, tools_dir)
-    engine.run(input_func, tool_call_func, output_func)
-
-
 def main():
     channel = join_channel(app.client)
     print(f'Joined {channel['name']}')
 
-    # Start the AI 6 engine
-    engine_process = Process(
-        target=start_ai6_engine,
-        args=(partial(get_user_message, message_queue),
-              partial(handle_tool_call, channel_id=channel['id']),
-              partial(post_to_channel, channel_id=channel['id'], new_message=True)))
-    engine_process.start()
-
     # Start the Slack app
-    # SocketModeHandler(app, app_token).start()
-    global latest_ts
-    try:
-        while True:
-            try:
-                message = read_latest_message(channel['id'])
-                if message is not None and (latest_ts is None or message['ts'] > latest_ts):
-                    latest_ts = message['ts']
-                    message_queue.put(message['text'])
-                else:
-                    sleep(1)
-            except KeyboardInterrupt:
-                print("\nCtrl+C detected. Exiting loop...")
-                break
-
-    finally:
-        print("Shutting down AI-6 engine...")
-        engine_process.terminate()
-        engine_process.join()
-        print("Shutdown complete.")
+    SocketModeHandler(app, app_token).start()
 
 
 if __name__ == "__main__":
