@@ -30,7 +30,7 @@ async def main(message: cl.Message):
 
 @cl.on_chat_start
 async def chat_start():
-    welcome_msg = "AI-6 is ready 🚀"
+    welcome_msg = "AI-6 is ready 😊"
     await cl.Message(content=welcome_msg).send()
 
 

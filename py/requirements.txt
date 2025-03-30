@@ -2,6 +2,6 @@ openai
 sh
 slack_bolt
 python-dotenv
-mcp
+mcp[cli]
 pathology
 chainlit

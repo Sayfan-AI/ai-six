@@ -70,7 +70,7 @@ class Engine:
 
         return tools
 
-    def _send(self, on_tool_call_func: Callable[[str, dict, str], None] | None):
+    def _send(self, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
         try:
             response = self.client.chat.completions.create(
                 model=self.model_name, messages=self.messages, tools=self.tool_list, tool_choice="auto")
@@ -83,7 +83,7 @@ class Engine:
                 content=r.content,
                 tool_calls=[dict(
                     id=t.id,
-                    type=t.type,
+                    type="function",
                     function=dict(
                         name=t.function.name,
                         arguments=t.function.arguments
@@ -99,15 +99,15 @@ class Engine:
                     raise RuntimeError(f"Invalid arguments JSON for tool '{t.function.name}'")
                 try:
                     result = tool.run(**kwargs)
-                    tool_call = {
+                    tool_call_response = {
                         "tool_call_id": t.id,
                         "role": "tool",
                         "name": t.function.name,
                         "content": str(result),
                     }
-                    self.messages.append(tool_call)
+                    self.messages.append(tool_call_response)
                     if on_tool_call_func is not None:
-                        on_tool_call_func(tool_call['name'], kwargs, tool_call['content'])
+                        on_tool_call_func(tool_call_response['name'], kwargs, tool_call_response['content'])
                 except sh.ErrorReturnCode as e:
                     self.messages.append(
                         {
