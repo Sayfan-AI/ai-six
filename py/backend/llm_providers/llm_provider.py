@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from typing import NamedTuple
 
 from py.backend.tools.base.tool import Tool
@@ -23,10 +23,6 @@ class Response(NamedTuple):
 
 
 class LLMProvider(ABC):
-    def __init__(self, base_url: str, api_key: str):
-        self.base_url = base_url
-        self.api_key = api_key
-
     @abstractmethod
     def send(self, messages: list, tool_list: list[Tool], model: str | None = None) -> Response:
         """
@@ -35,5 +31,30 @@ class LLMProvider(ABC):
         :param tool_list: The list of tools available for the LLM to use.
         :param model: The model to use (optional).
         :return: The response from the LLM.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def models(self) -> list[str]:
+        """ Get the list of available models."""
+        pass
+
+    @abstractmethod
+    def model_response_to_message(self, response: Response) -> dict:
+        """
+        Convert the response to a message format.
+        :param response: The response from the LLM.
+        :return: The message in a dictionary format.
+        """
+        pass
+
+    @abstractmethod
+    def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
+        """
+        Convert the tool execution result to a message.
+        :param tool_call: The tool call made by the LLM.
+        :param tool_result: The result of executing a tool.
+        :return: The message in a dictionary format.
         """
         pass

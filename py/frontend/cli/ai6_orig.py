@@ -1,9 +1,9 @@
 import os
 
 import pathology.path
+from openai import OpenAI
 
-from py.backend.llm_providers.openai_provider import OpenAIProvider
-from ...backend.engine.engine2 import Engine
+from ...backend.engine.engine import Engine
 
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
 
@@ -24,12 +24,10 @@ def handle_tool_call(name, args, result):
 
 
 def main():
-    default_model = "gpt-4o"
-    openai_provider = OpenAIProvider(
-        os.environ['OPENAI_API_KEY'],
-        default_model)
+    client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+    model_name = "gpt-4o"
 
-    engine = Engine([openai_provider], default_model, tools_dir)
+    engine = Engine(client, model_name, tools_dir)
     engine.run(get_user_input, handle_tool_call, handle_response)
 
 if __name__ == '__main__':

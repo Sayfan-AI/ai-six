@@ -5,10 +5,9 @@ from openai import OpenAI
 
 class OpenAIProvider(LLMProvider):
 
-    def __init__(self, api_key: str, base_url: str, default_model: str = "gpt-4o"):
-        super().__init__(api_key, base_url)
+    def __init__(self, api_key: str, default_model: str = "gpt-4o"):
         self.default_model = default_model
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        self.client = OpenAI(api_key=api_key)
 
     def send(self, messages: list, tool_list: list[Tool], model: str | None = None) -> Response:
         """
@@ -30,13 +29,28 @@ class OpenAIProvider(LLMProvider):
             tool_choice="auto"
         )
 
-        return response.choices[0].message.content
+        return Response(
+            content=response.choices[0].message.content,
+            role=response.choices[0].message.role,
+            tool_calls=[
+                ToolCall(
+                    id=tool_call.id,
+                    name=tool_call.function.name,
+                    arguments=tool_call.function.arguments
+                ) for tool_call in response.choices[0].message.tool_calls if tool_call.function
+            ]
+        )
 
-    def _build_tool_calls_message(self, response: Response) -> dict:
+
+    @property
+    def models(self) -> list[str]:
+        """ """
+        return [m.id for m in self.client.models.list().data]
+
+    def model_response_to_message(self, response: Response) -> dict:
         """
-        Build a message for the tool call.
-        :param tool_call: The tool call to build the message for.
-        :return: The message for the tool call.
+        Build a message with tool calls from a response.
+        :return: The provider specific message
         """
         return {
             "role": "assistant",
@@ -44,12 +58,21 @@ class OpenAIProvider(LLMProvider):
             "tool_calls": [
                 ToolCall(
                     id=tool_call.id,
-                    name=tool_call.function.name,
-                    arguments=tool_call.function.arguments
+                    name=tool_call.name,
+                    arguments=tool_call.arguments
                 ) for tool_call in response.tool_calls if tool_call.function
             ]
         }
 
-
-
+    def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
+        """
+        Build a message from the result of a tool execution.
+        :return: The provider specific message
+        """
+        return dict(
+            tool_call_id = tool_call.id,
+            role = "tool",
+            name = tool_call.name,
+            content = str(tool_result),
+        )
 

@@ -26,20 +26,29 @@ It is focused on tool use and management.
 
 # Meetings
 
+## Project Meeting 5-apr-2025
+
+Discuss summarization when context window feels up.
+
+### Action Items
+
+- [ ] Saar/Gigi - Multiple LLM Providers
+- [ ] Saar - Research Ollama + Gemma 3 function calling
+- [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
+- [ ] Gigi - Look into MCP
+- [ ] Gigi - Engine + Tool configuration
+- [ ] Gigi - Summarization (when context gets too long)
+- [ ] Gigi - Streaming
+
 ## Project Meeting 29-mar-2025
 
 ### Action Items
 
-- [ ] Saar - Multiple LLM Providers
-- [ ] Saar - Research Ollama + Gemma 3 function calling
-- [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
 - [x] Gigi - Check out chainlit
 - [x] Gigi - Issues
   - [x] AI-6 slack should ignore messages that mention other users
   - [x] AI-6 slack bot should leave the channel on app exit
   - [x] Bootstrap tool to restart itself (AI-6 runs new code after changes)
-- [ ] Gigi - Look into MCP
-- [ ] Gigi - Engine + Tool configuration
  
 
 ## Project Meeting 22-mar-2025

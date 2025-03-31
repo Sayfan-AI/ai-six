@@ -21,6 +21,7 @@ class Tool(ABC):
     spec: Spec
 
     def as_dict(self) -> dict:
+        """Convert the tool to a dictionary format for OpenAI API."""
         return {
             "type": "function",
             "function": {
