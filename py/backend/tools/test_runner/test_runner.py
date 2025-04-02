@@ -1,13 +1,15 @@
 import sh  # Make sure to have the sh module installed: pip install sh
-from ..base.tool import Tool, Spec, Parameter
+from ..base.tool import Tool, Spec, Parameter, Parameters
 
 class TestRunner(Tool):
     def __init__(self):
         desc = 'A tool to run Python unit tests using unittest framework.'
         spec = Spec(name='python_test_runner',
                     description=desc,
-                    parameters=[Parameter(name='test_directory', type='string', description='The directory containing tests to run')],
-                    required=['test_directory'])
+                    parameters=Parameters(
+                        properties=[Parameter(name='test_directory', type='string', description='The directory containing tests to run')],
+                        required=['test_directory'])
+        )
         super().__init__(spec)
 
     def run(self, **kwargs):

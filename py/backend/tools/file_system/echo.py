@@ -1,6 +1,6 @@
 import os
 import sh
-from ..base.tool import Tool, Spec, Parameter
+from ..base.tool import Tool, Spec, Parameter, Parameters
 
 
 class Echo(Tool):
@@ -10,11 +10,13 @@ class Echo(Tool):
         desc = 'Write content to a file, creating any necessary directories.'
         spec = Spec(name='echo',
                     description=desc,
-                    parameters=[
-                        Parameter(name='file_path', type='string', description='The path of the file to write to.'),
-                        Parameter(name='content', type='string', description='The content to write to the file.')
-                    ],
-                    required=['file_path', 'content'])
+                    parameters=Parameters(
+                        properties=[
+                            Parameter(name='file_path', type='string', description='The path of the file to write to.'),
+                            Parameter(name='content', type='string', description='The content to write to the file.')
+                        ],
+                        required=['file_path', 'content'])
+        )
         super().__init__(spec)
 
     def run(self, **kwargs):

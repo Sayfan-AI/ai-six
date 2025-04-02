@@ -1,9 +1,7 @@
 import subprocess
 
-import sys
+from ..base.tool import Tool, Spec, Parameters
 
-import sh
-from ..base.tool import Tool, Spec
 
 class Pwd(Tool):
     def __init__(self, user: str | None = None):
@@ -12,8 +10,8 @@ class Pwd(Tool):
         desc = 'Print the name of the current/working directory. See https://www.gnu.org/software/coreutils/manual/html_node/pwd-invocation.html'
         spec = Spec(name='pwd',
                     description=desc,
-                    parameters=[],  # No parameters needed for pwd
-                    required=[])
+                    parameters=Parameters(properties=[], required=[])
+        )
 
         super().__init__(spec)
 

@@ -11,6 +11,7 @@ class ToolCall(NamedTuple):
     id: str
     name: str
     arguments: list
+    required: list[str]
 
 
 class Response(NamedTuple):

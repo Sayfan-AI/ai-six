@@ -1,4 +1,4 @@
-from ..base.tool import Tool, Spec, Parameter
+from ..base.tool import Tool, Spec, Parameter, Parameters
 import sh
 import shlex
 
@@ -9,8 +9,9 @@ class Git(Tool):
         desc = 'Simple Git tool to interact with Git repositories.'
         spec = Spec(name='git',
                     description=desc,
-                    parameters=[Parameter(name='args', type='string', description='command-line arguments for git')],
-                    required=['args'])
+                    parameters=Parameters(
+                        properties=[Parameter(name='args', type='string', description='command-line arguments for git')],
+                        required=['args']))
         super().__init__(spec)
 
     def run(self, **kwargs):

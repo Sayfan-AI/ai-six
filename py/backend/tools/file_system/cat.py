@@ -1,7 +1,7 @@
 import sh
 import shlex
 
-from ..base.tool import Tool, Spec, Parameter
+from ..base.tool import Tool, Spec, Parameter, Parameters
 
 
 class Cat(Tool):
@@ -10,8 +10,10 @@ class Cat(Tool):
         desc = 'Concatenate and display file contents. See https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html'
         spec = Spec(name='cat',
                     description=desc,
-                    parameters=[Parameter(name='args', type='string', description='command-line arguments for ls')],
-                    required=['args'])
+                    parameters=Parameters(
+                        properties=[Parameter(name='args', type='string', description='command-line arguments for ls')],
+                        required=['args'])
+                )
 
         super().__init__(spec)
 

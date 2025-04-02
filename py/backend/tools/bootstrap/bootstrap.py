@@ -1,4 +1,4 @@
-from ..base.tool import Tool, Spec, Parameter
+from ..base.tool import Tool, Spec, Parameters
 import os
 import sys
 
@@ -7,8 +7,8 @@ class Bootstrap(Tool):
         desc = 'Tool to restart the program using execv.'
         spec = Spec(name='bootstrap',
                     description=desc,
-                    parameters=[],  # No parameters needed for execv
-                    required=[])
+                    parameters=Parameters(properties=[], required=[]),  # No parameters needed for execv
+        )
         super().__init__(spec)
 
     def run(self, **kwargs):

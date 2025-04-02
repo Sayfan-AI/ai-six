@@ -1,4 +1,4 @@
-from ..base.tool import Tool, Spec, Parameter
+from ..base.tool import Tool, Spec, Parameter, Parameters
 import sh
 import shlex
 
@@ -9,8 +9,10 @@ class Ls(Tool):
         desc = 'List directory contents. See https://www.gnu.org/software/coreutils/manual/html_node/ls-invocation.html'
         spec = Spec(name='ls',
                     description=desc,
-                    parameters=[Parameter(name='args', type='string', description='command-line arguments for ls')],
-                    required=['args'])
+                    parameters=Parameters(
+                        properties=[Parameter(name='args', type='string', description='command-line arguments for ls')],
+                        required=['args'])
+        )
         super().__init__(spec)
 
     def run(self, **kwargs):

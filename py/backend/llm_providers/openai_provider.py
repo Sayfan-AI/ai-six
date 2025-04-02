@@ -19,18 +19,18 @@ class OpenAIProvider(LLMProvider):
                 "description": tool.spec.description,
                 "parameters": {
                     "type": "object",
+                    "required": tool.spec.parameters.required,
                     "properties": {
                         param.name: {
                             "type": param.type,
                             "description": param.description
-                        } for param in tool.spec.parameters
+                        } for param in tool.spec.parameters.properties
                     },
-                    "required": tool.spec.required
                 }
             }
         }
 
-    def send(self, messages: list, tool_list: list[Tool], model: str | None = None) -> Response:
+    def send(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Response:
         """
         Send a message to the OpenAI LLM and receive a response.
         :param messages: The list of messages to send.
@@ -42,7 +42,7 @@ class OpenAIProvider(LLMProvider):
             model = self.default_model
 
         # Send the message to the OpenAI API
-        tool_data = [self._tool2dict(tool) for tool in tool_list]
+        tool_data = [self._tool2dict(tool) for tool in tool_dict.values()]
 
         try:
             response = self.client.chat.completions.create(
@@ -63,9 +63,10 @@ class OpenAIProvider(LLMProvider):
                 ToolCall(
                     id=tool_call.id,
                     name=tool_call.function.name,
-                    arguments=tool_call.function.arguments
+                    arguments=tool_call.function.arguments,
+                    required=tool_dict[tool_call.function.name].spec.parameters.required
                 ) for tool_call in tool_calls if tool_call.function
-            ]
+            ],
         )
 
 
@@ -79,17 +80,32 @@ class OpenAIProvider(LLMProvider):
         Build a message with tool calls from a response.
         :return: The provider specific message
         """
-        return {
-            "role": "assistant",
-            "content": response.content,
-            "tool_calls": [
-                ToolCall(
-                    id=tool_call.id,
-                    name=tool_call.name,
-                    arguments=tool_call.arguments
-                ) for tool_call in response.tool_calls
+        # return {
+        #     "role": "assistant",
+        #     "content": response.content,
+        #     "tool_calls": [
+        #         ToolCall(
+        #             id=tool_call.id,
+        #             name=tool_call.name,
+        #             arguments=tool_call.arguments
+        #         ) for tool_call in response.tool_calls
+        #     ]
+        # }
+
+        return dict(role="assistant",
+            content=response.content,
+            tool_calls=[
+                dict(
+                    id=t.id,
+                    type="function",
+                    function=dict(
+                        name=t.name,
+                        arguments=t.arguments
+                    )
+                ) for t in response.tool_calls
             ]
-        }
+        )
+
 
     def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
         """

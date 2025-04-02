@@ -19,8 +19,8 @@ class Engine:
             for llm_provider in llm_providers
             for model_id in llm_provider.models
         }
-        self.tool_list = Engine.discover_tools(tools_dir)
-        self.tool_dict = {t.spec.name: t for t in self.tool_list}
+        tool_list = Engine.discover_tools(tools_dir)
+        self.tool_dict = {t.spec.name: t for t in tool_list}
         self.messages = []
 
     @staticmethod
@@ -80,7 +80,7 @@ class Engine:
             raise RuntimeError(f"Unknown model ID: {model_id}")
 
         try:
-            response = llm_provider.send(self.messages, self.tool_list, model_id)
+            response = llm_provider.send(self.messages, self.tool_dict, model_id)
         except Exception as e:
             raise RuntimeError(f"Error sending message to LLM: {e}")
         if response.tool_calls:

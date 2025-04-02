@@ -3,7 +3,7 @@ import os
 import pathology.path
 from openai import OpenAI
 
-from ...backend.engine.engine import Engine
+from ...backend.engine.engine_orig import Engine
 
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
 
