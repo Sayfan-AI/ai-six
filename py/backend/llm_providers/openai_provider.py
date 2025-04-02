@@ -9,6 +9,27 @@ class OpenAIProvider(LLMProvider):
         self.default_model = default_model
         self.client = OpenAI(api_key=api_key)
 
+    @staticmethod
+    def _tool2dict(tool: Tool) -> dict:
+        """Convert the tool to a dictionary format for OpenAI API."""
+        return {
+            "type": "function",
+            "function": {
+                "name": tool.spec.name,
+                "description": tool.spec.description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        param.name: {
+                            "type": param.type,
+                            "description": param.description
+                        } for param in tool.spec.parameters
+                    },
+                    "required": tool.spec.required
+                }
+            }
+        }
+
     def send(self, messages: list, tool_list: list[Tool], model: str | None = None) -> Response:
         """
         Send a message to the OpenAI LLM and receive a response.
@@ -21,14 +42,20 @@ class OpenAIProvider(LLMProvider):
             model = self.default_model
 
         # Send the message to the OpenAI API
-        tool_data = [tool.as_dict() for tool in tool_list]
-        response = self.client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tool_data,
-            tool_choice="auto"
-        )
+        tool_data = [self._tool2dict(tool) for tool in tool_list]
 
+        try:
+            response = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tool_data,
+                tool_choice="auto"
+            )
+        except Exception as e:
+            raise
+
+        tool_calls = response.choices[0].message.tool_calls
+        tool_calls = [] if tool_calls is None else tool_calls# Check if the response contains tool calls
         return Response(
             content=response.choices[0].message.content,
             role=response.choices[0].message.role,
@@ -37,7 +64,7 @@ class OpenAIProvider(LLMProvider):
                     id=tool_call.id,
                     name=tool_call.function.name,
                     arguments=tool_call.function.arguments
-                ) for tool_call in response.choices[0].message.tool_calls if tool_call.function
+                ) for tool_call in tool_calls if tool_call.function
             ]
         )
 
@@ -60,7 +87,7 @@ class OpenAIProvider(LLMProvider):
                     id=tool_call.id,
                     name=tool_call.name,
                     arguments=tool_call.arguments
-                ) for tool_call in response.tool_calls if tool_call.function
+                ) for tool_call in response.tool_calls
             ]
         }
 
@@ -75,4 +102,3 @@ class OpenAIProvider(LLMProvider):
             name = tool_call.name,
             content = str(tool_result),
         )
-

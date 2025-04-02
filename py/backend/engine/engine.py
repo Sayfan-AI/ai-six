@@ -5,18 +5,22 @@ from typing import Callable
 import importlib.util
 import inspect
 import sh
-from openai import OpenAI
 
+from ..llm_providers.llm_provider import LLMProvider
 from ..tools.base.tool import Tool
 
 class Engine:
-    def __init__(self, client: OpenAI, model_name: str, tools_dir: str):
+    def __init__(self, llm_providers: list[LLMProvider], default_model_id: str, tools_dir: str):
         assert (os.path.isdir(tools_dir))
-        self.client = client
-        self.model_name = model_name
-        tools = Engine.discover_tools(tools_dir)
-        self.tool_dict = {t.spec.name: t for t in tools}
-        self.tool_list = [t.as_dict() for t in tools]
+        self.llm_providers = llm_providers
+        self.default_model_id = default_model_id
+        self.model_provider_map = {
+            model_id: llm_provider
+            for llm_provider in llm_providers
+            for model_id in llm_provider.models
+        }
+        self.tool_list = Engine.discover_tools(tools_dir)
+        self.tool_dict = {t.spec.name: t for t in self.tool_list}
         self.messages = []
 
     @staticmethod
@@ -70,65 +74,40 @@ class Engine:
 
         return tools
 
-    def _send(self, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name, messages=self.messages, tools=self.tool_list, tool_choice="auto")
-            r = response.choices[0].message
-        except Exception as e:
-            raise RuntimeError(f"Chat completion failed. error: {e}")
-        if r.tool_calls:
-            message = dict(
-                role=r.role,
-                content=r.content,
-                tool_calls=[dict(
-                    id=t.id,
-                    type="function",
-                    function=dict(
-                        name=t.function.name,
-                        arguments=t.function.arguments
-                    )) for t in r.tool_calls if t.function])
-            self.messages.append(message)
-            for t in r.tool_calls:
-                tool = self.tool_dict.get(t.function.name)
-                if tool is None:
-                    raise RuntimeError(f'Unknown tool: {t.function.name}')
-                try:
-                    kwargs = json.loads(t.function.arguments)
-                except json.JSONDecodeError as e:
-                    raise RuntimeError(f"Invalid arguments JSON for tool '{t.function.name}'")
-                try:
-                    result = tool.run(**kwargs)
-                    tool_call_response = {
-                        "tool_call_id": t.id,
-                        "role": "tool",
-                        "name": t.function.name,
-                        "content": str(result),
-                    }
-                    self.messages.append(tool_call_response)
-                    if on_tool_call_func is not None:
-                        on_tool_call_func(tool_call_response['name'], kwargs, tool_call_response['content'])
-                except sh.ErrorReturnCode as e:
-                    self.messages.append(
-                        {
-                            "tool_call_id": t.id,
-                            "role": "tool",
-                            "name": t.function.name,
-                            "content": e.stderr.decode(),
-                        }
-                    )
-                except Exception as e:
-                    self.messages.append(
-                        {
-                            "tool_call_id": t.id,
-                            "role": "tool",
-                            "name": t.function.name,
-                            "content": str(e),
-                        }
-                    )
+    def _send(self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
+        llm_provider = self.model_provider_map.get(model_id)
+        if llm_provider is None:
+            raise RuntimeError(f"Unknown model ID: {model_id}")
 
-            return self._send(on_tool_call_func)
-        return r.content.strip()
+        try:
+            response = llm_provider.send(self.messages, self.tool_list, model_id)
+        except Exception as e:
+            raise RuntimeError(f"Error sending message to LLM: {e}")
+        if response.tool_calls:
+            message = llm_provider.model_response_to_message(response)
+            self.messages.append(message)
+            for tool_call in response.tool_calls:
+                tool = self.tool_dict.get(tool_call.name)
+                if tool is None:
+                    raise RuntimeError(f'Unknown tool: {tool_call.name}')
+                try:
+                    kwargs = json.loads(tool_call.arguments)
+                except json.JSONDecodeError as e:
+                    raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
+                try:
+                    tool_result = tool.run(**kwargs)
+                    message = llm_provider.tool_result_to_message(tool_call, str(tool_result))
+                    if on_tool_call_func is not None:
+                        on_tool_call_func(message['name'], kwargs, message['content'])
+                except sh.ErrorReturnCode as e:
+                    message = llm_provider.tool_result_to_message(tool_call, e.stderr.decode())
+                except Exception as e:
+                    message = llm_provider.tool_result_to_message(tool_call, str(e))
+                finally:
+                    self.messages.append(message)
+
+            return self._send(model_id, on_tool_call_func)
+        return response.content.strip()
 
     def run(self,
             get_input_func: Callable[[], None],
@@ -138,12 +117,12 @@ class Engine:
         while user_input := get_input_func():
             self.messages.append(dict(role='user', content=user_input))
 
-            response = self._send(on_tool_call_func)
+            response = self._send(self.default_model_id, on_tool_call_func)
             self.messages.append(dict(role='assistant', content=response))
             on_response_func(response)
         print('Done!')
 
-    def send_message(self, message: str, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
+    def send_message(self, message: str, model_id: str, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
         self.messages.append(dict(role='user', content=message))
-        response = self._send(on_tool_call_func)
+        response = self._send(model_id, on_tool_call_func)
         return response
