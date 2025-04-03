@@ -28,7 +28,20 @@ It is focused on tool use and management.
 
 ## Project Meeting 5-apr-2025
 
-Discuss summarization when context window feels up.
+- Discuss summarization when context window feels up.
+- More file system tools
+    - sed (for string replace and other edits on a file)
+    - patch
+- Support for Anthropic built-in text editor tool
+  - https://docs.anthropic.com/en/docs/build-with-claude/tool-use/text-editor-tool  
+- Streaming (display content as it is generated)
+
+- Support for multiple LLM providers
+  - OpenAI
+  - Ollama + Gemma 3 function calling
+  - Anthropic
+  - Gemini 2.5 peo experimental (free tier)
+  
 
 ### Action Items
 
@@ -37,8 +50,6 @@ Discuss summarization when context window feels up.
 - [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
 - [ ] Gigi - Look into MCP
 - [ ] Gigi - Engine + Tool configuration
-- [ ] Gigi - Summarization (when context gets too long)
-- [ ] Gigi - Streaming
 
 ## Project Meeting 29-mar-2025
 

@@ -10,6 +10,7 @@ from slack_sdk.errors import SlackApiError
 
 from openai import OpenAI
 
+from py.backend.llm_providers.openai_provider import OpenAIProvider
 from ...backend.engine.engine import Engine
 
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
@@ -26,10 +27,12 @@ last_message = ""
 
 latest_ts = None
 
-llm_client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
-model_name = "gpt-4o"
+default_model = "gpt-4o"
+openai_provider = OpenAIProvider(
+    os.environ['OPENAI_API_KEY'],
+    default_model)
 
-engine = Engine(llm_client, model_name, tools_dir)
+engine = Engine([openai_provider], default_model, tools_dir)
 
 
 @app.event("message")
@@ -49,7 +52,7 @@ def handle_message(message, ack, say):
     # If you want to respond:
     # say(text=f"AI-6 is thinking... <@{user}>!", thread_ts=ts)
 
-    response = engine.send_message(text, partial(handle_tool_call, channel_id=channel_id))
+    response = engine.send_message(text, default_model, partial(handle_tool_call, channel_id=channel_id))
 
     post_to_channel(response, True, channel_id)
 
@@ -94,6 +97,7 @@ def join_channel(client):
             print(f"Error joining channel {channel_id}: {e}")
 
     return channel
+
 
 def leave_channels(client):
     """Leave all the channels
@@ -157,6 +161,7 @@ def main():
         print(f"Unhandled exception: {e}")
     finally:
         leave_channels(app.client)
+
 
 if __name__ == "__main__":
     main()
