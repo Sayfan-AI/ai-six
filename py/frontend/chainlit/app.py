@@ -1,10 +1,9 @@
-import asyncio
-
 import chainlit as cl
 from chainlit.cli import run_chainlit
 import os
-from openai import OpenAI
 from pathology.path import Path
+
+from py.backend.llm_providers.openai_provider import OpenAIProvider
 
 script_dir = Path.script_dir()
 root_dir = str((script_dir / '../../..').resolve())
@@ -15,16 +14,17 @@ from py.backend.engine.engine import Engine
 # Define the tools directory
 tools_dir = str((script_dir / '../../backend/tools').resolve())
 
-# Create an OpenAI client
-client = OpenAI(api_key=os.environ['OPENAI_API_KEY'])
-model_name = "gpt-4o"
+default_model = "gpt-4o"
+openai_provider = OpenAIProvider(
+    os.environ['OPENAI_API_KEY'],
+    default_model)
 
-engine = Engine(client, model_name, tools_dir)
+engine = Engine([openai_provider], default_model, tools_dir)
 
 
 @cl.on_message
 async def main(message: cl.Message):
-    response = engine.send_message(message.content, None)
+    response = engine.send_message(message.content, default_model, None)
     await cl.Message(content=response).send()
 
 
