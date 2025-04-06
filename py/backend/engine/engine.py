@@ -10,19 +10,6 @@ from ..llm_providers.llm_provider import LLMProvider
 from ..tools.base.tool import Tool
 
 class Engine:
-    def __init__(self, llm_providers: list[LLMProvider], default_model_id: str, tools_dir: str):
-        assert (os.path.isdir(tools_dir))
-        self.llm_providers = llm_providers
-        self.default_model_id = default_model_id
-        self.model_provider_map = {
-            model_id: llm_provider
-            for llm_provider in llm_providers
-            for model_id in llm_provider.models
-        }
-        tool_list = Engine.discover_tools(tools_dir)
-        self.tool_dict = {t.spec.name: t for t in tool_list}
-        self.messages = []
-
     @staticmethod
     def discover_tools(tools_dir):
         tools = []
@@ -73,6 +60,19 @@ class Engine:
                 print(f"Error processing {file_path}: {e}")
 
         return tools
+
+    def __init__(self, llm_providers: list[LLMProvider], default_model_id: str, tools_dir: str):
+        assert (os.path.isdir(tools_dir))
+        self.llm_providers = llm_providers
+        self.default_model_id = default_model_id
+        self.model_provider_map = {
+            model_id: llm_provider
+            for llm_provider in llm_providers
+            for model_id in llm_provider.models
+        }
+        tool_list = Engine.discover_tools(tools_dir)
+        self.tool_dict = {t.spec.name: t for t in tool_list}
+        self.messages = []
 
     def _send(self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
         llm_provider = self.model_provider_map.get(model_id)

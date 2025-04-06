@@ -6,6 +6,13 @@ It is focused on tool use and management.
 
 # Roadmap
 
+## Capabilities
+
+- [ ] MCP support (engine is MCP client, local tools can run as MCP server)
+- [ ] Streaming
+- [ ] Context window management (summarization)
+- [ ] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
+- [ ] Expose usage information (tokens)
 ## Tools
 
 - [ ] AI-6 (recursive agent mesh)
@@ -19,10 +26,21 @@ It is focused on tool use and management.
 
 ## Permission model
 
-- [] Document the security model (OS user based)
-- [] Support for defining OS model and permissions for AI-6 and specific tools
+- [] Document the security model (OS user based, including access to remote services credentials and k8s clusters)
+- [] Dedicated tool Support for defining OS model and permissions for AI-6 and specific tools
 
-## Fully-autonomous
+## Fully-autonomous AI software engineer
+- [ ] Watch Github issues
+- [ ] Respond to new issues assigned to it
+- [ ] Create local branch
+- [ ] Make changes + tests
+- [ ] Run tests
+- [ ] Open PR
+- [ ] Watch for PR comments
+- [ ] Make further changes based on PR comments
+- [ ] Merge PR when approved
+- [ ] Deploy and monitor
+- [ ] Rollback if something goes wrong
 
 # Meetings
 
@@ -40,7 +58,7 @@ It is focused on tool use and management.
 
 - Support for multiple LLM providers
   - OpenAI
-  - Ollama + Gemma 3 function calling
+  - Ollama + Gemma 3 function calling (no tool use on Ollama)
   - Anthropic
   - Gemini 2.5 pro experimental (free tier)
   - Llamma 4 Scout
