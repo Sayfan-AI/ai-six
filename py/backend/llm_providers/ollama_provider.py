@@ -1,5 +1,7 @@
+import json
 from py.backend.llm_providers.llm_provider import LLMProvider, Response, ToolCall
 from py.backend.tools.base.tool import Tool
+
 import ollama
 
 
@@ -13,6 +15,22 @@ class OllamaProvider(LLMProvider):
         # This should return actual available models for ollama
         return [self.model]  # Example: return the initialized model
 
+
+    @staticmethod
+    def _fix_tool_call_arguments(messages):
+        for message in messages:
+            tool_calls = message.get("tool_calls")
+            if not tool_calls:
+                continue
+            for call in tool_calls:
+                func = call.get("function")
+                if func and isinstance(func.get("arguments"), str):
+                    try:
+                        func["arguments"] = json.loads(func["arguments"])
+                    except json.JSONDecodeError as e:
+                        raise ValueError(f"Invalid JSON in function.arguments: {func['arguments']}") from e
+
+
     def send(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Response:
         """Send a message to the local Ollama model and receive a response."""
         if model is None:
@@ -22,13 +40,14 @@ class OllamaProvider(LLMProvider):
         tool_data = [tool.run for tool in tool_dict.values()] + [self._tool2dict(tool) for tool in tool_dict.values()]
 
         try:
+            OllamaProvider._fix_tool_call_arguments(messages)
             response: ollama.ChatResponse = ollama.chat(
                 model,
                 messages=messages,
                 tools=tool_data
             )
         except Exception as e:
-            raise RuntimeError(f"Error communicating with Ollama model: {e}")
+            raise RuntimeError(f"Error communicating with ollama model: {e}")
 
         tool_calls = response.message.tool_calls or []
         return Response(
@@ -36,9 +55,9 @@ class OllamaProvider(LLMProvider):
             role=response.message.role,
             tool_calls=[
                 ToolCall(
-                    id=tool_call.id,
+                    id=tool_call.function.name,
                     name=tool_call.function.name,
-                    arguments=tool_call.function.arguments,
+                    arguments=json.dumps(tool_call.function.arguments),
                     required=tool_dict[tool_call.function.name].spec.parameters.required
                 ) for tool_call in tool_calls if tool_call
             ],

@@ -13,6 +13,7 @@ tools_dir = str(Path.script_dir() / '../../tools')
 class TestOllamaProviderIntegration(unittest.TestCase):
     def setUp(self):
         self._ensure_ollama()
+        print('ollama is running...')
         # Initialize the OllamaProvider with a specific model
         self.provider = OllamaProvider(model=model)
 
@@ -23,26 +24,28 @@ class TestOllamaProviderIntegration(unittest.TestCase):
             tools_dir=tools_dir
         )
 
-    def _is_ollama_running(self):
-        try:
-            sh.ollama("ps")
-            return True
-        except Exception:
-            return False
+    @staticmethod
+    def _ensure_ollama():
+        def is_ollama_running():
+            try:
+                sh.ollama("ps")
+                return True
+            except Exception:
+                return False
 
-    def _ensure_ollama(self):
-        if self._is_ollama_running():
+        if is_ollama_running():
             return
 
+        print("Starting ollama...")
         sh.ollama("serve", _bg=True)
         for _ in range(60):
-            if self._is_ollama_running():
+            if is_ollama_running():
                 break
             time.sleep(1)
         else:
             raise RuntimeError("Failed to start ollama within 60 seconds")
 
-    def test_send_message_and_receive_response(self):
+    def test_send_message(self):
         message = "What is the answer to life, the universe and everything?"
 
         response = self.engine.send_message(message, model_id=model, on_tool_call_func=None)
@@ -50,10 +53,27 @@ class TestOllamaProviderIntegration(unittest.TestCase):
         self.assertIsNotNone(response)
         self.assertIsInstance(response, str)
         print("Response from model:")
-        wrapped_reponse = '\n'.join(textwrap.wrap(response, 80))
-        print(wrapped_reponse)
+        wrapped_response = '\n'.join(textwrap.wrap(response, 80))
+        print(wrapped_response)
 
         self.assertIn('42', response, "Expected answer not found in the response.")
+
+    def test_send_message_with_tools(self):
+        message = "List the contents of the current directory."
+
+        def on_tool_call_func(tool_name, kwargs, result):
+            self.assertEqual(tool_name, 'ls')
+            self.assertIsInstance(result, str)
+
+        response = self.engine.send_message(message, model_id=model, on_tool_call_func=on_tool_call_func)
+
+        self.assertIsNotNone(response)
+        self.assertIsInstance(response, str)
+        print("Response from model:")
+        wrapped_response = '\n'.join(textwrap.wrap(response, 80))
+        print(wrapped_response)
+
+        self.assertIn('directory', response, "Expected tool result not found in the response.")
 
 
 if __name__ == "__main__":
