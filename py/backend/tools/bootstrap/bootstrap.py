@@ -1,3 +1,5 @@
+import importlib
+
 from ..base.tool import Tool, Spec, Parameters
 import os
 import sys
@@ -13,7 +15,21 @@ class Bootstrap(Tool):
 
     def run(self, **kwargs):
         try:
-            # re-execute the current script
-            os.execv(sys.executable, ['python'] + sys.argv)
+            # Infer module name from __main__ context
+            main_module = sys.modules['__main__']
+            module_path = getattr(main_module, '__file__', None)
+            if not module_path:
+                raise RuntimeError("Can't determine main module file")
+
+            # Try to get the module name for -m invocation
+            spec = importlib.util.find_spec(main_module.__package__)
+            if spec is None or not main_module.__package__:
+                raise RuntimeError("Cannot resolve package for restart")
+
+            module_name = f"{main_module.__package__}.{os.path.basename(module_path).split('.')[0]}"
+
+            # Re-execute using -m
+            os.execv(sys.executable, [sys.executable, "-m", module_name, *sys.argv[1:]])
+
         except Exception as e:
-            raise
+            raise RuntimeError(f"Failed to restart: {e}") from e

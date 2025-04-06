@@ -28,6 +28,7 @@ It is focused on tool use and management.
 
 ## Project Meeting 5-apr-2025
 
+
 - Discuss summarization when context window feels up.
 - More file system tools
     - sed (for string replace and other edits on a file)
@@ -35,12 +36,14 @@ It is focused on tool use and management.
 - Support for Anthropic built-in text editor tool
   - https://docs.anthropic.com/en/docs/build-with-claude/tool-use/text-editor-tool  
 - Streaming (display content as it is generated)
+- Managing long-running processes (e.g. ollama serve)
 
 - Support for multiple LLM providers
   - OpenAI
   - Ollama + Gemma 3 function calling
   - Anthropic
-  - Gemini 2.5 peo experimental (free tier)
+  - Gemini 2.5 pro experimental (free tier)
+  - Llamma 4 Scout
   
 
 ### Action Items
@@ -250,3 +253,4 @@ Done!
 - [mcp-cli](https://github.com/chrishayuk/mcp-cli)
 - [AI Agent framework on Kubernetes](https://github.com/kagent-dev/kagent)
 - [Ollam + Gemma 3](https://www.youtube.com/watch?v=m2rG6zHoxBo)
+- [Ollama API](https://github.com/ollama/ollama/blob/main/docs/api.md)
