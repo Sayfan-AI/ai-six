@@ -63,6 +63,22 @@ The memory system is integrated with the Engine class and works as follows:
 4. When the conversation ends, a final save is performed
 5. Long conversations are summarized to manage context window size
 
+## Testing
+
+The memory module includes comprehensive unit tests:
+
+- `test_file_memory_provider.py`: Tests for the file-based memory provider
+- `test_summarizer.py`: Tests for the conversation summarizer
+- `test_memory_tools.py`: Tests for the memory management tools
+- `test_engine_memory.py`: Tests for the integration with the Engine class
+
+To run the tests:
+
+```bash
+cd /workspace/ai-six
+python -m py.backend.tests.run_memory_tests
+```
+
 ## Extending
 
 To add a new storage backend:
@@ -70,3 +86,4 @@ To add a new storage backend:
 1. Create a new class that inherits from `MemoryProvider`
 2. Implement all required methods
 3. Use the new provider when initializing the Engine
+4. Add unit tests for the new provider
