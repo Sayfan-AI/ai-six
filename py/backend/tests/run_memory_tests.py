@@ -11,10 +11,10 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
 # Import the test modules
-from memory.test_file_memory_provider import TestFileMemoryProvider
-from memory.test_summarizer import TestConversationSummarizer
-from memory.test_memory_tools import TestMemoryTools
-from memory.test_engine_memory import TestEngineMemory
+from py.backend.tests.memory.test_file_memory_provider import TestFileMemoryProvider
+from py.backend.tests.memory.test_summarizer import TestConversationSummarizer
+from py.backend.tests.memory.test_memory_tools import TestMemoryTools
+from py.backend.tests.memory.test_engine_memory import TestEngineMemory
 
 if __name__ == "__main__":
     # Create a test suite
