@@ -11,7 +11,7 @@ It is focused on tool use and management.
 - [ ] MCP support (engine is MCP client, local tools can run as MCP server)
 - [ ] Streaming
 - [ ] Context window management (summarization)
-- [ ] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
+- [x] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
 - [ ] Expose usage information (tokens)
 ## Tools
 
