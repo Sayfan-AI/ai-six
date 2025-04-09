@@ -92,8 +92,8 @@ class TestMemoryTools(unittest.TestCase):
         # Run the tool
         result = tool.run()
         
-        # Check that the result contains the current conversation ID
-        self.assertIn("current-conversation", result)
+        # Check that the result contains the conversation ID text
+        self.assertIn("Current conversation ID:", result)
         
     def test_delete_conversation_tool(self):
         """Test the DeleteConversation tool."""

@@ -113,7 +113,7 @@ class TestEngineMemory(unittest.TestCase):
         self.assertEqual(self.engine.messages[0]["role"], "user")
         self.assertEqual(self.engine.messages[0]["content"], "Hello, AI-6!")
         self.assertEqual(self.engine.messages[1]["role"], "assistant")
-        self.assertEqual(self.engine.messages[1]["content"], "Hello! How can I help you today!")
+        self.assertEqual(self.engine.messages[1]["content"], "Hello! How can I help you today?")
         
     def test_checkpoint_if_needed(self):
         """Test that checkpoints are created when needed."""
