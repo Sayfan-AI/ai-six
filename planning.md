@@ -13,6 +13,8 @@ It is focused on tool use and management.
 - [ ] Context window management (summarization)
 - [ ] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
 - [ ] Expose usage information (tokens)
+- [ ] Computer use (browser and debugging in the IDE!)
+
 ## Tools
 
 - [ ] AI-6 (recursive agent mesh)
@@ -26,7 +28,8 @@ It is focused on tool use and management.
 
 ## Permission model
 
-- [] Document the security model (OS user based, including access to remote services credentials and k8s clusters)
+- [] Document the security model 
+  - OS user based, access to remote services credentials and k8s clusters, run in a container
 - [] Dedicated tool Support for defining OS model and permissions for AI-6 and specific tools
 
 ## Fully-autonomous AI software engineer
@@ -272,3 +275,4 @@ Done!
 - [AI Agent framework on Kubernetes](https://github.com/kagent-dev/kagent)
 - [Ollam + Gemma 3](https://www.youtube.com/watch?v=m2rG6zHoxBo)
 - [Ollama API](https://github.com/ollama/ollama/blob/main/docs/api.md)
+- [Lucid Autonomy - Python computer use](https://github.com/RandomInternetPreson/Lucid_Autonomy)
