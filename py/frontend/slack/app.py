@@ -1,5 +1,6 @@
 import os
 from functools import partial
+from pathlib import Path
 
 import pathology.path
 from dotenv import load_dotenv
@@ -11,9 +12,19 @@ from slack_sdk.errors import SlackApiError
 from openai import OpenAI
 
 from py.backend.llm_providers.openai_provider import OpenAIProvider
+from py.backend.memory.file_memory_provider import FileMemoryProvider
 from ...backend.engine.engine import Engine
+from ...backend.tools.memory.list_conversations import ListConversations
+from ...backend.tools.memory.load_conversation import LoadConversation
+from ...backend.tools.memory.get_conversation_id import GetConversationId
+from ...backend.tools.memory.delete_conversation import DeleteConversation
 
+# Get the tools directory
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
+
+# Get the memory directory (create it if it doesn't exist)
+memory_dir = str((pathology.path.Path.script_dir() / '../../../memory/slack').resolve())
+Path(memory_dir).mkdir(parents=True, exist_ok=True)
 
 load_dotenv()
 
@@ -24,15 +35,40 @@ bot_token = os.environ.get("AI6_BOT_TOKEN")
 app = App(token=bot_token)
 
 last_message = ""
-
 latest_ts = None
 
+# Initialize providers
 default_model = "gpt-4o"
 openai_provider = OpenAIProvider(
     os.environ['OPENAI_API_KEY'],
     default_model)
+memory_provider = FileMemoryProvider(memory_dir)
 
-engine = Engine([openai_provider], default_model, tools_dir)
+# Initialize engine with memory support
+engine = Engine(
+    llm_providers=[openai_provider],
+    default_model_id=default_model,
+    tools_dir=tools_dir,
+    memory_provider=memory_provider
+)
+
+# Register memory management tools
+def register_memory_tools(engine):
+    """Register memory management tools with the engine."""
+    # Create tool instances with a reference to the engine
+    list_conversations_tool = ListConversations(engine)
+    load_conversation_tool = LoadConversation(engine)
+    get_conversation_id_tool = GetConversationId(engine)
+    delete_conversation_tool = DeleteConversation(engine)
+    
+    # Add tools to the engine's tool dictionary
+    engine.tool_dict[list_conversations_tool.spec.name] = list_conversations_tool
+    engine.tool_dict[load_conversation_tool.spec.name] = load_conversation_tool
+    engine.tool_dict[get_conversation_id_tool.spec.name] = get_conversation_id_tool
+    engine.tool_dict[delete_conversation_tool.spec.name] = delete_conversation_tool
+
+# Register memory tools
+register_memory_tools(engine)
 
 
 @app.event("message")
@@ -48,6 +84,25 @@ def handle_message(message, ack, say):
         return
 
     channel_id = message['channel']
+    
+    # Use channel ID as conversation ID for persistent memory per channel
+    # This ensures each channel has its own conversation history
+    if engine.conversation_id != channel_id:
+        # If we have a memory provider, try to load the conversation for this channel
+        if engine.memory_provider:
+            # Check if we have a saved conversation for this channel
+            if channel_id in engine.memory_provider.list_conversations():
+                engine.load_conversation(channel_id)
+            else:
+                # Start a new conversation with the channel ID
+                engine.conversation_id = channel_id
+                # Clear any previous messages
+                engine.messages = []
+        else:
+            # If no memory provider, just set the conversation ID
+            engine.conversation_id = channel_id
+            # Clear any previous messages
+            engine.messages = []
 
     # If you want to respond:
     # say(text=f"AI-6 is thinking... <@{user}>!", thread_ts=ts)
