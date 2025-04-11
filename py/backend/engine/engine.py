@@ -221,7 +221,40 @@ class Engine:
         if self.memory_provider:
             print(f"[DEBUG] Validating {len(self.messages)} messages before sending to LLM")
             self.messages = self.memory_provider._validate_message_structure(self.messages)
-            print(f"[DEBUG] After validation: {len(self.messages)} messages")
+            
+            # Additional validation to ensure correct message sequence
+            # Every 'tool' message must follow a message with 'tool_calls'
+            validated_messages = []
+            has_preceding_tool_calls = False
+            tool_call_ids_available = set()
+            
+            for message in self.messages:
+                if message.get('role') == 'assistant' and 'tool_calls' in message:
+                    has_preceding_tool_calls = True
+                    # Collect all tool_call_ids from this message
+                    for tool_call in message['tool_calls']:
+                        if 'id' in tool_call:
+                            tool_call_ids_available.add(tool_call['id'])
+                    validated_messages.append(message)
+                elif message.get('role') == 'tool':
+                    # Only include tool messages if:
+                    # 1. We've seen a preceding message with tool_calls
+                    # 2. The tool_call_id is in the available set
+                    if has_preceding_tool_calls and message.get('tool_call_id') in tool_call_ids_available:
+                        validated_messages.append(message)
+                        # Remove this tool_call_id from available set to prevent duplicate tool responses
+                        tool_call_ids_available.remove(message['tool_call_id'])
+                    else:
+                        print(f"[DEBUG] Skipping tool message with tool_call_id: {message.get('tool_call_id')} - no preceding message with matching tool_calls")
+                else:
+                    # For other message types (user, system), reset the tool_calls flag
+                    if message.get('role') == 'user' or message.get('role') == 'system':
+                        has_preceding_tool_calls = False
+                        tool_call_ids_available = set()
+                    validated_messages.append(message)
+            
+            self.messages = validated_messages
+            print(f"[DEBUG] After sequence validation: {len(self.messages)} messages")
         else:
             print("[DEBUG] No memory provider, skipping validation")
 

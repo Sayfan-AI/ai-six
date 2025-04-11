@@ -101,6 +101,7 @@ class MemoryProvider(ABC):
         2. Messages have the correct structure for the API
         3. No duplicate messages exist
         4. No duplicate tool_call_ids exist across different assistant messages
+        5. Tool messages appear in the correct sequence after their corresponding tool_calls
         
         Args:
             messages: List of message dictionaries
@@ -112,7 +113,6 @@ class MemoryProvider(ABC):
         validated_messages = []
         tool_call_ids_seen = set()
         message_hashes = set()  # To detect duplicates
-        tool_call_id_to_message_index = {}  # Maps tool_call_id to the index in validated_messages
         
         # First pass: collect all tool_call_ids from assistant messages
         print("[DEBUG] First pass: collecting tool_call_ids from assistant messages")
@@ -138,6 +138,7 @@ class MemoryProvider(ABC):
         
         # Reset for the main validation pass
         tool_call_ids_seen = set()
+        available_tool_call_ids = set()  # Track which tool_call_ids are currently available for tool messages
         
         for i, message in enumerate(messages):
             # Skip messages with invalid roles
@@ -164,6 +165,12 @@ class MemoryProvider(ABC):
             message_hashes.add(msg_hash)
             print(f"[DEBUG] Added message hash to set, now have {len(message_hashes)} unique messages")
             
+            # Reset available tool_call_ids when we see a user or system message
+            # This ensures tool messages can only follow their corresponding assistant message
+            if message.get('role') in ['user', 'system']:
+                available_tool_call_ids.clear()
+                print(f"[DEBUG] Reset available_tool_call_ids due to {message.get('role')} message")
+            
             # Handle tool messages
             if message.get('role') == 'tool':
                 print(f"[DEBUG] Processing tool message {i}")
@@ -174,17 +181,18 @@ class MemoryProvider(ABC):
                     
                 print(f"[DEBUG] Tool message has tool_call_id: {message['tool_call_id']}")
                     
-                # Check if we've seen a corresponding tool_call
-                if message['tool_call_id'] not in tool_call_ids_seen:
-                    print(f"[DEBUG] Skipping tool message {i} - no corresponding tool_call found for ID: {message['tool_call_id']}")
-                    print(f"[DEBUG] Current tool_call_ids_seen: {tool_call_ids_seen}")
+                # Check if this tool_call_id is available (meaning it came after an assistant message with this tool_call)
+                if message['tool_call_id'] not in available_tool_call_ids:
+                    print(f"[DEBUG] Skipping tool message {i} - tool_call_id not available: {message['tool_call_id']}")
+                    print(f"[DEBUG] Current available_tool_call_ids: {available_tool_call_ids}")
                     continue
                     
-                # Add the valid tool message
+                # Add the valid tool message and remove from available set to prevent duplicates
                 print(f"[DEBUG] Adding valid tool message with tool_call_id: {message['tool_call_id']}")
                 validated_messages.append(message)
+                available_tool_call_ids.remove(message['tool_call_id'])
             else:
-                # For non-tool messages, check if it has tool_calls
+                # For assistant messages with tool_calls, make those tool_call_ids available for subsequent tool messages
                 if 'tool_calls' in message and message.get('role') == 'assistant':
                     print(f"[DEBUG] Processing assistant message {i} with tool_calls")
                     # Check for duplicate tool_call_ids and fix them
@@ -200,9 +208,10 @@ class MemoryProvider(ABC):
                                 print(f"[DEBUG] Fixing duplicate tool_call_id: {tool_call['id']} -> {new_id}")
                                 tool_call['id'] = new_id
                             
-                            # Add to seen set
+                            # Add to seen set and available set
                             tool_call_ids_seen.add(tool_call['id'])
-                            print(f"[DEBUG] Added tool_call_id to seen set: {tool_call['id']}")
+                            available_tool_call_ids.add(tool_call['id'])
+                            print(f"[DEBUG] Added tool_call_id to seen and available sets: {tool_call['id']}")
                             fixed_tool_calls.append(tool_call)
                         else:
                             print(f"[DEBUG] Tool call missing 'id' field, skipping")
@@ -210,6 +219,7 @@ class MemoryProvider(ABC):
                     # Update the message with fixed tool_calls
                     message['tool_calls'] = fixed_tool_calls
                     print(f"[DEBUG] Updated message with {len(fixed_tool_calls)} fixed tool_calls")
+                    print(f"[DEBUG] Available tool_call_ids now: {available_tool_call_ids}")
                 
                 # Add the message
                 print(f"[DEBUG] Adding message {i} to validated_messages")
