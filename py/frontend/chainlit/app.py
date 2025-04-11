@@ -62,8 +62,8 @@ session_conversations = {}
 
 @cl.on_message
 async def main(message: cl.Message):
-    # Get the session ID
-    session_id = message.session_id
+    # Get the thread ID
+    session_id = message.thread_id
     
     # Check if we have a conversation ID for this session
     if session_id in session_conversations:
