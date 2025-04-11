@@ -99,6 +99,8 @@ class MemoryProvider(ABC):
         This ensures that:
         1. Messages with role 'tool' have a corresponding preceding message with 'tool_calls'
         2. Messages have the correct structure for the API
+        3. No duplicate messages exist
+        4. No duplicate tool_call_ids exist across different assistant messages
         
         Args:
             messages: List of message dictionaries
@@ -108,21 +110,40 @@ class MemoryProvider(ABC):
         """
         validated_messages = []
         tool_call_ids_seen = set()
+        message_hashes = set()  # To detect duplicates
+        tool_call_id_to_message_index = {}  # Maps tool_call_id to the index in validated_messages
         
         for i, message in enumerate(messages):
             # Skip messages with invalid roles
             if 'role' not in message:
+                print(f"Skipping message {i} - missing role")
                 continue
-                
+            
+            # Create a hash of the message to detect duplicates
+            # We'll use a tuple of (role, content, tool_call_id) as the hash
+            msg_hash = (
+                message.get('role'),
+                message.get('content'),
+                message.get('tool_call_id') if message.get('role') == 'tool' else None
+            )
+            
+            # Skip duplicate messages
+            if msg_hash in message_hashes:
+                print(f"Skipping duplicate message {i} - role: {message.get('role')}")
+                continue
+            
+            message_hashes.add(msg_hash)
+            
             # Handle tool messages
             if message.get('role') == 'tool':
                 # Check if this tool message has a valid tool_call_id
                 if 'tool_call_id' not in message:
+                    print(f"Skipping tool message {i} - missing tool_call_id")
                     continue
                     
                 # Check if we've seen a corresponding tool_call
                 if message['tool_call_id'] not in tool_call_ids_seen:
-                    # If not, skip this tool message
+                    print(f"Skipping tool message {i} - no corresponding tool_call found for ID: {message['tool_call_id']}")
                     continue
                     
                 # Add the valid tool message
@@ -130,10 +151,23 @@ class MemoryProvider(ABC):
             else:
                 # For non-tool messages, check if it has tool_calls
                 if 'tool_calls' in message and message.get('role') == 'assistant':
-                    # Add all tool_call_ids to our seen set
+                    # Check for duplicate tool_call_ids and fix them
+                    fixed_tool_calls = []
                     for tool_call in message['tool_calls']:
                         if 'id' in tool_call:
+                            # If this tool_call_id has been seen before, generate a new one
+                            if tool_call['id'] in tool_call_ids_seen:
+                                # Create a new unique ID by appending a timestamp
+                                new_id = f"{tool_call['id']}_{int(time.time() * 1000)}"
+                                print(f"Fixing duplicate tool_call_id: {tool_call['id']} -> {new_id}")
+                                tool_call['id'] = new_id
+                            
+                            # Add to seen set
                             tool_call_ids_seen.add(tool_call['id'])
+                            fixed_tool_calls.append(tool_call)
+                    
+                    # Update the message with fixed tool_calls
+                    message['tool_calls'] = fixed_tool_calls
                 
                 # Add the message
                 validated_messages.append(message)
