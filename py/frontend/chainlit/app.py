@@ -109,23 +109,47 @@ async def main(message: cl.Message):
 
 @cl.on_chat_start
 async def chat_start():
+    # Get user session info
+    print(f"[DEBUG] User session object: {dir(cl.user_session)}")
+    print(f"[DEBUG] User session data: {cl.user_session.__dict__}")
+    
     # Create a new conversation ID for this session
     session_id = cl.user_session.get("session_id")
-    conversation_id = f"chainlit-{session_id}"
-    session_conversations[session_id] = conversation_id
+    print(f"[DEBUG] Got session_id from user_session: {session_id}")
+    
+    # Try to get thread_id if available
+    thread_id = getattr(cl.user_session, "thread_id", None)
+    print(f"[DEBUG] Attempted to get thread_id: {thread_id}")
+    
+    # Use thread_id if available, otherwise use session_id
+    final_id = thread_id if thread_id else session_id
+    print(f"[DEBUG] Using final_id for conversation: {final_id}")
+    
+    conversation_id = f"chainlit-{final_id}"
+    print(f"[DEBUG] Created conversation_id: {conversation_id}")
+    
+    session_conversations[final_id] = conversation_id
+    print(f"[DEBUG] Added to session_conversations dict with key: {final_id}")
     
     # Set the conversation ID in the engine
     engine.conversation_id = conversation_id
+    print(f"[DEBUG] Set engine.conversation_id to: {conversation_id}")
     
     # Check if we have a saved conversation for this ID
-    if engine.memory_provider and conversation_id in engine.memory_provider.list_conversations():
+    existing_conversations = engine.memory_provider.list_conversations() if engine.memory_provider else []
+    print(f"[DEBUG] Existing conversations: {existing_conversations}")
+    
+    if engine.memory_provider and conversation_id in existing_conversations:
+        print(f"[DEBUG] Found existing conversation, loading: {conversation_id}")
         engine.load_conversation(conversation_id)
         welcome_msg = f"Welcome back! Continuing conversation {conversation_id} 😊"
     else:
         # Clear any previous messages
+        print(f"[DEBUG] No existing conversation found, clearing messages")
         engine.messages = []
         welcome_msg = f"AI-6 is ready! New conversation started with ID: {conversation_id} 😊"
     
+    print(f"[DEBUG] Sending welcome message: {welcome_msg}")
     await cl.Message(content=welcome_msg).send()
 
 
