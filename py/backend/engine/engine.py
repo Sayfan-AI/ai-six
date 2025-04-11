@@ -216,7 +216,19 @@ class Engine:
             print(f"[DEBUG] Checkpoint interval reached ({self.checkpoint_interval}), saving conversation")
             self._save_conversation()
 
+    def _validate_messages_before_send(self):
+        """Validate messages before sending to LLM provider to ensure OpenAI API compatibility."""
+        if self.memory_provider:
+            print(f"[DEBUG] Validating {len(self.messages)} messages before sending to LLM")
+            self.messages = self.memory_provider._validate_message_structure(self.messages)
+            print(f"[DEBUG] After validation: {len(self.messages)} messages")
+        else:
+            print("[DEBUG] No memory provider, skipping validation")
+
     def _send(self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
+        # Validate messages before sending to LLM
+        self._validate_messages_before_send()
+        
         llm_provider = self.model_provider_map.get(model_id)
         if llm_provider is None:
             raise RuntimeError(f"Unknown model ID: {model_id}")

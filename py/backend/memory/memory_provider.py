@@ -125,7 +125,16 @@ class MemoryProvider(ABC):
                             print(f"[DEBUG] Duplicate tool_call_id found: {tool_call['id']}")
                         tool_call_ids_seen.add(tool_call['id'])
         
+        # Also check for orphaned tool messages (tool messages without corresponding tool_calls)
+        orphaned_tool_messages = []
+        for i, message in enumerate(messages):
+            if message.get('role') == 'tool' and 'tool_call_id' in message:
+                if message['tool_call_id'] not in tool_call_ids_seen:
+                    print(f"[DEBUG] Found orphaned tool message with tool_call_id: {message['tool_call_id']}")
+                    orphaned_tool_messages.append(i)
+        
         print(f"[DEBUG] Collected {len(tool_call_ids_seen)} unique tool_call_ids from assistant messages")
+        print(f"[DEBUG] Found {len(orphaned_tool_messages)} orphaned tool messages")
         
         # Reset for the main validation pass
         tool_call_ids_seen = set()
