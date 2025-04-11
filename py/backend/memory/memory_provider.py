@@ -108,16 +108,36 @@ class MemoryProvider(ABC):
         Returns:
             List of validated and fixed messages
         """
+        print(f"[DEBUG] Starting validation of {len(messages)} messages")
         validated_messages = []
         tool_call_ids_seen = set()
         message_hashes = set()  # To detect duplicates
         tool_call_id_to_message_index = {}  # Maps tool_call_id to the index in validated_messages
         
+        # First pass: collect all tool_call_ids from assistant messages
+        print("[DEBUG] First pass: collecting tool_call_ids from assistant messages")
+        for i, message in enumerate(messages):
+            if message.get('role') == 'assistant' and 'tool_calls' in message:
+                for tool_call in message['tool_calls']:
+                    if 'id' in tool_call:
+                        print(f"[DEBUG] Found tool_call_id in assistant message: {tool_call['id']}")
+                        if tool_call['id'] in tool_call_ids_seen:
+                            print(f"[DEBUG] Duplicate tool_call_id found: {tool_call['id']}")
+                        tool_call_ids_seen.add(tool_call['id'])
+        
+        print(f"[DEBUG] Collected {len(tool_call_ids_seen)} unique tool_call_ids from assistant messages")
+        
+        # Reset for the main validation pass
+        tool_call_ids_seen = set()
+        
         for i, message in enumerate(messages):
             # Skip messages with invalid roles
             if 'role' not in message:
-                print(f"Skipping message {i} - missing role")
+                print(f"[DEBUG] Skipping message {i} - missing role")
                 continue
+            
+            print(f"[DEBUG] Processing message {i}: role={message.get('role')}, " +
+                  f"content={message.get('content')[:30] if message.get('content') else None}...")
             
             # Create a hash of the message to detect duplicates
             # We'll use a tuple of (role, content, tool_call_id) as the hash
@@ -129,47 +149,62 @@ class MemoryProvider(ABC):
             
             # Skip duplicate messages
             if msg_hash in message_hashes:
-                print(f"Skipping duplicate message {i} - role: {message.get('role')}")
+                print(f"[DEBUG] Skipping duplicate message {i} - role: {message.get('role')}")
                 continue
             
             message_hashes.add(msg_hash)
+            print(f"[DEBUG] Added message hash to set, now have {len(message_hashes)} unique messages")
             
             # Handle tool messages
             if message.get('role') == 'tool':
+                print(f"[DEBUG] Processing tool message {i}")
                 # Check if this tool message has a valid tool_call_id
                 if 'tool_call_id' not in message:
-                    print(f"Skipping tool message {i} - missing tool_call_id")
+                    print(f"[DEBUG] Skipping tool message {i} - missing tool_call_id")
                     continue
+                    
+                print(f"[DEBUG] Tool message has tool_call_id: {message['tool_call_id']}")
                     
                 # Check if we've seen a corresponding tool_call
                 if message['tool_call_id'] not in tool_call_ids_seen:
-                    print(f"Skipping tool message {i} - no corresponding tool_call found for ID: {message['tool_call_id']}")
+                    print(f"[DEBUG] Skipping tool message {i} - no corresponding tool_call found for ID: {message['tool_call_id']}")
+                    print(f"[DEBUG] Current tool_call_ids_seen: {tool_call_ids_seen}")
                     continue
                     
                 # Add the valid tool message
+                print(f"[DEBUG] Adding valid tool message with tool_call_id: {message['tool_call_id']}")
                 validated_messages.append(message)
             else:
                 # For non-tool messages, check if it has tool_calls
                 if 'tool_calls' in message and message.get('role') == 'assistant':
+                    print(f"[DEBUG] Processing assistant message {i} with tool_calls")
                     # Check for duplicate tool_call_ids and fix them
                     fixed_tool_calls = []
-                    for tool_call in message['tool_calls']:
+                    for j, tool_call in enumerate(message['tool_calls']):
+                        print(f"[DEBUG] Processing tool_call {j} in message {i}")
                         if 'id' in tool_call:
+                            print(f"[DEBUG] Tool call has ID: {tool_call['id']}")
                             # If this tool_call_id has been seen before, generate a new one
                             if tool_call['id'] in tool_call_ids_seen:
                                 # Create a new unique ID by appending a timestamp
                                 new_id = f"{tool_call['id']}_{int(time.time() * 1000)}"
-                                print(f"Fixing duplicate tool_call_id: {tool_call['id']} -> {new_id}")
+                                print(f"[DEBUG] Fixing duplicate tool_call_id: {tool_call['id']} -> {new_id}")
                                 tool_call['id'] = new_id
                             
                             # Add to seen set
                             tool_call_ids_seen.add(tool_call['id'])
+                            print(f"[DEBUG] Added tool_call_id to seen set: {tool_call['id']}")
                             fixed_tool_calls.append(tool_call)
+                        else:
+                            print(f"[DEBUG] Tool call missing 'id' field, skipping")
                     
                     # Update the message with fixed tool_calls
                     message['tool_calls'] = fixed_tool_calls
+                    print(f"[DEBUG] Updated message with {len(fixed_tool_calls)} fixed tool_calls")
                 
                 # Add the message
+                print(f"[DEBUG] Adding message {i} to validated_messages")
                 validated_messages.append(message)
                 
+        print(f"[DEBUG] Validation complete. Original: {len(messages)}, Validated: {len(validated_messages)}")
         return validated_messages
