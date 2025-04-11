@@ -63,23 +63,45 @@ session_conversations = {}
 @cl.on_message
 async def main(message: cl.Message):
     # Get the thread ID
-    session_id = message.thread_id
+    print(f"[DEBUG] Message object: {dir(message)}")
+    print(f"[DEBUG] Message attributes: thread_id={getattr(message, 'thread_id', None)}, session_id={getattr(message, 'session_id', None)}")
+    
+    # Try to get thread_id, fallback to session_id if thread_id doesn't exist
+    try:
+        session_id = message.thread_id
+        print(f"[DEBUG] Using thread_id: {session_id}")
+    except AttributeError:
+        try:
+            session_id = message.session_id
+            print(f"[DEBUG] Fallback to session_id: {session_id}")
+        except AttributeError:
+            # If neither exists, use a default value
+            import uuid
+            session_id = str(uuid.uuid4())
+            print(f"[DEBUG] Neither thread_id nor session_id found, using generated UUID: {session_id}")
+    
+    print(f"[DEBUG] Final session_id value: {session_id}")
     
     # Check if we have a conversation ID for this session
     if session_id in session_conversations:
         conversation_id = session_conversations[session_id]
+        print(f"[DEBUG] Found existing conversation_id: {conversation_id} for session: {session_id}")
         # Load the conversation if it's not the current one
         if engine.conversation_id != conversation_id:
+            print(f"[DEBUG] Loading conversation: {conversation_id} (current: {engine.conversation_id})")
             engine.load_conversation(conversation_id)
     else:
         # Create a new conversation ID for this session
         conversation_id = f"chainlit-{session_id}"
+        print(f"[DEBUG] Created new conversation_id: {conversation_id} for session: {session_id}")
         session_conversations[session_id] = conversation_id
         engine.conversation_id = conversation_id
         engine.messages = []
     
     # Process the message
+    print(f"[DEBUG] Sending message to engine: {message.content}")
     response = engine.send_message(message.content, default_model, None)
+    print(f"[DEBUG] Received response from engine: {response[:100]}...")
     
     # Send the response
     await cl.Message(content=response).send()

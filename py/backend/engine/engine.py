@@ -71,7 +71,7 @@ class Engine:
                  tools_dir: str,
                  memory_provider: Optional[MemoryProvider] = None,
                  conversation_id: Optional[str] = None,
-                 checkpoint_interval: int = 10):  # Checkpoint every 10 messages by default
+                 checkpoint_interval: int = 3):  # Checkpoint every 3 messages by default
         assert (os.path.isdir(tools_dir))
         self.llm_providers = llm_providers
         self.default_model_id = default_model_id
@@ -101,36 +101,108 @@ class Engine:
     def _load_conversation(self) -> None:
         """Load conversation history from memory provider."""
         if not self.memory_provider:
+            print("[DEBUG] No memory provider, skipping load")
             return
+            
+        print(f"[DEBUG] Loading conversation: {self.conversation_id}")
             
         # Get the summary first
         summary = self.memory_provider.get_summary(self.conversation_id)
         
         # If there's a summary, add it as a system message
         if summary:
+            print(f"[DEBUG] Found summary: {summary[:50]}...")
             self.messages.append({
                 "role": "system",
                 "content": f"Previous conversation summary: {summary}"
             })
+        else:
+            print("[DEBUG] No summary found")
         
         # Load the most recent messages (limit to a reasonable number to avoid context window issues)
+        print("[DEBUG] Loading recent messages with limit=20")
         recent_messages = self.memory_provider.load_messages(self.conversation_id, limit=20)
+        
+        # Additional validation to ensure messages are compatible with OpenAI API
         if recent_messages:
-            self.messages.extend(recent_messages)
+            print(f"[DEBUG] Loaded {len(recent_messages)} messages from conversation {self.conversation_id}")
+            
+            # Print some info about tool_call_ids before validation
+            tool_call_ids_before = set()
+            for msg in recent_messages:
+                if msg.get('role') == 'assistant' and 'tool_calls' in msg:
+                    for tool_call in msg['tool_calls']:
+                        if 'id' in tool_call:
+                            tool_call_ids_before.add(tool_call['id'])
+                if msg.get('role') == 'tool' and 'tool_call_id' in msg:
+                    tool_call_ids_before.add(msg['tool_call_id'])
+            
+            print(f"[DEBUG] Found {len(tool_call_ids_before)} unique tool_call_ids before engine validation")
+            
+            # Perform additional validation to ensure no duplicate tool messages
+            # This is already handled by _validate_message_structure in MemoryProvider,
+            # but we add an extra check here for safety
+            tool_call_ids_seen = set()
+            tool_call_ids_added = set()
+            validated_messages = []
+            
+            for i, message in enumerate(recent_messages):
+                print(f"[DEBUG] Validating message {i}: role={message.get('role')}, " +
+                      f"tool_call_id={message.get('tool_call_id', 'None')}")
+                
+                # For tool messages, check for duplicates
+                if message.get('role') == 'tool' and 'tool_call_id' in message:
+                    # Skip if we've already added a message with this tool_call_id
+                    if message['tool_call_id'] in tool_call_ids_added:
+                        print(f"[DEBUG] Skipping duplicate tool message with tool_call_id: {message['tool_call_id']}")
+                        continue
+                    
+                    # Skip if we haven't seen a corresponding tool_call
+                    if message['tool_call_id'] not in tool_call_ids_seen:
+                        print(f"[DEBUG] Skipping orphaned tool message with tool_call_id: {message['tool_call_id']}")
+                        continue
+                    
+                    tool_call_ids_added.add(message['tool_call_id'])
+                    print(f"[DEBUG] Added tool_call_id to added set: {message['tool_call_id']}")
+                
+                # For assistant messages with tool_calls, track the tool_call_ids
+                elif message.get('role') == 'assistant' and 'tool_calls' in message:
+                    print(f"[DEBUG] Processing assistant message with tool_calls: {message.get('tool_calls')}")
+                    for tool_call in message['tool_calls']:
+                        if 'id' in tool_call:
+                            tool_call_ids_seen.add(tool_call['id'])
+                            print(f"[DEBUG] Added tool_call_id to seen set: {tool_call['id']}")
+                
+                validated_messages.append(message)
+            
+            print(f"[DEBUG] After additional validation: {len(validated_messages)} messages")
+            print(f"[DEBUG] Tool call IDs seen: {tool_call_ids_seen}")
+            print(f"[DEBUG] Tool call IDs added: {tool_call_ids_added}")
+            
+            self.messages.extend(validated_messages)
+            print(f"[DEBUG] Extended self.messages, now has {len(self.messages)} messages")
+        else:
+            print("[DEBUG] No recent messages found")
             
     def _save_conversation(self) -> None:
         """Save current conversation to memory provider."""
         if not self.memory_provider:
+            print("[DEBUG] No memory provider, skipping save")
             return
             
+        print(f"[DEBUG] Saving conversation {self.conversation_id} with {len(self.messages)} messages")
+        
         # Save all messages
         self.memory_provider.save_messages(self.conversation_id, self.messages)
         self.message_count_since_checkpoint = 0
+        print("[DEBUG] Reset message_count_since_checkpoint to 0")
         
         # If we have enough messages, generate and save a summary
         if len(self.messages) >= 10:
+            print("[DEBUG] Generating conversation summary")
             summary = self.summarizer.summarize(self.messages, self.default_model_id)
             self.memory_provider.save_summary(self.conversation_id, summary)
+            print("[DEBUG] Saved conversation summary")
             
     def _checkpoint_if_needed(self) -> None:
         """Check if we need to save a checkpoint and do so if needed."""
@@ -138,8 +210,10 @@ class Engine:
             return
             
         self.message_count_since_checkpoint += 1
+        print(f"[DEBUG] Incremented message_count_since_checkpoint to {self.message_count_since_checkpoint}")
         
         if self.message_count_since_checkpoint >= self.checkpoint_interval:
+            print(f"[DEBUG] Checkpoint interval reached ({self.checkpoint_interval}), saving conversation")
             self._save_conversation()
 
     def _send(self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
