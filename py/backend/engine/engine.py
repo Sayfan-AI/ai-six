@@ -139,44 +139,45 @@ class Engine:
             
             print(f"[DEBUG] Found {len(tool_call_ids_before)} unique tool_call_ids before engine validation")
             
-            # Perform validation to ensure correct message sequence
-            # Every 'tool' message must follow a message with 'tool_calls'
-            has_preceding_tool_calls = False
-            available_tool_call_ids = set()
+            # First pass: collect all tool_call_ids from assistant messages
+            print("[DEBUG] First pass: collecting tool_call_ids from assistant messages")
+            all_tool_call_ids = {}  # Map from tool_call_id to position of assistant message
+            
+            for i, message in enumerate(recent_messages):
+                if message.get('role') == 'assistant' and 'tool_calls' in message:
+                    for tool_call in message['tool_calls']:
+                        if 'id' in tool_call:
+                            all_tool_call_ids[tool_call['id']] = i
+                            print(f"[DEBUG] Found tool_call_id in assistant message at position {i}: {tool_call['id']}")
+            
+            print(f"[DEBUG] Collected {len(all_tool_call_ids)} unique tool_call_ids from assistant messages")
+            
+            # Second pass: validate the sequence
             validated_messages = []
             
             for i, message in enumerate(recent_messages):
                 print(f"[DEBUG] Validating message {i}: role={message.get('role')}, " +
                       f"tool_call_id={message.get('tool_call_id', 'None')}")
                 
-                if message.get('role') == 'assistant' and 'tool_calls' in message:
-                    # Track tool_call_ids from this assistant message
-                    has_preceding_tool_calls = True
-                    available_tool_call_ids = set()
-                    for tool_call in message['tool_calls']:
-                        if 'id' in tool_call:
-                            available_tool_call_ids.add(tool_call['id'])
-                            print(f"[DEBUG] Added tool_call_id to available set: {tool_call['id']}")
+                if message.get('role') == 'user' or message.get('role') == 'system':
+                    # Always include user and system messages
                     validated_messages.append(message)
-                    
+                elif message.get('role') == 'assistant':
+                    # Always include assistant messages
+                    validated_messages.append(message)
                 elif message.get('role') == 'tool':
-                    # Only include tool messages if:
-                    # 1. We've seen a preceding message with tool_calls
-                    # 2. The tool_call_id is in the available set
-                    if has_preceding_tool_calls and message.get('tool_call_id') in available_tool_call_ids:
-                        validated_messages.append(message)
-                        # Remove this tool_call_id from available set to prevent duplicate tool responses
-                        available_tool_call_ids.remove(message['tool_call_id'])
-                        print(f"[DEBUG] Added valid tool message with tool_call_id: {message['tool_call_id']}")
+                    # Only include tool messages if their tool_call_id exists in an assistant message
+                    # AND that assistant message comes before this tool message
+                    tool_call_id = message.get('tool_call_id')
+                    if tool_call_id in all_tool_call_ids:
+                        assistant_pos = all_tool_call_ids[tool_call_id]
+                        if assistant_pos < i:  # Ensure assistant message comes before tool message
+                            validated_messages.append(message)
+                            print(f"[DEBUG] Added valid tool message with tool_call_id: {tool_call_id}")
+                        else:
+                            print(f"[DEBUG] Skipping tool message - assistant message position {assistant_pos} not before tool message position {i}")
                     else:
-                        print(f"[DEBUG] Skipping invalid tool message with tool_call_id: {message.get('tool_call_id')}")
-                        
-                else:
-                    # For user or system messages, reset the tool_calls tracking
-                    if message.get('role') == 'user' or message.get('role') == 'system':
-                        has_preceding_tool_calls = False
-                        available_tool_call_ids = set()
-                    validated_messages.append(message)
+                        print(f"[DEBUG] Skipping tool message - tool_call_id not found in any assistant message: {tool_call_id}")
             
             print(f"[DEBUG] After sequence validation: {len(validated_messages)} messages")
             
@@ -221,38 +222,54 @@ class Engine:
         """Validate messages before sending to LLM provider to ensure OpenAI API compatibility."""
         if self.memory_provider:
             print(f"[DEBUG] Validating {len(self.messages)} messages before sending to LLM")
-            self.messages = self.memory_provider._validate_message_structure(self.messages)
             
-            # Additional validation to ensure correct message sequence
-            # Every 'tool' message must follow a message with 'tool_calls'
-            validated_messages = []
-            has_preceding_tool_calls = False
-            tool_call_ids_available = set()
+            # First pass: collect all tool_call_ids from assistant messages
+            print("[DEBUG] First pass: collecting tool_call_ids from assistant messages")
+            all_tool_call_ids = {}  # Map from tool_call_id to position of assistant message
             
-            for message in self.messages:
+            for i, message in enumerate(self.messages):
                 if message.get('role') == 'assistant' and 'tool_calls' in message:
-                    has_preceding_tool_calls = True
-                    # Collect all tool_call_ids from this message
                     for tool_call in message['tool_calls']:
                         if 'id' in tool_call:
-                            tool_call_ids_available.add(tool_call['id'])
+                            all_tool_call_ids[tool_call['id']] = i
+                            print(f"[DEBUG] Found tool_call_id in assistant message at position {i}: {tool_call['id']}")
+            
+            print(f"[DEBUG] Collected {len(all_tool_call_ids)} unique tool_call_ids from assistant messages")
+            
+            # Second pass: validate the sequence
+            validated_messages = []
+            available_tool_call_ids = set()
+            
+            for i, message in enumerate(self.messages):
+                if message.get('role') == 'user' or message.get('role') == 'system':
+                    # Always include user and system messages
                     validated_messages.append(message)
+                    # Reset available tool_call_ids for user messages
+                    if message.get('role') == 'user':
+                        available_tool_call_ids = set()
+                        print(f"[DEBUG] Reset available_tool_call_ids due to user message")
+                elif message.get('role') == 'assistant':
+                    # Always include assistant messages
+                    validated_messages.append(message)
+                    # Update available tool_call_ids if this message has tool_calls
+                    if 'tool_calls' in message:
+                        for tool_call in message['tool_calls']:
+                            if 'id' in tool_call:
+                                available_tool_call_ids.add(tool_call['id'])
+                                print(f"[DEBUG] Added tool_call_id to available set: {tool_call['id']}")
                 elif message.get('role') == 'tool':
-                    # Only include tool messages if:
-                    # 1. We've seen a preceding message with tool_calls
-                    # 2. The tool_call_id is in the available set
-                    if has_preceding_tool_calls and message.get('tool_call_id') in tool_call_ids_available:
-                        validated_messages.append(message)
-                        # Remove this tool_call_id from available set to prevent duplicate tool responses
-                        tool_call_ids_available.remove(message['tool_call_id'])
+                    # Only include tool messages if their tool_call_id exists in an assistant message
+                    # AND that assistant message comes before this tool message
+                    tool_call_id = message.get('tool_call_id')
+                    if tool_call_id in all_tool_call_ids:
+                        assistant_pos = all_tool_call_ids[tool_call_id]
+                        if assistant_pos < i:  # Ensure assistant message comes before tool message
+                            validated_messages.append(message)
+                            print(f"[DEBUG] Added valid tool message with tool_call_id: {tool_call_id}")
+                        else:
+                            print(f"[DEBUG] Skipping tool message - assistant message position {assistant_pos} not before tool message position {i}")
                     else:
-                        print(f"[DEBUG] Skipping tool message with tool_call_id: {message.get('tool_call_id')} - no preceding message with matching tool_calls")
-                else:
-                    # For other message types (user, system), reset the tool_calls flag
-                    if message.get('role') == 'user' or message.get('role') == 'system':
-                        has_preceding_tool_calls = False
-                        tool_call_ids_available = set()
-                    validated_messages.append(message)
+                        print(f"[DEBUG] Skipping tool message - tool_call_id not found in any assistant message: {tool_call_id}")
             
             self.messages = validated_messages
             print(f"[DEBUG] After sequence validation: {len(self.messages)} messages")
