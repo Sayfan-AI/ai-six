@@ -139,45 +139,46 @@ class Engine:
             
             print(f"[DEBUG] Found {len(tool_call_ids_before)} unique tool_call_ids before engine validation")
             
-            # Perform additional validation to ensure no duplicate tool messages
-            # This is already handled by _validate_message_structure in MemoryProvider,
-            # but we add an extra check here for safety
-            tool_call_ids_seen = set()
-            tool_call_ids_added = set()
+            # Perform validation to ensure correct message sequence
+            # Every 'tool' message must follow a message with 'tool_calls'
+            has_preceding_tool_calls = False
+            available_tool_call_ids = set()
             validated_messages = []
             
             for i, message in enumerate(recent_messages):
                 print(f"[DEBUG] Validating message {i}: role={message.get('role')}, " +
                       f"tool_call_id={message.get('tool_call_id', 'None')}")
                 
-                # For tool messages, check for duplicates
-                if message.get('role') == 'tool' and 'tool_call_id' in message:
-                    # Skip if we've already added a message with this tool_call_id
-                    if message['tool_call_id'] in tool_call_ids_added:
-                        print(f"[DEBUG] Skipping duplicate tool message with tool_call_id: {message['tool_call_id']}")
-                        continue
-                    
-                    # Skip if we haven't seen a corresponding tool_call
-                    if message['tool_call_id'] not in tool_call_ids_seen:
-                        print(f"[DEBUG] Skipping orphaned tool message with tool_call_id: {message['tool_call_id']}")
-                        continue
-                    
-                    tool_call_ids_added.add(message['tool_call_id'])
-                    print(f"[DEBUG] Added tool_call_id to added set: {message['tool_call_id']}")
-                
-                # For assistant messages with tool_calls, track the tool_call_ids
-                elif message.get('role') == 'assistant' and 'tool_calls' in message:
-                    print(f"[DEBUG] Processing assistant message with tool_calls: {message.get('tool_calls')}")
+                if message.get('role') == 'assistant' and 'tool_calls' in message:
+                    # Track tool_call_ids from this assistant message
+                    has_preceding_tool_calls = True
+                    available_tool_call_ids = set()
                     for tool_call in message['tool_calls']:
                         if 'id' in tool_call:
-                            tool_call_ids_seen.add(tool_call['id'])
-                            print(f"[DEBUG] Added tool_call_id to seen set: {tool_call['id']}")
-                
-                validated_messages.append(message)
+                            available_tool_call_ids.add(tool_call['id'])
+                            print(f"[DEBUG] Added tool_call_id to available set: {tool_call['id']}")
+                    validated_messages.append(message)
+                    
+                elif message.get('role') == 'tool':
+                    # Only include tool messages if:
+                    # 1. We've seen a preceding message with tool_calls
+                    # 2. The tool_call_id is in the available set
+                    if has_preceding_tool_calls and message.get('tool_call_id') in available_tool_call_ids:
+                        validated_messages.append(message)
+                        # Remove this tool_call_id from available set to prevent duplicate tool responses
+                        available_tool_call_ids.remove(message['tool_call_id'])
+                        print(f"[DEBUG] Added valid tool message with tool_call_id: {message['tool_call_id']}")
+                    else:
+                        print(f"[DEBUG] Skipping invalid tool message with tool_call_id: {message.get('tool_call_id')}")
+                        
+                else:
+                    # For user or system messages, reset the tool_calls tracking
+                    if message.get('role') == 'user' or message.get('role') == 'system':
+                        has_preceding_tool_calls = False
+                        available_tool_call_ids = set()
+                    validated_messages.append(message)
             
-            print(f"[DEBUG] After additional validation: {len(validated_messages)} messages")
-            print(f"[DEBUG] Tool call IDs seen: {tool_call_ids_seen}")
-            print(f"[DEBUG] Tool call IDs added: {tool_call_ids_added}")
+            print(f"[DEBUG] After sequence validation: {len(validated_messages)} messages")
             
             self.messages.extend(validated_messages)
             print(f"[DEBUG] Extended self.messages, now has {len(self.messages)} messages")
@@ -270,30 +271,49 @@ class Engine:
             response = llm_provider.send(self.messages, self.tool_dict, model_id)
         except Exception as e:
             raise RuntimeError(f"Error sending message to LLM: {e}")
+            
         if response.tool_calls:
-            message = llm_provider.model_response_to_message(response)
-            self.messages.append(message)
+            # First, add the assistant message with tool_calls
+            assistant_message = llm_provider.model_response_to_message(response)
+            self.messages.append(assistant_message)
+            print(f"[DEBUG] Added assistant message with {len(response.tool_calls)} tool_calls")
+            
+            # Track tool_call_ids from this assistant message
+            tool_call_ids = set()
+            for tool_call in response.tool_calls:
+                tool_call_ids.add(tool_call.id)
+            
+            # Now process each tool call and add the corresponding tool messages
             for tool_call in response.tool_calls:
                 tool = self.tool_dict.get(tool_call.name)
                 if tool is None:
                     raise RuntimeError(f'Unknown tool: {tool_call.name}')
+                    
                 try:
                     kwargs = json.loads(tool_call.arguments)
                 except json.JSONDecodeError as e:
                     raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
+                    
                 try:
                     tool_result = tool.run(**kwargs)
-                    message = llm_provider.tool_result_to_message(tool_call, str(tool_result))
+                    tool_message = llm_provider.tool_result_to_message(tool_call, str(tool_result))
                     if on_tool_call_func is not None:
-                        on_tool_call_func(message['name'], kwargs, message['content'])
+                        on_tool_call_func(tool_message['name'], kwargs, tool_message['content'])
                 except sh.ErrorReturnCode as e:
-                    message = llm_provider.tool_result_to_message(tool_call, e.stderr.decode())
+                    tool_message = llm_provider.tool_result_to_message(tool_call, e.stderr.decode())
                 except Exception as e:
-                    message = llm_provider.tool_result_to_message(tool_call, str(e))
-                finally:
-                    self.messages.append(message)
+                    tool_message = llm_provider.tool_result_to_message(tool_call, str(e))
+                
+                # Ensure the tool message has a valid tool_call_id that matches one from the assistant message
+                if tool_message.get('tool_call_id') in tool_call_ids:
+                    self.messages.append(tool_message)
+                    print(f"[DEBUG] Added tool message with tool_call_id: {tool_message.get('tool_call_id')}")
+                else:
+                    print(f"[DEBUG] Skipping tool message with invalid tool_call_id: {tool_message.get('tool_call_id')}")
 
+            # Continue the conversation with another send
             return self._send(model_id, on_tool_call_func)
+            
         return response.content.strip()
 
     def run(self,
