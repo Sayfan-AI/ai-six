@@ -91,3 +91,51 @@ class MemoryProvider(ABC):
         if 'timestamp' not in message:
             message['timestamp'] = time.time()
         return message
+        
+    def _validate_message_structure(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Validate and fix the message structure to ensure compatibility with OpenAI API.
+        
+        This ensures that:
+        1. Messages with role 'tool' have a corresponding preceding message with 'tool_calls'
+        2. Messages have the correct structure for the API
+        
+        Args:
+            messages: List of message dictionaries
+            
+        Returns:
+            List of validated and fixed messages
+        """
+        validated_messages = []
+        tool_call_ids_seen = set()
+        
+        for i, message in enumerate(messages):
+            # Skip messages with invalid roles
+            if 'role' not in message:
+                continue
+                
+            # Handle tool messages
+            if message.get('role') == 'tool':
+                # Check if this tool message has a valid tool_call_id
+                if 'tool_call_id' not in message:
+                    continue
+                    
+                # Check if we've seen a corresponding tool_call
+                if message['tool_call_id'] not in tool_call_ids_seen:
+                    # If not, skip this tool message
+                    continue
+                    
+                # Add the valid tool message
+                validated_messages.append(message)
+            else:
+                # For non-tool messages, check if it has tool_calls
+                if 'tool_calls' in message and message.get('role') == 'assistant':
+                    # Add all tool_call_ids to our seen set
+                    for tool_call in message['tool_calls']:
+                        if 'id' in tool_call:
+                            tool_call_ids_seen.add(tool_call['id'])
+                
+                # Add the message
+                validated_messages.append(message)
+                
+        return validated_messages
