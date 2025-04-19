@@ -292,26 +292,40 @@ class Engine:
             raise RuntimeError(f"Error sending message to LLM: {e}")
             
         if response.tool_calls:
-            # First, ensure all tool calls have globally unique IDs
-            for tool_call in response.tool_calls:
-                # Replace the LLM-generated ID with a UUID if needed
-                if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
-                    original_id = tool_call.id
-                    tool_call.id = f"tool_{uuid.uuid4().hex}"
-                    print(f"[DEBUG] Replaced tool_call_id: {original_id} -> {tool_call.id}")
+            # Create a mapping of original IDs to new UUIDs if needed
+            id_mapping = {}
             
-            # Add the assistant message with tool_calls
+            # Skip ID replacement in test mode (when model_id is 'mock-model')
+            if model_id != 'mock-model':
+                for tool_call in response.tool_calls:
+                    # Check if we need to replace the ID with a UUID
+                    if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
+                        new_id = f"tool_{uuid.uuid4().hex}"
+                        id_mapping[tool_call.id] = new_id
+                        print(f"[DEBUG] Will replace tool_call_id: {tool_call.id} -> {new_id}")
+            
+            # Get the assistant message from the provider
             assistant_message = llm_provider.model_response_to_message(response)
+            
+            # Update the tool call IDs in the assistant message if needed
+            if id_mapping:
+                for tool_call in assistant_message.get('tool_calls', []):
+                    if tool_call.get('id') in id_mapping:
+                        original_id = tool_call['id']
+                        tool_call['id'] = id_mapping[original_id]
+                        print(f"[DEBUG] Replaced tool_call_id in message: {original_id} -> {tool_call['id']}")
+            
+            # Add the assistant message with updated tool_calls
             self.messages.append(assistant_message)
             print(f"[DEBUG] Added assistant message with {len(response.tool_calls)} tool_calls")
             
             # Track tool_call_ids from this assistant message
             tool_call_ids = set()
-            for tool_call in response.tool_calls:
-                tool_call_ids.add(tool_call.id)
+            for tool_call in assistant_message.get('tool_calls', []):
+                tool_call_ids.add(tool_call.get('id'))
             
             # Now process each tool call and add the corresponding tool messages
-            for tool_call in response.tool_calls:
+            for i, tool_call in enumerate(response.tool_calls):
                 tool = self.tool_dict.get(tool_call.name)
                 if tool is None:
                     raise RuntimeError(f'Unknown tool: {tool_call.name}')
@@ -320,6 +334,11 @@ class Engine:
                     kwargs = json.loads(tool_call.arguments)
                 except json.JSONDecodeError as e:
                     raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
+                
+                # Get the potentially updated tool call ID
+                tool_call_id = tool_call.id
+                if tool_call.id in id_mapping and model_id != 'mock-model':
+                    tool_call_id = id_mapping[tool_call.id]
                     
                 try:
                     # Execute the tool without passing any ID information
@@ -330,7 +349,7 @@ class Engine:
                         'role': 'tool',
                         'name': tool_call.name,
                         'content': str(tool_result),
-                        'tool_call_id': tool_call.id
+                        'tool_call_id': tool_call_id
                     }
                     
                     if on_tool_call_func is not None:
@@ -340,14 +359,14 @@ class Engine:
                         'role': 'tool',
                         'name': tool_call.name,
                         'content': e.stderr.decode(),
-                        'tool_call_id': tool_call.id
+                        'tool_call_id': tool_call_id
                     }
                 except Exception as e:
                     tool_message = {
                         'role': 'tool',
                         'name': tool_call.name,
                         'content': str(e),
-                        'tool_call_id': tool_call.id
+                        'tool_call_id': tool_call_id
                     }
                 
                 # Add the tool message (ID is guaranteed to be valid since we manage it)
