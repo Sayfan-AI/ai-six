@@ -31,6 +31,7 @@ It is focused on tool use and management.
 - [] Document the security model 
   - OS user based, access to remote services credentials and k8s clusters, run in a container
 - [] Dedicated tool Support for defining OS model and permissions for AI-6 and specific tools
+- [] Run in a container (mounting directories and config files like .kube/config and .aws/config)
 
 ## Fully-autonomous AI software engineer
 - [ ] Watch Github issues

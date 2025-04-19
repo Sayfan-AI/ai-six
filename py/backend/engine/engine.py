@@ -202,15 +202,24 @@ class Engine:
             
         print(f"[DEBUG] Saving conversation {self.conversation_id} with {len(self.messages)} messages")
         
-        # Save all messages
-        self.memory_provider.save_messages(self.conversation_id, self.messages)
+        # Save all messages. must end with an assistant message
+        messages = self.messages.copy()
+        # Ensure the last message is an assistant message
+        while messages and messages[-1].get('role') != 'assistant':
+            messages.pop()
+
+        if not messages:
+            print("[DEBUG] No messages to save")
+            return
+
+        self.memory_provider.save_messages(self.conversation_id, messages)
         self.message_count_since_checkpoint = 0
         print("[DEBUG] Reset message_count_since_checkpoint to 0")
         
         # If we have enough messages, generate and save a summary
-        if len(self.messages) >= 10:
+        if len(messages) >= 10:
             print("[DEBUG] Generating conversation summary")
-            summary = self.summarizer.summarize(self.messages, self.default_model_id)
+            summary = self.summarizer.summarize(messages, self.default_model_id)
             self.memory_provider.save_summary(self.conversation_id, summary)
             print("[DEBUG] Saved conversation summary")
             

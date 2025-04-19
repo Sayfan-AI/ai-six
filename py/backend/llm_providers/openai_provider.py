@@ -33,8 +33,8 @@ class OpenAIProvider(LLMProvider):
     def send(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Response:
         """
         Send a message to the OpenAI LLM and receive a response.
+        :param tool_dict: The tools available for the LLM to use.
         :param messages: The list of messages to send.
-        :param tool_list: The list of tools available for the LLM to use.
         :param model: The model to use (optional).
         :return: The response from the LLM.
         """
@@ -80,18 +80,6 @@ class OpenAIProvider(LLMProvider):
         Build a message with tool calls from a response.
         :return: The provider specific message
         """
-        # return {
-        #     "role": "assistant",
-        #     "content": response.content,
-        #     "tool_calls": [
-        #         ToolCall(
-        #             id=tool_call.id,
-        #             name=tool_call.name,
-        #             arguments=tool_call.arguments
-        #         ) for tool_call in response.tool_calls
-        #     ]
-        # }
-
         return dict(role="assistant",
             content=response.content,
             tool_calls=[
@@ -105,6 +93,3 @@ class OpenAIProvider(LLMProvider):
                 ) for t in response.tool_calls
             ]
         )
-
-
-
