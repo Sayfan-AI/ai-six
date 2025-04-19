@@ -52,14 +52,7 @@ class MockLLMProvider(LLMProvider):
             ]
         }
         
-    def tool_result_to_message(self, tool_call, tool_result):
-        """Convert a tool result to a message."""
-        return {
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "name": tool_call.name,
-            "content": str(tool_result)
-        }
+
 
 
 class MockTool(Tool):

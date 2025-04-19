@@ -29,8 +29,7 @@ class MockLLMProvider(LLMProvider):
     def model_response_to_message(self, response):
         return {"role": "assistant", "content": "This is a mock response"}
     
-    def tool_result_to_message(self, tool_call, result):
-        return {"role": "tool", "name": tool_call.name, "tool_call_id": tool_call.id, "content": result}
+
 
 def test_message_sequence_validation():
     """Test that the message sequence validation correctly handles tool messages."""

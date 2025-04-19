@@ -50,14 +50,7 @@ class MockLLMProvider(LLMProvider):
             ]
         }
         
-    def tool_result_to_message(self, tool_call, tool_result):
-        """Convert the tool execution result to a message."""
-        return {
-            "tool_call_id": tool_call.id,
-            "role": "tool",
-            "name": tool_call.name,
-            "content": str(tool_result),
-        }
+
 
 
 class TestEngineMemory(unittest.TestCase):
