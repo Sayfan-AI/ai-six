@@ -184,13 +184,27 @@ class FileMemoryProvider(MemoryProvider):
         conversation_files = list(self.conversations_dir.glob("*.json"))
         return [f.stem for f in conversation_files]
     
-    def delete_conversation(self, conversation_id: str) -> None:
-        """Delete a conversation and its summary."""
+    def delete_conversation(self, conversation_id: str) -> bool:
+        """
+        Delete a conversation and its summary.
+        
+        Args:
+            conversation_id: ID of the conversation to delete
+            
+        Returns:
+            bool: True if the conversation was deleted, False otherwise
+        """
         conversation_path = self._get_conversation_path(conversation_id)
         summary_path = self._get_summary_path(conversation_id)
         
+        success = False
+        
         if conversation_path.exists():
             conversation_path.unlink()
+            success = True
         
         if summary_path.exists():
             summary_path.unlink()
+            success = True
+            
+        return success

@@ -55,6 +55,9 @@ class DeleteConversation(Tool):
             return "Cannot delete the current conversation."
         
         # Delete the conversation
-        self.engine.memory_provider.delete_conversation(conversation_id)
+        success = self.engine.memory_provider.delete_conversation(conversation_id)
         
-        return f"Successfully deleted conversation: {conversation_id}"
+        if success:
+            return f"Successfully deleted conversation: {conversation_id}"
+        else:
+            return f"Failed to delete conversation: {conversation_id}"

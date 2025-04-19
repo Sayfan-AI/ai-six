@@ -70,12 +70,15 @@ class MemoryProvider(ABC):
         pass
     
     @abstractmethod
-    def delete_conversation(self, conversation_id: str) -> None:
+    def delete_conversation(self, conversation_id: str) -> bool:
         """
         Delete a conversation and all its messages.
         
         Args:
             conversation_id: Unique identifier for the conversation
+            
+        Returns:
+            bool: True if the conversation was deleted, False otherwise
         """
         pass
     

@@ -107,6 +107,35 @@ async def main(message: cl.Message):
     await cl.Message(content=response).send()
 
 
+async def load_conversation_from_sidebar(conversation_id):
+    """Load a conversation when selected from the sidebar."""
+    if engine.memory_provider and conversation_id:
+        # Store the current session ID
+        current_session_id = None
+        for session_id, conv_id in session_conversations.items():
+            if conv_id == engine.conversation_id:
+                current_session_id = session_id
+                break
+        
+        # Load the selected conversation
+        success = engine.load_conversation(conversation_id)
+        
+        if success and current_session_id:
+            # Update the session_conversations mapping
+            session_conversations[current_session_id] = conversation_id
+            
+            # Clear the current chat and send a notification
+            await cl.Message(content=f"Loaded conversation: {conversation_id}").send()
+            
+            # Replay the conversation messages
+            for msg in engine.messages:
+                if msg.get("role") == "user":
+                    await cl.Message(content=msg.get("content", ""), author="User").send()
+                elif msg.get("role") == "assistant":
+                    await cl.Message(content=msg.get("content", "")).send()
+        else:
+            await cl.Message(content=f"Failed to load conversation: {conversation_id}").send()
+
 @cl.on_chat_start
 async def chat_start():
     # Get user session info
@@ -138,6 +167,179 @@ async def chat_start():
     # Check if we have a saved conversation for this ID
     existing_conversations = engine.memory_provider.list_conversations() if engine.memory_provider else []
     print(f"[DEBUG] Existing conversations: {existing_conversations}")
+    
+    # Create a sidebar with past conversations
+    if engine.memory_provider:
+        # Get all conversations
+        all_conversations = engine.memory_provider.list_conversations()
+        
+        # Create sidebar elements
+        sidebar_elements = []
+        
+        # Add a button to start a new conversation
+        new_chat_button = cl.Button(
+            id="new_chat_button",
+            label="New Conversation",
+            action="new_conversation"
+        )
+        sidebar_elements.append(new_chat_button)
+        
+        # Register the action to start a new conversation
+        @cl.action_callback("new_conversation")
+        async def on_new_conversation(action):
+            # Generate a new conversation ID
+            import uuid
+            new_id = str(uuid.uuid4())
+            new_conversation_id = f"chainlit-{new_id}"
+            
+            # Update the session mapping
+            current_session_id = None
+            for session_id, conv_id in session_conversations.items():
+                if conv_id == engine.conversation_id:
+                    current_session_id = session_id
+                    break
+            
+            if current_session_id:
+                session_conversations[current_session_id] = new_conversation_id
+                
+                # Set the new conversation ID in the engine
+                engine.conversation_id = new_conversation_id
+                engine.messages = []
+                
+                # Send a notification
+                await cl.Message(content=f"Started new conversation: {new_conversation_id}").send()
+        
+        # Add a separator
+        sidebar_elements.append(cl.Text(content="---"))
+        
+        # Add past conversations selector if there are any
+        if all_conversations:
+            # Add a label for past conversations
+            sidebar_elements.append(cl.Text(content="Past Conversations:"))
+            
+            # Add each conversation as a separate item with load and delete buttons
+            for conv_id in all_conversations:
+                # Create a container for this conversation
+                conv_container = cl.Flex(
+                    id=f"conv_container_{conv_id}",
+                    children=[
+                        # Conversation ID display
+                        cl.Text(content=conv_id, size="sm"),
+                        # Spacer
+                        cl.Spacer(),
+                        # Load button
+                        cl.Button(
+                            id=f"load_btn_{conv_id}",
+                            label="Load",
+                            action="load_conversation",
+                            value=conv_id,
+                            size="sm"
+                        ),
+                        # Delete button
+                        cl.Button(
+                            id=f"delete_btn_{conv_id}",
+                            label="Delete",
+                            action="delete_conversation",
+                            value=conv_id,
+                            size="sm",
+                            color="red"
+                        )
+                    ],
+                    align="center",
+                    justify="space-between",
+                    gap="2"
+                )
+                sidebar_elements.append(conv_container)
+                sidebar_elements.append(cl.Text(content="---", size="xs"))
+            
+            # Register the action to load a conversation when selected
+            @cl.action_callback("load_conversation")
+            async def on_conversation_selected(action):
+                await load_conversation_from_sidebar(action.value)
+            
+            # Register the action to delete a conversation
+            @cl.action_callback("delete_conversation")
+            async def on_conversation_deleted(action):
+                conv_id = action.value
+                if engine.memory_provider and conv_id:
+                    # Delete the conversation
+                    success = engine.memory_provider.delete_conversation(conv_id)
+                    
+                    if success:
+                        # If the current conversation was deleted, start a new one
+                        if engine.conversation_id == conv_id:
+                            # Generate a new conversation ID
+                            import uuid
+                            new_id = str(uuid.uuid4())
+                            new_conversation_id = f"chainlit-{new_id}"
+                            
+                            # Update the session mapping
+                            current_session_id = None
+                            for session_id, conv_id in session_conversations.items():
+                                if conv_id == engine.conversation_id:
+                                    current_session_id = session_id
+                                    break
+                            
+                            if current_session_id:
+                                session_conversations[current_session_id] = new_conversation_id
+                                
+                                # Set the new conversation ID in the engine
+                                engine.conversation_id = new_conversation_id
+                                engine.messages = []
+                        
+                        # Refresh the sidebar
+                        await cl.Message(content=f"Deleted conversation: {conv_id}").send()
+                        
+                        # Refresh the sidebar by recreating it
+                        refreshed_conversations = engine.memory_provider.list_conversations()
+                        new_sidebar_elements = []
+                        
+                        # Add the new conversation button
+                        new_sidebar_elements.append(new_chat_button)
+                        new_sidebar_elements.append(cl.Text(content="---"))
+                        
+                        if refreshed_conversations:
+                            new_sidebar_elements.append(cl.Text(content="Past Conversations:"))
+                            
+                            for refreshed_conv_id in refreshed_conversations:
+                                # Create a container for this conversation
+                                refreshed_conv_container = cl.Flex(
+                                    id=f"conv_container_{refreshed_conv_id}",
+                                    children=[
+                                        # Conversation ID display
+                                        cl.Text(content=refreshed_conv_id, size="sm"),
+                                        # Spacer
+                                        cl.Spacer(),
+                                        # Load button
+                                        cl.Button(
+                                            id=f"load_btn_{refreshed_conv_id}",
+                                            label="Load",
+                                            action="load_conversation",
+                                            value=refreshed_conv_id,
+                                            size="sm"
+                                        ),
+                                        # Delete button
+                                        cl.Button(
+                                            id=f"delete_btn_{refreshed_conv_id}",
+                                            label="Delete",
+                                            action="delete_conversation",
+                                            value=refreshed_conv_id,
+                                            size="sm",
+                                            color="red"
+                                        )
+                                    ],
+                                    align="center",
+                                    justify="space-between",
+                                    gap="2"
+                                )
+                                new_sidebar_elements.append(refreshed_conv_container)
+                                new_sidebar_elements.append(cl.Text(content="---", size="xs"))
+                        
+                        # Update the sidebar
+                        await cl.Sidebar(children=new_sidebar_elements).send()
+        
+        # Send the sidebar with all elements
+        await cl.Sidebar(children=sidebar_elements).send()
     
     if engine.memory_provider and conversation_id in existing_conversations:
         print(f"[DEBUG] Found existing conversation, loading: {conversation_id}")
