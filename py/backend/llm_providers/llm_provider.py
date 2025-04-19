@@ -50,12 +50,4 @@ class LLMProvider(ABC):
         """
         pass
 
-    @abstractmethod
-    def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
-        """
-        Convert the tool execution result to a message.
-        :param tool_call: The tool call made by the LLM.
-        :param tool_result: The result of executing a tool.
-        :return: The message in a dictionary format.
-        """
-        pass
+

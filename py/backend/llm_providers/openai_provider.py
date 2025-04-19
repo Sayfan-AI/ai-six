@@ -107,14 +107,4 @@ class OpenAIProvider(LLMProvider):
         )
 
 
-    def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
-        """
-        Build a message from the result of a tool execution.
-        :return: The provider specific message
-        """
-        return dict(
-            tool_call_id = tool_call.id,
-            role = "tool",
-            name = tool_call.name,
-            content = str(tool_result),
-        )
+

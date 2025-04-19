@@ -80,14 +80,7 @@ class OllamaProvider(LLMProvider):
             ]
         )
 
-    def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
-        """Convert the tool execution result to a message."""
-        return dict(
-            tool_call_id=tool_call.id,
-            role="tool",
-            name=tool_call.name,
-            content=tool_result,
-        )
+
 
     @staticmethod
     def _tool2dict(tool: Tool) -> dict:
