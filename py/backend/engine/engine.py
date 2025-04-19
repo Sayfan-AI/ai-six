@@ -105,6 +105,9 @@ class Engine:
             return
             
         print(f"[DEBUG] Loading conversation: {self.conversation_id}")
+        
+        # Initialize an empty messages list to replace the current one
+        loaded_messages = []
             
         # Get the summary first
         summary = self.memory_provider.get_summary(self.conversation_id)
@@ -112,7 +115,7 @@ class Engine:
         # If there's a summary, add it as a system message
         if summary:
             print(f"[DEBUG] Found summary: {summary[:50]}...")
-            self.messages.append({
+            loaded_messages.append({
                 "role": "system",
                 "content": f"Previous conversation summary: {summary}"
             })
@@ -181,10 +184,15 @@ class Engine:
             
             print(f"[DEBUG] After sequence validation: {len(validated_messages)} messages")
             
-            self.messages.extend(validated_messages)
-            print(f"[DEBUG] Extended self.messages, now has {len(self.messages)} messages")
+            # Add validated messages to our loaded_messages list
+            loaded_messages.extend(validated_messages)
+            print(f"[DEBUG] Added {len(validated_messages)} validated messages to loaded_messages")
         else:
             print("[DEBUG] No recent messages found")
+            
+        # Replace the current messages with the loaded messages
+        self.messages = loaded_messages
+        print(f"[DEBUG] Replaced self.messages, now has {len(self.messages)} messages")
             
     def _save_conversation(self) -> None:
         """Save current conversation to memory provider."""
@@ -436,13 +444,10 @@ class Engine:
         if conversation_id not in self.memory_provider.list_conversations():
             return False
             
-        # Clear current messages
-        self.messages = []
-        
         # Set the conversation ID
         self.conversation_id = conversation_id
         
-        # Load the conversation
+        # Load the conversation (this will replace self.messages)
         self._load_conversation()
         
         return True
