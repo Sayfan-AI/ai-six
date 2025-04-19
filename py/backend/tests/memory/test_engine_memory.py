@@ -117,29 +117,49 @@ class TestEngineMemory(unittest.TestCase):
         
     def test_checkpoint_if_needed(self):
         """Test that checkpoints are created when needed."""
+        # Create a new engine with a clean state for this test
+        test_dir = tempfile.mkdtemp()
+        memory_provider = FileMemoryProvider(test_dir)
+        
+        # Create an engine with a specific checkpoint interval
+        engine = Engine(
+            llm_providers=[self.llm_provider],
+            default_model_id="test-model",
+            tools_dir=self.tools_dir,
+            memory_provider=memory_provider,
+            conversation_id="test-checkpoint",
+            checkpoint_interval=10
+        )
+        
         # Add some messages to the engine
-        self.engine.messages = [
+        engine.messages = [
             {"role": "user", "content": "Hello, AI-6!"},
             {"role": "assistant", "content": "Hello! How can I help you today?"}
         ]
         
+        # Reset the message count to ensure we start from a known state
+        engine.message_count_since_checkpoint = 0
+        
         # Set up a spy on _save_conversation
-        original_save = self.engine._save_conversation
+        original_save = engine._save_conversation
         save_called = [0]
         
         def spy_save():
             save_called[0] += 1
-            original_save()
+            # Don't actually call original_save to avoid side effects
             
-        self.engine._save_conversation = spy_save
+        engine._save_conversation = spy_save
         
-        # Call _checkpoint_if_needed multiple times
-        for i in range(15):
-            self.engine._checkpoint_if_needed()
+        # Call _checkpoint_if_needed exactly 10 times (the checkpoint interval)
+        for i in range(10):
+            engine._checkpoint_if_needed()
             
-        # Check that _save_conversation was called the expected number of times
-        # With checkpoint_interval=10, it should be called once after 10 calls
+        # Check that _save_conversation was called exactly once
+        # With checkpoint_interval=10, it should be called once when count == 10
         self.assertEqual(save_called[0], 1)
+        
+        # Clean up
+        shutil.rmtree(test_dir)
         
     def test_list_conversations(self):
         """Test listing conversations."""

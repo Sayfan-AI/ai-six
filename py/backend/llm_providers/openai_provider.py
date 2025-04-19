@@ -110,8 +110,13 @@ class OpenAIProvider(LLMProvider):
     def tool_result_to_message(self, tool_call: ToolCall, tool_result: str) -> dict:
         """
         Build a message from the result of a tool execution.
+        
+        Note: This method is deprecated and will be removed in a future version.
+        Tool message creation is now handled directly by the Engine.
+        
         :return: The provider specific message
         """
+        # For backward compatibility
         return dict(
             tool_call_id = tool_call.id,
             role = "tool",

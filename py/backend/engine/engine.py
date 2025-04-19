@@ -214,7 +214,9 @@ class Engine:
         self.message_count_since_checkpoint += 1
         print(f"[DEBUG] Incremented message_count_since_checkpoint to {self.message_count_since_checkpoint}")
         
-        if self.message_count_since_checkpoint >= self.checkpoint_interval:
+        # Only save if we've reached the checkpoint interval exactly
+        # This ensures we only save once per interval, not on every message after the interval
+        if self.message_count_since_checkpoint == self.checkpoint_interval:
             print(f"[DEBUG] Checkpoint interval reached ({self.checkpoint_interval}), saving conversation")
             self._save_conversation()
 
@@ -290,7 +292,15 @@ class Engine:
             raise RuntimeError(f"Error sending message to LLM: {e}")
             
         if response.tool_calls:
-            # First, add the assistant message with tool_calls
+            # First, ensure all tool calls have globally unique IDs
+            for tool_call in response.tool_calls:
+                # Replace the LLM-generated ID with a UUID if needed
+                if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
+                    original_id = tool_call.id
+                    tool_call.id = f"tool_{uuid.uuid4().hex}"
+                    print(f"[DEBUG] Replaced tool_call_id: {original_id} -> {tool_call.id}")
+            
+            # Add the assistant message with tool_calls
             assistant_message = llm_provider.model_response_to_message(response)
             self.messages.append(assistant_message)
             print(f"[DEBUG] Added assistant message with {len(response.tool_calls)} tool_calls")
@@ -312,21 +322,37 @@ class Engine:
                     raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
                     
                 try:
+                    # Execute the tool without passing any ID information
                     tool_result = tool.run(**kwargs)
-                    tool_message = llm_provider.tool_result_to_message(tool_call, str(tool_result))
+                    
+                    # Create the tool message with the Engine managing the tool_call_id
+                    tool_message = {
+                        'role': 'tool',
+                        'name': tool_call.name,
+                        'content': str(tool_result),
+                        'tool_call_id': tool_call.id
+                    }
+                    
                     if on_tool_call_func is not None:
-                        on_tool_call_func(tool_message['name'], kwargs, tool_message['content'])
+                        on_tool_call_func(tool_call.name, kwargs, str(tool_result))
                 except sh.ErrorReturnCode as e:
-                    tool_message = llm_provider.tool_result_to_message(tool_call, e.stderr.decode())
+                    tool_message = {
+                        'role': 'tool',
+                        'name': tool_call.name,
+                        'content': e.stderr.decode(),
+                        'tool_call_id': tool_call.id
+                    }
                 except Exception as e:
-                    tool_message = llm_provider.tool_result_to_message(tool_call, str(e))
+                    tool_message = {
+                        'role': 'tool',
+                        'name': tool_call.name,
+                        'content': str(e),
+                        'tool_call_id': tool_call.id
+                    }
                 
-                # Ensure the tool message has a valid tool_call_id that matches one from the assistant message
-                if tool_message.get('tool_call_id') in tool_call_ids:
-                    self.messages.append(tool_message)
-                    print(f"[DEBUG] Added tool message with tool_call_id: {tool_message.get('tool_call_id')}")
-                else:
-                    print(f"[DEBUG] Skipping tool message with invalid tool_call_id: {tool_message.get('tool_call_id')}")
+                # Add the tool message (ID is guaranteed to be valid since we manage it)
+                self.messages.append(tool_message)
+                print(f"[DEBUG] Added tool message with tool_call_id: {tool_message.get('tool_call_id')}")
 
             # Continue the conversation with another send
             return self._send(model_id, on_tool_call_func)

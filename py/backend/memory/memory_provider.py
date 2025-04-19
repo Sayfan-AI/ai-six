@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import time
+import uuid
 
 
 class MemoryProvider(ABC):
@@ -201,10 +202,10 @@ class MemoryProvider(ABC):
                         print(f"[DEBUG] Processing tool_call {j} in message {i}")
                         if 'id' in tool_call:
                             print(f"[DEBUG] Tool call has ID: {tool_call['id']}")
-                            # If this tool_call_id has been seen before, generate a new one
+                            # If this tool_call_id has been seen before, generate a new one using UUID
                             if tool_call['id'] in tool_call_ids_seen:
-                                # Create a new unique ID by appending a timestamp
-                                new_id = f"{tool_call['id']}_{int(time.time() * 1000)}"
+                                # Create a new unique ID using UUID
+                                new_id = f"tool_{uuid.uuid4().hex}"
                                 print(f"[DEBUG] Fixing duplicate tool_call_id: {tool_call['id']} -> {new_id}")
                                 tool_call['id'] = new_id
                             
@@ -214,7 +215,14 @@ class MemoryProvider(ABC):
                             print(f"[DEBUG] Added tool_call_id to seen and available sets: {tool_call['id']}")
                             fixed_tool_calls.append(tool_call)
                         else:
-                            print(f"[DEBUG] Tool call missing 'id' field, skipping")
+                            # If missing ID, generate a UUID
+                            new_id = f"tool_{uuid.uuid4().hex}"
+                            tool_call['id'] = new_id
+                            print(f"[DEBUG] Added missing tool_call_id: {new_id}")
+                            
+                            tool_call_ids_seen.add(new_id)
+                            available_tool_call_ids.add(new_id)
+                            fixed_tool_calls.append(tool_call)
                     
                     # Update the message with fixed tool_calls
                     message['tool_calls'] = fixed_tool_calls
