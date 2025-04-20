@@ -334,6 +334,108 @@ class Engine:
         
         return response
         
+    def stream_message(self, message: str, model_id: str, on_chunk_func: Callable[[str], None], 
+                      on_tool_call_func: Callable[[str, dict, str], None] | None = None) -> str:
+        """
+        Send a single message and stream the response.
+        
+        Args:
+            message: The message to send
+            model_id: The model ID to use
+            on_chunk_func: Callback function that receives each chunk of the response
+            on_tool_call_func: Callback function for tool calls
+            
+        Returns:
+            The complete response
+        """
+        user_message = {'role': 'user', 'content': message}
+        self.session.add_message(user_message)
+        self._checkpoint_if_needed()
+        
+        # Get the provider for the model
+        llm_provider = self.model_provider_map.get(model_id)
+        if llm_provider is None:
+            raise RuntimeError(f"Unknown model ID: {model_id}")
+            
+        # Validate messages before sending to LLM
+        self._validate_messages_before_send()
+        
+        # Initialize variables to track the response
+        final_content = ""
+        final_tool_calls = []
+        
+        try:
+            # Stream the response
+            for response in llm_provider.stream(self.session.messages, self.tool_dict, model_id):
+                # Update the content
+                if response.content != final_content:
+                    # Get just the new content
+                    new_content = response.content[len(final_content):]
+                    final_content = response.content
+                    
+                    # Call the callback with the new content
+                    if new_content and on_chunk_func:
+                        on_chunk_func(new_content)
+                
+                # Process tool calls if we have them and they're complete
+                if response.tool_calls and not final_tool_calls:
+                    final_tool_calls = response.tool_calls
+                    
+                    # Process each tool call
+                    for tool_call in response.tool_calls:
+                        tool = self.tool_dict.get(tool_call.name)
+                        if tool is None:
+                            raise RuntimeError(f'Unknown tool: {tool_call.name}')
+                            
+                        try:
+                            # Generate a new UUID for the tool call
+                            tool_call_id = f"tool_{uuid.uuid4().hex}"
+                            
+                            # Execute the tool
+                            kwargs = json.loads(tool_call.arguments)
+                            tool_result = tool.run(**kwargs)
+                            
+                            # Create the tool message
+                            tool_message = {
+                                'role': 'tool',
+                                'name': tool_call.name,
+                                'content': str(tool_result),
+                                'tool_call_id': tool_call_id
+                            }
+                            
+                            # Add the tool message to the session
+                            self.session.add_message(tool_message)
+                            
+                            # Call the callback if provided
+                            if on_tool_call_func:
+                                on_tool_call_func(tool_call.name, kwargs, str(tool_result))
+                                
+                        except Exception as e:
+                            # Handle errors in tool execution
+                            tool_message = {
+                                'role': 'tool',
+                                'name': tool_call.name,
+                                'content': str(e),
+                                'tool_call_id': tool_call_id
+                            }
+                            self.session.add_message(tool_message)
+            
+            # If we have tool calls, we need to continue the conversation
+            if final_tool_calls:
+                # Continue the conversation with another send
+                continuation = self.stream_message("", model_id, on_chunk_func, on_tool_call_func)
+                final_content += continuation
+                
+        except Exception as e:
+            raise RuntimeError(f"Error streaming message: {e}")
+            
+        # Add the final assistant message to the session
+        assistant_message = {'role': 'assistant', 'content': final_content}
+        self.session.add_message(assistant_message)
+        self._checkpoint_if_needed()
+        
+        return final_content
+        
     def get_session_id(self) -> str:
         """Get the current session ID."""
         return self.session.session_id

@@ -100,17 +100,37 @@ def handle_app_mention(event, say, client):
             text="AI-6 is thinking..."
         )
         
-        # Send the message to the AI-6 engine
-        response = engine.send_message(text, default_model, channel_tool_call_handler)
-        
-        # Post the response
+        # Post an initial empty message that we'll update
         result = client.chat_postMessage(
             channel=channel_id,
-            text=response
+            text="..."
         )
         
         latest_ts = result["ts"]
-        last_message = response
+        last_message = ""
+        
+        # Define a callback function to handle streaming chunks
+        def handle_chunk(chunk):
+            nonlocal last_message
+            last_message += chunk
+            
+            try:
+                # Update the message with the new content
+                client.chat_update(
+                    channel=channel_id,
+                    ts=latest_ts,
+                    text=last_message
+                )
+            except SlackApiError as e:
+                print(f"Error updating message: {e}")
+        
+        # Stream the message to the AI-6 engine
+        response = engine.stream_message(
+            text, 
+            default_model, 
+            on_chunk_func=handle_chunk,
+            on_tool_call_func=channel_tool_call_handler
+        )
         
     except Exception as e:
         say(f"I encountered an error: {str(e)}")

@@ -20,11 +20,14 @@ def get_user_input():
     return user_input
 
 def handle_response(response):
-    print(f"[AI-6]: {response}")
+    print(f"\n[AI-6]: {response}")
     print('----------')
 
+def handle_chunk(chunk):
+    print(chunk, end='', flush=True)
+
 def handle_tool_call(name, args, result):
-    print(f"[AI-6 tool call]: {name} {', '.join(args.values()) if args else ''}")
+    print(f"\n[AI-6 tool call]: {name} {', '.join(args.values()) if args else ''}")
     print(result)
     print('----------')
 
@@ -64,8 +67,22 @@ def main():
     # Print current session ID
     print(f"Current session ID: {engine.get_session_id()}")
     
-    # Run the session loop
-    engine.run(get_user_input, handle_tool_call, handle_response)
+    # Run the session loop with streaming
+    print("AI-6 CLI with streaming support. Type 'exit' to quit.")
+    
+    try:
+        while user_input := get_user_input():
+            print("[AI-6]:", end=' ', flush=True)
+            response = engine.stream_message(
+                user_input,
+                default_model,
+                on_chunk_func=handle_chunk,
+                on_tool_call_func=handle_tool_call
+            )
+            print("\n----------")
+    finally:
+        # Save the session when we're done
+        print(f"Session saved with ID: {engine.get_session_id()}")
 
 if __name__ == '__main__':
     main()

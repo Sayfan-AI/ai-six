@@ -1,3 +1,4 @@
+from typing import Iterator
 from py.backend.engine.llm_provider import LLMProvider, Response
 from py.backend.engine.object_model import ToolCall, Usage
 
@@ -78,7 +79,142 @@ class OpenAIProvider(LLMProvider):
                 output_tokens=output_tokens
             )
         )
+    
+    def stream(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Iterator[Response]:
+        """
+        Stream a message to the OpenAI LLM and receive responses as they are generated.
+        :param messages: The list of messages to send.
+        :param tool_dict: The tools available for the LLM to use.
+        :param model: The model to use (optional).
+        :return: An iterator of responses from the LLM.
+        """
+        if model is None:
+            model = self.default_model
 
+        tool_data = [self._tool2dict(tool) for tool in tool_dict.values()]
+
+        try:
+            # Create a streaming response with usage statistics
+            stream = self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tool_data if tool_data else None,
+                tool_choice="auto" if tool_data else None,
+                stream=True,
+                stream_options={"include_usage": True}  # Get usage statistics in the final chunk
+            )
+        except Exception as e:
+            raise
+
+        # Initialize variables to accumulate the response
+        content = ""
+        role = "assistant"
+        tool_calls = []
+        current_tool_calls = {}
+        
+        # Track tokens for usage
+        input_tokens = 0
+        output_tokens = 0
+        
+        for chunk in stream:
+            # Check if this is the final usage statistics chunk
+            if chunk.usage:
+                # Update usage statistics from the final chunk
+                input_tokens = chunk.usage.prompt_tokens
+                output_tokens = chunk.usage.completion_tokens
+                continue
+                
+            # Skip chunks with no choices
+            if not chunk.choices:
+                continue
+                
+            # Update content if available
+            if chunk.choices[0].delta.content:
+                content += chunk.choices[0].delta.content
+                
+                # Yield a partial response with the updated content
+                yield Response(
+                    content=content,
+                    role=role,
+                    tool_calls=[],  # No tool calls yet
+                    usage=None  # We'll only have accurate usage at the end
+                )
+            
+            # Handle tool calls
+            if chunk.choices[0].delta.tool_calls:
+                for delta_tool_call in chunk.choices[0].delta.tool_calls:
+                    # Initialize tool call if it's new
+                    if delta_tool_call.index not in current_tool_calls:
+                        current_tool_calls[delta_tool_call.index] = {
+                            "id": delta_tool_call.id or "",
+                            "function": {
+                                "name": "",
+                                "arguments": ""
+                            }
+                        }
+                    
+                    # Update tool call ID if provided
+                    if delta_tool_call.id:
+                        current_tool_calls[delta_tool_call.index]["id"] = delta_tool_call.id
+                    
+                    # Update function name if provided
+                    if delta_tool_call.function and delta_tool_call.function.name:
+                        current_tool_calls[delta_tool_call.index]["function"]["name"] = delta_tool_call.function.name
+                    
+                    # Update function arguments if provided
+                    if delta_tool_call.function and delta_tool_call.function.arguments:
+                        current_tool_calls[delta_tool_call.index]["function"]["arguments"] += delta_tool_call.function.arguments
+            
+            # If we have a finish reason, check if it's for tool calls
+            if chunk.choices[0].finish_reason == "tool_calls":
+                # Convert accumulated tool calls to ToolCall objects
+                tool_calls = []
+                for tool_call_data in current_tool_calls.values():
+                    function_name = tool_call_data["function"]["name"]
+                    if function_name in tool_dict:
+                        tool_calls.append(
+                            ToolCall(
+                                id=tool_call_data["id"],
+                                name=function_name,
+                                arguments=tool_call_data["function"]["arguments"],
+                                required=tool_dict[function_name].spec.parameters.required
+                            )
+                        )
+                
+                # Yield a response with the tool calls
+                yield Response(
+                    content=content,
+                    role=role,
+                    tool_calls=tool_calls,
+                    usage=None  # We'll only have accurate usage at the end
+                )
+        
+        # Yield the final complete response with usage statistics
+        if not tool_calls:
+            # Convert accumulated tool calls to ToolCall objects if we haven't already
+            tool_calls = []
+            for tool_call_data in current_tool_calls.values():
+                function_name = tool_call_data["function"]["name"]
+                if function_name in tool_dict:
+                    tool_calls.append(
+                        ToolCall(
+                            id=tool_call_data["id"],
+                            name=function_name,
+                            arguments=tool_call_data["function"]["arguments"],
+                            required=tool_dict[function_name].spec.parameters.required
+                        )
+                    )
+        
+        # Yield the final complete response with usage statistics
+        yield Response(
+            content=content,
+            role=role,
+            tool_calls=tool_calls,
+            usage=Usage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens
+            )
+        )
 
     @property
     def models(self) -> list[str]:
