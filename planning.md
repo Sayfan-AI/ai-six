@@ -48,8 +48,38 @@ It is focused on tool use and management.
 
 # Meetings
 
-## Project Meeting 5-apr-2025
+## Project Meeting 26-apr-2025
 
+### AI-6 Status
+
+- [x] Multi-provider support (OPenAI + Ollama providers)
+- [x] Local models (via ollama provider)
+- [x] Memory (via session)
+- [ ] Streaming
+- [ ] New tools
+
+
+### Working with OpenHands
+
+OpenHands (previously OpenDevin) is an open source AI software engineer. Very easy to use and works well.
+
+```
+docker run -it --rm --pull=always \
+    -e SANDBOX_RUNTIME_CONTAINER_IMAGE=docker.all-hands.dev/all-hands-ai/runtime:0.33-nikolaik \
+    -e LOG_ALL_EVENTS=true \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v ~/.openhands-state:/.openhands-state \
+    -p 3000:3000 \
+    --add-host host.docker.internal:host-gateway \
+    --name openhands-app \
+    docker.all-hands.dev/all-hands-ai/openhands:0.33
+```
+
+
+
+### Actions items
+
+## Project Meeting 5-apr-2025
 
 - Discuss summarization when context window feels up.
 - More file system tools
@@ -66,12 +96,11 @@ It is focused on tool use and management.
   - Anthropic
   - Gemini 2.5 pro experimental (free tier)
   - Llamma 4 Scout
-  
-
+ 
 ### Action Items
 
-- [ ] Saar/Gigi - Multiple LLM Providers
-- [ ] Saar - Research Ollama + Gemma 3 function calling
+- [x] Saar/Gigi - Multiple LLM Providers
+- [x] Saar - Research Ollama + Gemma 3 function calling
 - [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
 - [ ] Gigi - Look into MCP
 - [ ] Gigi - Engine + Tool configuration
