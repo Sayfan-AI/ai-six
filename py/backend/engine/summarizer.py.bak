@@ -1,9 +1,9 @@
 from typing import List, Dict, Any
 import json
 
-class SessionSummarizer:
+class ConversationSummarizer:
     """
-    Utility class for summarizing sessions using an LLM.
+    Utility class for summarizing conversations using an LLM.
     """
     
     def __init__(self, llm_provider):
@@ -24,7 +24,7 @@ class SessionSummarizer:
             model_id: ID of the model to use for summarization
             
         Returns:
-            A string summary of the session
+            A string summary of the conversation
         """
         # Format messages for the LLM
         formatted_messages = []
@@ -33,19 +33,19 @@ class SessionSummarizer:
         formatted_messages.append({
             "role": "system",
             "content": (
-                "You are a helpful assistant tasked with summarizing a session. "
+                "You are a helpful assistant tasked with summarizing a conversation. "
                 "Create a concise summary that captures the key points, questions, and decisions "
-                "from the session. The summary should be informative enough that someone "
-                "reading it would understand the main topics and outcomes of the session."
+                "from the conversation. The summary should be informative enough that someone "
+                "reading it would understand the main topics and outcomes of the conversation."
             )
         })
         
-        # Add the session to summarize
+        # Add the conversation to summarize
         formatted_messages.append({
             "role": "user",
             "content": (
-                "Please summarize the following session:\n\n" + 
-                self._format_session(messages)
+                "Please summarize the following conversation:\n\n" + 
+                self._format_conversation(messages)
             )
         })
         
@@ -53,15 +53,15 @@ class SessionSummarizer:
         response = self.llm_provider.send(formatted_messages, {}, model_id)
         return response.content.strip()
     
-    def _format_session(self, messages: List[Dict[str, Any]]) -> str:
+    def _format_conversation(self, messages: List[Dict[str, Any]]) -> str:
         """
-        Format a list of messages into a readable session.
+        Format a list of messages into a readable conversation.
         
         Args:
             messages: List of message dictionaries
             
         Returns:
-            Formatted session string
+            Formatted conversation string
         """
         formatted = []
         

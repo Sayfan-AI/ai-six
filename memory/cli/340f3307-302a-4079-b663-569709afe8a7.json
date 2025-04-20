@@ -1,0 +1,40 @@
+{
+    "session_id": "340f3307-302a-4079-b663-569709afe8a7",
+    "title": "Untiled session ~340f3307-302a-4079-b663-569709afe8a7",
+    "messages": [
+        {
+            "role": "user",
+            "content": "what's the current dir?"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "tool_calls": [
+                {
+                    "id": "tool_bd56dd671d144fcf9e63728b7ab9c45a",
+                    "type": "function",
+                    "function": {
+                        "name": "pwd",
+                        "arguments": "{}"
+                    }
+                }
+            ],
+            "input_tokens": 447,
+            "output_tokens": 11
+        },
+        {
+            "role": "tool",
+            "name": "pwd",
+            "content": "/Users/gigi/git/ai-six",
+            "tool_call_id": "tool_bd56dd671d144fcf9e63728b7ab9c45a"
+        },
+        {
+            "role": "assistant",
+            "content": "The current directory is `/Users/gigi/git/ai-six`."
+        }
+    ],
+    "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0
+    }
+}

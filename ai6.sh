@@ -7,7 +7,7 @@ fi
 
 echo "virtualenv: ${VIRTUAL_ENV}"
 
-# Create memory directories if they don't exist
+# Create memory_providers directories if they don't exist
 mkdir -p memory/cli memory/slack memory/chainlit
 
 if [[ "$1" == "cli" ]]; then
@@ -17,7 +17,7 @@ elif [[ "$1" == "slack" ]]; then
 elif [[ "$1" == "chainlit" ]]; then
   python -m py.frontend.chainlit.app
 elif [[ "$1" == "list-conversations" ]]; then
-  # List all conversations in memory
+  # List all conversations in memory_providers
   echo "CLI conversations:"
   ls -1 memory/cli/conversations/ 2>/dev/null | sed 's/\.json$//' || echo "  No conversations found"
   echo

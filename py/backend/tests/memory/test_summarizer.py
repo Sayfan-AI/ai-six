@@ -1,17 +1,17 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from py.backend.memory.summarizer import ConversationSummarizer
-from py.backend.llm_providers.llm_provider import Response
+from py.backend.engine.summarizer import SessionSummarizer
+from py.backend.engine.llm_provider import Response
 
 
-class TestConversationSummarizer(unittest.TestCase):
+class TestSessionSummarizer(unittest.TestCase):
     def setUp(self):
         # Create a mock LLM provider
         self.mock_llm_provider = MagicMock()
         
         # Set up the summarizer with the mock provider
-        self.summarizer = ConversationSummarizer(self.mock_llm_provider)
+        self.summarizer = SessionSummarizer(self.mock_llm_provider)
         
         # Sample messages for testing
         self.sample_messages = [
@@ -24,9 +24,9 @@ class TestConversationSummarizer(unittest.TestCase):
         # Sample model ID
         self.model_id = "test-model"
         
-    def test_format_conversation(self):
-        """Test formatting a conversation for the LLM."""
-        formatted = self.summarizer._format_conversation(self.sample_messages)
+    def test_format_session(self):
+        """Test formatting a session for the LLM."""
+        formatted = self.summarizer._format_session(self.sample_messages)
         
         # Check that the formatting is correct
         expected_format = (
@@ -37,13 +37,13 @@ class TestConversationSummarizer(unittest.TestCase):
         )
         self.assertEqual(formatted, expected_format)
         
-    def test_format_conversation_with_tool_calls(self):
-        """Test formatting a conversation that includes tool calls."""
+    def test_format_session_with_tool_calls(self):
+        """Test formatting a session that includes tool calls."""
         messages_with_tools = self.sample_messages + [
             {"role": "tool", "name": "ls", "content": "file1.txt\nfile2.txt"}
         ]
         
-        formatted = self.summarizer._format_conversation(messages_with_tools)
+        formatted = self.summarizer._format_session(messages_with_tools)
         
         # Check that the formatting is correct
         expected_format = (
@@ -56,12 +56,13 @@ class TestConversationSummarizer(unittest.TestCase):
         self.assertEqual(formatted, expected_format)
         
     def test_summarize(self):
-        """Test summarizing a conversation."""
+        """Test summarizing a session."""
         # Set up the mock response
         mock_response = Response(
-            content="This is a summary of the conversation.",
+            content="This is a summary of the session.",
             role="assistant",
-            tool_calls=[]
+            tool_calls=[],
+            usage=MagicMock(input_tokens=10, output_tokens=5)
         )
         self.mock_llm_provider.send.return_value = mock_response
         
@@ -86,11 +87,11 @@ class TestConversationSummarizer(unittest.TestCase):
         self.assertEqual(messages_arg[0]["role"], "system")
         self.assertEqual(messages_arg[1]["role"], "user")
         
-        # Check that the user message contains the formatted conversation
-        self.assertIn(self.summarizer._format_conversation(self.sample_messages), messages_arg[1]["content"])
+        # Check that the user message contains the formatted session
+        self.assertIn(self.summarizer._format_session(self.sample_messages), messages_arg[1]["content"])
         
         # Check that the returned summary is correct
-        self.assertEqual(summary, "This is a summary of the conversation.")
+        self.assertEqual(summary, "This is a summary of the session.")
 
 
 if __name__ == "__main__":

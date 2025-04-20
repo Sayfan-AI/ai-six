@@ -24,7 +24,8 @@ class TestSessionManager(unittest.TestCase):
         
     def create_test_session(self, session_id, title):
         """Helper method to create a test session file."""
-        filename = f"{self.test_dir}/{session_id}~{title}.json"
+        # New format is just session_id.json
+        filename = f"{self.test_dir}/{session_id}.json"
         with open(filename, 'w') as f:
             json.dump({
                 "session_id": session_id,
@@ -45,10 +46,11 @@ class TestSessionManager(unittest.TestCase):
         self.assertIn("session2", sessions)
         self.assertIn("session3", sessions)
         
-        # Check the session names
-        self.assertEqual(sessions["session1"][0], "Test Session 1")
-        self.assertEqual(sessions["session2"][0], "Test Session 2")
-        self.assertEqual(sessions["session3"][0], "Test Session 3")
+        # In the new format, we don't store the title in the filename,
+        # so the first element of the tuple is an empty string
+        self.assertEqual(sessions["session1"][0], "")
+        self.assertEqual(sessions["session2"][0], "")
+        self.assertEqual(sessions["session3"][0], "")
         
     def test_delete_session(self):
         """Test deleting a session."""
@@ -65,9 +67,9 @@ class TestSessionManager(unittest.TestCase):
         # Check that the file was actually removed from the file system
         files = os.listdir(self.test_dir)
         self.assertEqual(len(files), 2)
-        self.assertIn("session1~Test Session 1.json", files)
-        self.assertNotIn("session2~Test Session 2.json", files)
-        self.assertIn("session3~Test Session 3.json", files)
+        self.assertIn("session1.json", files)
+        self.assertNotIn("session2.json", files)
+        self.assertIn("session3.json", files)
         
     def test_delete_nonexistent_session(self):
         """Test deleting a session that doesn't exist."""
@@ -104,11 +106,12 @@ class TestSessionManager(unittest.TestCase):
         
     def test_malformed_filename(self):
         """Test handling of malformed filenames."""
-        # Create a file with a malformed name
+        # In the new format, all .json files are considered valid sessions
+        # Let's create an invalid JSON file instead
         with open(f"{self.test_dir}/malformed.json", 'w') as f:
-            f.write("{}")
+            f.write("{NOT_VALID_JSON")
             
-        # Listing should still work, ignoring the malformed file
+        # Listing should still work, ignoring the malformed JSON
         sessions = self.session_manager.list_sessions()
         self.assertEqual(len(sessions), 3)
 

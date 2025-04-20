@@ -1,150 +1,153 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from py.backend.tools.memory.list_conversations import ListConversations
-from py.backend.tools.memory.load_conversation import LoadConversation
-from py.backend.tools.memory.get_conversation_id import GetConversationId
-from py.backend.tools.memory.delete_conversation import DeleteConversation
+from py.backend.tools.memory.list_sessions import ListSessions
+from py.backend.tools.memory.load_session import LoadSession
+from py.backend.tools.memory.delete_session import DeleteSession
+from py.backend.tools.memory.get_session_id import GetSessionId
 
 
 class TestMemoryTools(unittest.TestCase):
     def setUp(self):
         # Create a mock engine
         self.mock_engine = MagicMock()
-        self.mock_engine.memory_provider = MagicMock()
-        self.mock_engine.conversation_id = "current-conversation"
+        self.mock_engine.get_session_id.return_value = "current-session"
         
-    def test_list_conversations_tool(self):
-        """Test the ListConversations tool."""
+    def test_list_sessions_tool(self):
+        """Test the ListSessions tool."""
         # Set up the mock engine
-        self.mock_engine.list_conversations.return_value = ["conv1", "conv2", "conv3"]
+        self.mock_engine.list_sessions.return_value = ["session1", "session2", "session3"]
         
         # Create the tool
-        tool = ListConversations(self.mock_engine)
+        tool = ListSessions(self.mock_engine)
         
         # Run the tool
         result = tool.run()
         
-        # Check that the engine's list_conversations method was called
-        self.mock_engine.list_conversations.assert_called_once()
+        # Check that the engine's list_sessions method was called
+        self.mock_engine.list_sessions.assert_called_once()
         
-        # Check that the result contains the conversation IDs
-        self.assertIn("conv1", result)
-        self.assertIn("conv2", result)
-        self.assertIn("conv3", result)
+        # Check that the result contains the session IDs
+        self.assertIn("session1", result)
+        self.assertIn("session2", result)
+        self.assertIn("session3", result)
         
-    def test_list_conversations_tool_no_conversations(self):
-        """Test the ListConversations tool when there are no conversations."""
+    def test_list_sessions_tool_no_sessions(self):
+        """Test the ListSessions tool when there are no sessions."""
         # Set up the mock engine
-        self.mock_engine.list_conversations.return_value = []
+        self.mock_engine.list_sessions.return_value = []
         
         # Create the tool
-        tool = ListConversations(self.mock_engine)
+        tool = ListSessions(self.mock_engine)
         
         # Run the tool
         result = tool.run()
         
-        # Check that the engine's list_conversations method was called
-        self.mock_engine.list_conversations.assert_called_once()
+        # Check that the engine's list_sessions method was called
+        self.mock_engine.list_sessions.assert_called_once()
         
-        # Check that the result indicates no conversations
-        self.assertIn("No conversations found", result)
+        # Check that the result indicates no sessions
+        self.assertIn("No sessions found", result)
         
-    def test_load_conversation_tool(self):
-        """Test the LoadConversation tool."""
+    def test_load_session_tool(self):
+        """Test the LoadSession tool."""
         # Set up the mock engine
-        self.mock_engine.load_conversation.return_value = True
+        self.mock_engine.load_session.return_value = True
         
         # Create the tool
-        tool = LoadConversation(self.mock_engine)
+        tool = LoadSession(self.mock_engine)
         
         # Run the tool
-        result = tool.run(conversation_id="test-conversation")
+        result = tool.run(session_id="test-session")
         
-        # Check that the engine's load_conversation method was called with the correct ID
-        self.mock_engine.load_conversation.assert_called_once_with("test-conversation")
+        # Check that the engine's load_session method was called with the correct ID
+        self.mock_engine.load_session.assert_called_once_with("test-session")
         
         # Check that the result indicates success
         self.assertIn("Successfully loaded", result)
         
-    def test_load_conversation_tool_failure(self):
-        """Test the LoadConversation tool when loading fails."""
+    def test_load_session_tool_failure(self):
+        """Test the LoadSession tool when loading fails."""
         # Set up the mock engine
-        self.mock_engine.load_conversation.return_value = False
+        self.mock_engine.load_session.return_value = False
         
         # Create the tool
-        tool = LoadConversation(self.mock_engine)
+        tool = LoadSession(self.mock_engine)
         
         # Run the tool
-        result = tool.run(conversation_id="nonexistent-conversation")
+        result = tool.run(session_id="nonexistent-session")
         
-        # Check that the engine's load_conversation method was called with the correct ID
-        self.mock_engine.load_conversation.assert_called_once_with("nonexistent-conversation")
+        # Check that the engine's load_session method was called with the correct ID
+        self.mock_engine.load_session.assert_called_once_with("nonexistent-session")
         
         # Check that the result indicates failure
         self.assertIn("Failed to load", result)
         
-    def test_get_conversation_id_tool(self):
-        """Test the GetConversationId tool."""
+    def test_get_session_id_tool(self):
+        """Test the GetSessionId tool."""
         # Create the tool
-        tool = GetConversationId(self.mock_engine)
+        tool = GetSessionId(self.mock_engine)
         
         # Run the tool
         result = tool.run()
         
-        # Check that the result contains the conversation ID text
-        self.assertIn("Current conversation ID:", result)
+        # Check that the engine's get_session_id method was called
+        self.mock_engine.get_session_id.assert_called_once()
         
-    def test_delete_conversation_tool(self):
-        """Test the DeleteConversation tool."""
+        # Check that the result contains the current session ID
+        self.assertIn("current-session", result)
+        
+    def test_delete_session_tool(self):
+        """Test the DeleteSession tool."""
         # Set up the mock engine
-        self.mock_engine.memory_provider.list_conversations.return_value = ["conv1", "conv2", "conv3"]
+        self.mock_engine.list_sessions.return_value = ["session1", "session2", "session3"]
+        self.mock_engine.delete_session.return_value = True
         
         # Create the tool
-        tool = DeleteConversation(self.mock_engine)
+        tool = DeleteSession(self.mock_engine)
         
         # Run the tool
-        result = tool.run(conversation_id="conv2")
+        result = tool.run(session_id="session2")
         
-        # Check that the memory provider's delete_conversation method was called with the correct ID
-        self.mock_engine.memory_provider.delete_conversation.assert_called_once_with("conv2")
+        # Check that the engine's delete_session method was called with the correct ID
+        self.mock_engine.delete_session.assert_called_once_with("session2")
         
         # Check that the result indicates success
         self.assertIn("Successfully deleted", result)
         
-    def test_delete_conversation_tool_nonexistent(self):
-        """Test the DeleteConversation tool with a nonexistent conversation."""
+    def test_delete_session_tool_nonexistent(self):
+        """Test the DeleteSession tool with a nonexistent session."""
         # Set up the mock engine
-        self.mock_engine.memory_provider.list_conversations.return_value = ["conv1", "conv3"]
+        self.mock_engine.delete_session.return_value = False
         
         # Create the tool
-        tool = DeleteConversation(self.mock_engine)
+        tool = DeleteSession(self.mock_engine)
         
         # Run the tool
-        result = tool.run(conversation_id="conv2")
+        result = tool.run(session_id="nonexistent-session")
         
-        # Check that the memory provider's delete_conversation method was not called
-        self.mock_engine.memory_provider.delete_conversation.assert_not_called()
+        # Check that the engine's delete_session method was called
+        self.mock_engine.delete_session.assert_called_once_with("nonexistent-session")
         
-        # Check that the result indicates the conversation was not found
-        self.assertIn("not found", result)
+        # Check that the result indicates failure
+        self.assertIn("Failed to delete", result)
         
-    def test_delete_conversation_tool_current_conversation(self):
-        """Test the DeleteConversation tool with the current conversation."""
+    def test_delete_session_tool_current_session(self):
+        """Test the DeleteSession tool with the current session."""
         # Set up the mock engine
-        self.mock_engine.memory_provider.list_conversations.return_value = ["conv1", "current-conversation", "conv3"]
+        self.mock_engine.list_sessions.return_value = ["session1", "current-session", "session3"]
         
         # Create the tool
-        tool = DeleteConversation(self.mock_engine)
+        tool = DeleteSession(self.mock_engine)
         
         # Run the tool
-        result = tool.run(conversation_id="current-conversation")
+        result = tool.run(session_id="current-session")
         
-        # Check that the memory provider's delete_conversation method was not called
-        self.mock_engine.memory_provider.delete_conversation.assert_not_called()
+        # Check that the engine's delete_session method was not called
+        self.mock_engine.delete_session.assert_not_called()
         
-        # Check that the result indicates the current conversation cannot be deleted
-        self.assertIn("Cannot delete the current conversation", result)
+        # Check that the result indicates the current session cannot be deleted
+        self.assertIn("Cannot delete the current active session", result)
 
 
 if __name__ == "__main__":

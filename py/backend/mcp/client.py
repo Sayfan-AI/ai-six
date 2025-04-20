@@ -83,7 +83,7 @@ class MCPClient:
                 tool_results.append({"call": tool_name, "result": result})
                 final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
 
-                # Continue conversation with tool results
+                # Continue session with tool results
                 if hasattr(content, 'text') and content.text:
                     messages.append({
                         "role": "assistant",

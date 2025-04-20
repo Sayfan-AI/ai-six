@@ -1,5 +1,3 @@
-import json
-import os
 import sys
 import uuid
 from pathlib import Path
@@ -9,7 +7,7 @@ from unittest.mock import MagicMock
 sys.path.append(str(Path(__file__).parent))
 
 from py.backend.engine.engine import Engine
-from py.backend.llm_providers.llm_provider import LLMProvider
+from py.backend.engine.llm_provider import LLMProvider
 from py.backend.memory.file_memory_provider import FileMemoryProvider
 
 class MockLLMProvider(LLMProvider):
@@ -34,11 +32,11 @@ class MockLLMProvider(LLMProvider):
 def test_message_sequence_validation():
     """Test that the message sequence validation correctly handles tool messages."""
     
-    # Create a temporary directory for the memory provider
+    # Create a temporary directory for the memory_providers provider
     temp_dir = Path("/tmp/test_memory_" + str(uuid.uuid4()))
     temp_dir.mkdir(exist_ok=True)
     
-    # Create a memory provider
+    # Create a memory_providers provider
     memory_provider = FileMemoryProvider(str(temp_dir))
     
     # Create a mock LLM provider
@@ -81,7 +79,7 @@ def test_message_sequence_validation():
     memory_provider.save_messages(conversation_id, invalid_messages)
     
     # Load the conversation
-    engine.load_conversation(conversation_id)
+    engine.load_session(conversation_id)
     
     # Validate the messages before sending to LLM
     engine._validate_messages_before_send()

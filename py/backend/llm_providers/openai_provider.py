@@ -1,4 +1,6 @@
-from py.backend.llm_providers.llm_provider import LLMProvider, Response, ToolCall
+from py.backend.engine.llm_provider import LLMProvider, Response
+from py.backend.engine.object_model import ToolCall, Usage
+
 from py.backend.tools.base.tool import Tool
 from openai import OpenAI
 
@@ -41,7 +43,6 @@ class OpenAIProvider(LLMProvider):
         if model is None:
             model = self.default_model
 
-        # Send the message to the OpenAI API
         tool_data = [self._tool2dict(tool) for tool in tool_dict.values()]
 
         try:
@@ -55,7 +56,12 @@ class OpenAIProvider(LLMProvider):
             raise
 
         tool_calls = response.choices[0].message.tool_calls
-        tool_calls = [] if tool_calls is None else tool_calls# Check if the response contains tool calls
+        tool_calls = [] if tool_calls is None else tool_calls
+
+        # Extract usage data
+        input_tokens = response.usage.prompt_tokens
+        output_tokens = response.usage.completion_tokens
+
         return Response(
             content=response.choices[0].message.content,
             role=response.choices[0].message.role,
@@ -67,6 +73,10 @@ class OpenAIProvider(LLMProvider):
                     required=tool_dict[tool_call.function.name].spec.parameters.required
                 ) for tool_call in tool_calls if tool_call.function
             ],
+            usage=Usage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens
+            )
         )
 
 
@@ -91,5 +101,7 @@ class OpenAIProvider(LLMProvider):
                         arguments=t.arguments
                     )
                 ) for t in response.tool_calls
-            ]
+            ],
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens
         )

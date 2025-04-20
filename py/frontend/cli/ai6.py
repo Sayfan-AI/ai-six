@@ -52,7 +52,7 @@ def main():
     
     # Handle --list argument
     if args.list:
-        sessions = engine.list_conversations()
+        sessions = engine.list_sessions()
         if sessions:
             print("Available sessions:")
             for session_id in sessions:
@@ -62,9 +62,9 @@ def main():
         return
     
     # Print current session ID
-    print(f"Current session ID: {engine.get_conversation_id()}")
+    print(f"Current session ID: {engine.get_session_id()}")
     
-    # Run the conversation loop
+    # Run the session loop
     engine.run(get_user_input, handle_tool_call, handle_response)
 
 if __name__ == '__main__':

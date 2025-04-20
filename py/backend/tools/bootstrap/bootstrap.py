@@ -21,15 +21,18 @@ class Bootstrap(Tool):
             if not module_path:
                 raise RuntimeError("Can't determine main module file")
 
-            # Try to get the module name for -m invocation
-            spec = importlib.util.find_spec(main_module.__package__)
-            if spec is None or not main_module.__package__:
-                raise RuntimeError("Cannot resolve package for restart")
-
-            module_name = f"{main_module.__package__}.{os.path.basename(module_path).split('.')[0]}"
-
-            # Re-execute using -m
-            os.execv(sys.executable, [sys.executable, "-m", module_name, *sys.argv[1:]])
+            # Handle both module and direct file execution
+            if hasattr(main_module, '__package__') and main_module.__package__:
+                # Module execution (python -m package.module)
+                spec = importlib.util.find_spec(main_module.__package__)
+                if spec is None:
+                    raise RuntimeError("Cannot resolve package for restart")
+                    
+                module_name = f"{main_module.__package__}.{os.path.basename(module_path).split('.')[0]}"
+                os.execv(sys.executable, [sys.executable, "-m", module_name, *sys.argv[1:]])
+            else:
+                # Direct file execution (python file.py)
+                os.execv(sys.executable, [sys.executable, module_path, *sys.argv[1:]])
 
         except Exception as e:
             raise RuntimeError(f"Failed to restart: {e}") from e

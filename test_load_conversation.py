@@ -12,7 +12,7 @@ test_conversation_id = "test_conversation"
 memory_provider = FileMemoryProvider(test_memory_dir)
 
 # Check if the test conversation exists
-print(f"Available conversations: {memory_provider.list_conversations()}")
+print(f"Available conversations: {memory_provider.list_sessions()}")
 
 # Load the conversation
 messages = memory_provider.load_messages(test_conversation_id)

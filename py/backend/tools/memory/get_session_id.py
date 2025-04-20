@@ -1,6 +1,6 @@
 from ...tools.base.tool import Tool, Spec, Parameter, Parameters
 
-class GetConversationId(Tool):
+class GetSessionId(Tool):
     """Tool to get the current session ID."""
     
     def __init__(self, engine=None):
@@ -13,8 +13,8 @@ class GetConversationId(Tool):
         self.engine = engine
         
         spec = Spec(
-            name='get_conversation_id',
-            description='Get the ID of the current conversation session.',
+            name='get_session_id',
+            description='Get the ID of the current session.',
             parameters=Parameters(
                 properties=[],
                 required=[]
@@ -32,6 +32,6 @@ class GetConversationId(Tool):
         if not self.engine:
             return "Error: Engine reference not set."
         
-        session_id = self.engine.get_conversation_id()
+        session_id = self.engine.get_session_id()
         
         return f"Current session ID: {session_id}"

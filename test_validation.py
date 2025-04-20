@@ -6,7 +6,6 @@ import sys
 # Add the project root to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 
-from py.backend.memory.memory_provider import MemoryProvider
 from py.backend.memory.file_memory_provider import FileMemoryProvider
 
 def create_test_conversation():
@@ -122,7 +121,7 @@ def create_test_conversation():
     return str(conversations_dir / "test_conversation.json")
 
 def test_memory_provider_validation():
-    """Test the memory provider validation."""
+    """Test the memory_providers provider validation."""
     # Create a test conversation
     test_file = create_test_conversation()
     
@@ -132,7 +131,7 @@ def test_memory_provider_validation():
     
     print(f"Original message count: {len(messages)}")
     
-    # Create a file memory provider (since MemoryProvider is abstract)
+    # Create a file memory_providers provider (since MemoryProvider is abstract)
     test_dir = Path("/workspace/ai-six/test_data")
     memory_provider = FileMemoryProvider(str(test_dir))
     
@@ -160,11 +159,11 @@ def test_memory_provider_validation():
     print(f"Wrote validated messages to {test_file}")
 
 def test_file_memory_provider():
-    """Test the file memory provider."""
+    """Test the file memory_providers provider."""
     # Create a test directory
     test_dir = Path("/workspace/ai-six/test_data")
     
-    # Create a file memory provider
+    # Create a file memory_providers provider
     memory_provider = FileMemoryProvider(str(test_dir))
     
     # Load the test conversation
@@ -185,8 +184,8 @@ def test_file_memory_provider():
     print("Tool call IDs found:", list(tool_call_ids.keys()))
 
 if __name__ == "__main__":
-    print("Testing memory provider validation...")
+    print("Testing memory_providers provider validation...")
     test_memory_provider_validation()
     
-    print("\nTesting file memory provider...")
+    print("\nTesting file memory_providers provider...")
     test_file_memory_provider()

@@ -1,4 +1,5 @@
 import os
+import json
 
 
 class SessionManager:
@@ -16,20 +17,24 @@ class SessionManager:
         for f in files:
             if f.endswith('.json'):
                 try:
-                    # Parse the filename, which should be in the format "session_id~title.json"
-                    parts = os.path.basename(f).split('~', 1)
-                    if len(parts) != 2:
-                        continue  # Skip files that don't follow the expected format
+                    # Get session ID from the filename (dropping the .json extension)
+                    session_id = os.path.basename(f).rsplit('.json', 1)[0]
                     
-                    session_id = parts[0]
-                    name_with_ext = parts[1]
-                    name = name_with_ext.rsplit('.json', 1)[0]  # Remove .json extension
-                    
-                    # Store session info as (name, full_filename)
+                    # Try to open and parse the file to verify it's valid JSON
                     full_path = os.path.join(self.memory_dir, f)
-                    sessions[session_id] = (name, full_path)
-                except Exception:
-                    # Skip any files that cause parsing errors
+                    with open(full_path, 'r') as file:
+                        try:
+                            # Attempt to parse the JSON
+                            json.loads(file.read())
+                            # Only add if we could parse the JSON
+                            sessions[session_id] = ('', full_path)
+                        except json.JSONDecodeError:
+                            # Skip files with invalid JSON
+                            print(f"Skipping file with invalid JSON: {f}")
+                            continue
+                except Exception as e:
+                    # Skip any files that cause other errors
+                    print(f"Error parsing session file {f}: {e}")
                     continue
                     
         return sessions

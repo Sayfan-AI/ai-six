@@ -11,11 +11,11 @@ from py.backend.engine.llm_provider import LLMProvider
 from py.backend.tools.base.tool import Tool
 from py.backend.engine.session import Session
 from py.backend.engine.session_manager import SessionManager
-from py.backend.tools.memory.list_conversations import ListConversations
-from py.backend.tools.memory.load_conversation import LoadConversation
-from py.backend.tools.memory.get_conversation_id import GetConversationId
-from py.backend.tools.memory.delete_conversation import DeleteConversation
-from py.backend.engine.summarizer import ConversationSummarizer
+from py.backend.tools.memory.list_sessions import ListSessions
+from py.backend.tools.memory.load_session import LoadSession
+from py.backend.tools.memory.get_session_id import GetSessionId
+from py.backend.tools.memory.delete_session import DeleteSession
+from py.backend.engine.summarizer import SessionSummarizer
 
 class Engine:
     @staticmethod
@@ -101,7 +101,7 @@ class Engine:
         
         # Initialize summarizer if llm providers available
         if self.llm_providers:
-            self.summarizer = ConversationSummarizer(self.llm_providers[0])
+            self.summarizer = SessionSummarizer(self.llm_providers[0])
         
         # Register memory tools with the engine
         self._register_memory_tools()
@@ -110,7 +110,8 @@ class Engine:
         if session_id:
             available_sessions = self.session_manager.list_sessions()
             if session_id in available_sessions:
-                self.session.load(session_id)
+                self.session = Session(memory_dir)  # Create a new session object
+                self.session.load(session_id)       # Load from disk
                 
                 # Load summary if available
                 # TODO: Implement loading summaries
@@ -118,16 +119,16 @@ class Engine:
     def _register_memory_tools(self):
         """Register memory management tools with the engine."""
         # Create tool instances with a reference to the engine
-        list_conversations_tool = ListConversations(self)
-        load_conversation_tool = LoadConversation(self)
-        get_conversation_id_tool = GetConversationId(self)
-        delete_conversation_tool = DeleteConversation(self)
+        list_sessions_tool = ListSessions(self)
+        load_session_tool = LoadSession(self)
+        get_session_id_tool = GetSessionId(self)
+        delete_session_tool = DeleteSession(self)
         
         # Add tools to the engine's tool dictionary
-        self.tool_dict[list_conversations_tool.spec.name] = list_conversations_tool
-        self.tool_dict[load_conversation_tool.spec.name] = load_conversation_tool
-        self.tool_dict[get_conversation_id_tool.spec.name] = get_conversation_id_tool
-        self.tool_dict[delete_conversation_tool.spec.name] = delete_conversation_tool
+        self.tool_dict[list_sessions_tool.spec.name] = list_sessions_tool
+        self.tool_dict[load_session_tool.spec.name] = load_session_tool
+        self.tool_dict[get_session_id_tool.spec.name] = get_session_id_tool
+        self.tool_dict[delete_session_tool.spec.name] = delete_session_tool
 
     def _checkpoint_if_needed(self) -> None:
         """Check if we need to save a checkpoint and do so if needed."""
@@ -293,7 +294,7 @@ class Engine:
                 self.session.add_message(tool_message)
                 print(f"[DEBUG] Added tool message with tool_call_id: {tool_message.get('tool_call_id')}")
 
-            # Continue the conversation with another send
+            # Continue the session with another send
             return self._send(model_id, on_tool_call_func)
             
         return response.content.strip()
@@ -302,7 +303,7 @@ class Engine:
             get_input_func: Callable[[], None],
             on_tool_call_func: Callable[[str, dict, str], None] | None,
             on_response_func: Callable[[str], None]):
-        """Run the conversation loop."""
+        """Run the session loop."""
         try:
             while user_input := get_input_func():
                 message = {'role': 'user', 'content': user_input}
@@ -333,16 +334,16 @@ class Engine:
         
         return response
         
-    def get_conversation_id(self) -> str:
+    def get_session_id(self) -> str:
         """Get the current session ID."""
         return self.session.session_id
         
-    def list_conversations(self) -> List[str]:
+    def list_sessions(self) -> List[str]:
         """List all available sessions."""
         sessions = self.session_manager.list_sessions()
         return list(sessions.keys())
         
-    def load_conversation(self, session_id: str) -> bool:
+    def load_session(self, session_id: str) -> bool:
         """
         Load a specific session.
         
@@ -361,7 +362,7 @@ class Engine:
         
         return True
         
-    def delete_conversation(self, session_id: str) -> bool:
+    def delete_session(self, session_id: str) -> bool:
         """
         Delete a specific session.
         
@@ -371,6 +372,11 @@ class Engine:
         Returns:
             True if the session was deleted successfully, False otherwise
         """
+        # Don't allow deleting the active session
+        if session_id == self.session.session_id:
+            print(f"Cannot delete the active session {session_id}")
+            return False
+            
         try:
             self.session_manager.delete_session(session_id)
             return True

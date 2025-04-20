@@ -1,7 +1,7 @@
 from ...tools.base.tool import Tool, Spec, Parameter, Parameters
 
-class LoadConversation(Tool):
-    """Tool to load a specific session by ID."""
+class DeleteSession(Tool):
+    """Tool to delete a specific session by ID."""
     
     def __init__(self, engine=None):
         """
@@ -13,14 +13,14 @@ class LoadConversation(Tool):
         self.engine = engine
         
         spec = Spec(
-            name='load_conversation',
-            description='Load a specific conversation session by ID.',
+            name='delete_session',
+            description='Delete a specific session by ID.',
             parameters=Parameters(
                 properties=[
                     Parameter(
                         name='session_id',
                         type='string',
-                        description='ID of the session to load'
+                        description='ID of the session to delete'
                     )
                 ],
                 required=['session_id']
@@ -30,10 +30,10 @@ class LoadConversation(Tool):
     
     def run(self, session_id, **kwargs):
         """
-        Load a specific session.
+        Delete a specific session.
         
         Args:
-            session_id: ID of the session to load
+            session_id: ID of the session to delete
             
         Returns:
             String indicating success or failure
@@ -44,9 +44,13 @@ class LoadConversation(Tool):
         if not session_id:
             return "Error: Session ID is required."
         
-        success = self.engine.load_conversation(session_id)
+        # Don't allow deleting the current session
+        if session_id == self.engine.get_session_id():
+            return "Error: Cannot delete the current active session."
+        
+        success = self.engine.delete_session(session_id)
         
         if success:
-            return f"Successfully loaded session: {session_id}"
+            return f"Successfully deleted session: {session_id}"
         else:
-            return f"Failed to load session: {session_id}. Session may not exist."
+            return f"Failed to delete session: {session_id}. Session may not exist."

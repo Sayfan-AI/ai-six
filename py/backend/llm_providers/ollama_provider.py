@@ -1,5 +1,6 @@
 import json
-from py.backend.llm_providers.llm_provider import LLMProvider, Response, ToolCall
+from py.backend.engine.llm_provider import LLMProvider
+from py.backend.engine.object_model import Response, ToolCall, Usage
 from py.backend.tools.base.tool import Tool
 
 import ollama
@@ -12,7 +13,6 @@ class OllamaProvider(LLMProvider):
     @property
     def models(self) -> list[str]:
         """Get the list of available models."""
-        # This should return actual available models for ollama
         return [self.model]  # Example: return the initialized model
 
 
@@ -36,7 +36,6 @@ class OllamaProvider(LLMProvider):
         if model is None:
             model = self.model
 
-        # Convert tools to the format required by ollama's chat function
         tool_data = [tool.run for tool in tool_dict.values()] + [self._tool2dict(tool) for tool in tool_dict.values()]
 
         try:
@@ -50,6 +49,11 @@ class OllamaProvider(LLMProvider):
             raise RuntimeError(f"Error communicating with ollama model: {e}")
 
         tool_calls = response.message.tool_calls or []
+
+        # Extract and map usage data
+        input_tokens = response.get('prompt_eval_count', 0)
+        output_tokens = response.get('eval_count', 0)
+
         return Response(
             content=response.message.content,
             role=response.message.role,
@@ -61,6 +65,10 @@ class OllamaProvider(LLMProvider):
                     required=tool_dict[tool_call.function.name].spec.parameters.required
                 ) for tool_call in tool_calls if tool_call
             ],
+            usage=Usage(
+                input_tokens=input_tokens,
+                output_tokens=output_tokens
+            )
         )
 
     def model_response_to_message(self, response: Response) -> dict:
@@ -77,9 +85,10 @@ class OllamaProvider(LLMProvider):
                         arguments=t.arguments
                     )
                 ) for t in response.tool_calls
-            ]
+            ],
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens
         )
-
 
 
     @staticmethod

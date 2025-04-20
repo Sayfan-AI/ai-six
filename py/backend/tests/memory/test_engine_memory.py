@@ -5,36 +5,39 @@ import os
 from unittest.mock import MagicMock, patch
 
 from py.backend.engine.engine import Engine
-from py.backend.memory.file_memory_provider import FileMemoryProvider
-from py.backend.llm_providers.llm_provider import LLMProvider, Response, ToolCall
+from py.backend.engine.llm_provider import LLMProvider
+from py.backend.engine.object_model import Response, ToolCall
+from py.backend.engine.session import Session
+from py.backend.engine.session_manager import SessionManager
 
 
 class MockLLMProvider(LLMProvider):
     """Mock LLM provider for testing."""
     
     def __init__(self):
-        self._models = ["test-model"]
-        self.responses = []
+        self.mock_responses = []
         
-    def add_response(self, content, tool_calls=None):
-        """Add a response to the queue."""
-        if tool_calls is None:
-            tool_calls = []
-        self.responses.append(Response(content=content, role="assistant", tool_calls=tool_calls))
+    def add_mock_response(self, content, tool_calls=None):
+        """Add a mock response to be returned by the send method."""
+        self.mock_responses.append(Response(
+            content=content,
+            role="assistant",
+            tool_calls=tool_calls or [],
+            usage=None
+        ))
         
-    def send(self, messages, tool_list, model=None):
-        """Return the next response in the queue."""
-        if not self.responses:
-            return Response(content="Default response", role="assistant", tool_calls=[])
-        return self.responses.pop(0)
+    def send(self, messages, tool_dict, model=None):
+        """Return the next mock response."""
+        if not self.mock_responses:
+            return Response(content="Default response", role="assistant", tool_calls=[], usage=None)
+        return self.mock_responses.pop(0)
         
     @property
     def models(self):
-        """Return the list of available models."""
-        return self._models
+        return ["mock-model"]
         
     def model_response_to_message(self, response):
-        """Convert the response to a message format."""
+        """Convert a response to a message."""
         return {
             "role": "assistant",
             "content": response.content,
@@ -47,10 +50,8 @@ class MockLLMProvider(LLMProvider):
                         "arguments": t.arguments
                     }
                 } for t in response.tool_calls
-            ]
+            ] if response.tool_calls else []
         }
-        
-
 
 
 class TestEngineMemory(unittest.TestCase):
@@ -58,176 +59,202 @@ class TestEngineMemory(unittest.TestCase):
         # Create a temporary directory for testing
         self.test_dir = tempfile.mkdtemp()
         
-        # Create a memory provider
-        self.memory_provider = FileMemoryProvider(self.test_dir)
-        
         # Create a mock LLM provider
         self.llm_provider = MockLLMProvider()
         
-        # Create a mock tools directory
-        self.tools_dir = os.path.join(os.path.dirname(__file__), "../../tools")
-        
-        # Create an engine with memory support
+        # Create an engine with the mock provider
         self.engine = Engine(
             llm_providers=[self.llm_provider],
-            default_model_id="test-model",
-            tools_dir=self.tools_dir,
-            memory_provider=self.memory_provider,
-            conversation_id="test-conversation"
+            default_model_id="mock-model",
+            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
+            memory_dir=self.test_dir
         )
         
     def tearDown(self):
         # Clean up the temporary directory
         shutil.rmtree(self.test_dir)
         
-    def test_conversation_id(self):
-        """Test that the engine sets the conversation ID correctly."""
-        self.assertEqual(self.engine.get_conversation_id(), "test-conversation")
+    def test_session_initialization(self):
+        """Test that the session is initialized correctly."""
+        self.assertIsNotNone(self.engine.session)
+        self.assertIsInstance(self.engine.session, Session)
+        self.assertIsNotNone(self.engine.session_manager)
+        self.assertIsInstance(self.engine.session_manager, SessionManager)
+        self.assertEqual(len(self.engine.session.messages), 0)
         
-    def test_save_and_load_conversation(self):
-        """Test saving and loading a conversation."""
-        # Add some messages to the engine
-        self.engine.messages = [
-            {"role": "user", "content": "Hello, AI-6!"},
-            {"role": "assistant", "content": "Hello! How can I help you today?"}
-        ]
+    def test_send_message(self):
+        """Test sending a message and receiving a response."""
+        # Set up the mock response
+        self.llm_provider.add_mock_response("I'll help you with that!")
         
-        # Save the conversation
-        self.engine._save_conversation()
+        # Send a message
+        response = self.engine.send_message("Hello", "mock-model", None)
         
-        # Clear the messages
-        self.engine.messages = []
+        # Check the response
+        self.assertEqual(response, "I'll help you with that!")
         
-        # Load the conversation
-        self.engine._load_conversation()
+        # Check that the message was added to the session
+        self.assertEqual(len(self.engine.session.messages), 2)
+        self.assertEqual(self.engine.session.messages[0]["role"], "user")
+        self.assertEqual(self.engine.session.messages[0]["content"], "Hello")
+        self.assertEqual(self.engine.session.messages[1]["role"], "assistant")
+        self.assertEqual(self.engine.session.messages[1]["content"], "I'll help you with that!")
         
-        # Check that the messages were loaded correctly
-        self.assertEqual(len(self.engine.messages), 2)
-        self.assertEqual(self.engine.messages[0]["role"], "user")
-        self.assertEqual(self.engine.messages[0]["content"], "Hello, AI-6!")
-        self.assertEqual(self.engine.messages[1]["role"], "assistant")
-        self.assertEqual(self.engine.messages[1]["content"], "Hello! How can I help you today?")
+    def test_session_saving(self):
+        """Test that sessions are saved correctly."""
+        # Set up the mock response
+        self.llm_provider.add_mock_response("I'll help you with that!")
         
-    def test_checkpoint_if_needed(self):
-        """Test that checkpoints are created when needed."""
-        # Create a new engine with a clean state for this test
-        test_dir = tempfile.mkdtemp()
-        memory_provider = FileMemoryProvider(test_dir)
+        # Send a message
+        self.engine.send_message("Hello", "mock-model", None)
         
-        # Create an engine with a specific checkpoint interval
-        engine = Engine(
+        # Explicitly save the session
+        self.engine.session.save()
+        
+        # Get the session ID
+        session_id = self.engine.get_session_id()
+        
+        # Check that the session file exists - file is now just session_id.json without a title
+        session_file = f"{self.test_dir}/{session_id}.json"
+        self.assertTrue(os.path.exists(session_file))
+        
+        # Create a new engine and load the session
+        new_engine = Engine(
             llm_providers=[self.llm_provider],
-            default_model_id="test-model",
-            tools_dir=self.tools_dir,
-            memory_provider=memory_provider,
-            conversation_id="test-checkpoint",
-            checkpoint_interval=10
+            default_model_id="mock-model",
+            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
+            memory_dir=self.test_dir,
+            session_id=session_id
         )
         
-        # Add some messages to the engine
-        engine.messages = [
-            {"role": "user", "content": "Hello, AI-6!"},
-            {"role": "assistant", "content": "Hello! How can I help you today?"}
-        ]
+        # Check that the session was loaded
+        self.assertEqual(len(new_engine.session.messages), 2)
+        self.assertEqual(new_engine.session.messages[0]["role"], "user")
+        self.assertEqual(new_engine.session.messages[0]["content"], "Hello")
         
-        # Reset the message count to ensure we start from a known state
-        engine.message_count_since_checkpoint = 0
+    def test_session_list_and_delete(self):
+        """Test listing and deleting sessions."""
+        # Set up the mock response
+        self.llm_provider.add_mock_response("I'll help you with that!")
         
-        # Set up a spy on _save_conversation
-        original_save = engine._save_conversation
-        save_called = [0]
+        # Send a message to create a session
+        self.engine.send_message("Hello", "mock-model", None)
         
-        def spy_save():
-            save_called[0] += 1
-            # Don't actually call original_save to avoid side effects
-            
-        engine._save_conversation = spy_save
+        # Explicitly save the session
+        self.engine.session.save()
         
-        # Call _checkpoint_if_needed exactly 10 times (the checkpoint interval)
-        for i in range(10):
-            engine._checkpoint_if_needed()
-            
-        # Check that _save_conversation was called exactly once
-        # With checkpoint_interval=10, it should be called once when count == 10
-        self.assertEqual(save_called[0], 1)
+        # Get the session ID
+        session_id = self.engine.get_session_id()
         
-        # Clean up
-        shutil.rmtree(test_dir)
+        # Get list of sessions - will be a dict in the new implementation
+        sessions = self.engine.list_sessions()
+        self.assertEqual(len(sessions), 1)
+        self.assertTrue(session_id in sessions)
         
-    def test_list_conversations(self):
-        """Test listing conversations."""
-        # Add some messages to the engine
-        self.engine.messages = [
-            {"role": "user", "content": "Hello, AI-6!"},
-            {"role": "assistant", "content": "Hello! How can I help you today?"}
-        ]
+        # Delete the session
+        success = self.engine.delete_session(session_id)
         
-        # Save the conversation
-        self.engine._save_conversation()
-        
-        # Create another conversation
-        self.engine.conversation_id = "test-conversation-2"
-        self.engine.messages = [
-            {"role": "user", "content": "What can you do?"},
-            {"role": "assistant", "content": "I can help with various tasks."}
-        ]
-        
-        # Save the second conversation
-        self.engine._save_conversation()
-        
-        # List conversations
-        conversations = self.engine.list_conversations()
-        
-        # Check that both conversations are listed
-        self.assertEqual(len(conversations), 2)
-        self.assertIn("test-conversation", conversations)
-        self.assertIn("test-conversation-2", conversations)
-        
-    def test_load_conversation_by_id(self):
-        """Test loading a specific conversation."""
-        # Add some messages to the engine
-        self.engine.messages = [
-            {"role": "user", "content": "Hello, AI-6!"},
-            {"role": "assistant", "content": "Hello! How can I help you today?"}
-        ]
-        
-        # Save the conversation
-        self.engine._save_conversation()
-        
-        # Create another conversation
-        self.engine.conversation_id = "test-conversation-2"
-        self.engine.messages = [
-            {"role": "user", "content": "What can you do?"},
-            {"role": "assistant", "content": "I can help with various tasks."}
-        ]
-        
-        # Save the second conversation
-        self.engine._save_conversation()
-        
-        # Load the first conversation
-        success = self.engine.load_conversation("test-conversation")
-        
-        # Check that the load was successful
-        self.assertTrue(success)
-        
-        # Check that the conversation ID was updated
-        self.assertEqual(self.engine.conversation_id, "test-conversation")
-        
-        # Check that the messages were loaded correctly
-        self.assertEqual(len(self.engine.messages), 2)
-        self.assertEqual(self.engine.messages[0]["role"], "user")
-        self.assertEqual(self.engine.messages[0]["content"], "Hello, AI-6!")
-        
-    def test_load_nonexistent_conversation(self):
-        """Test loading a conversation that doesn't exist."""
-        # Try to load a nonexistent conversation
-        success = self.engine.load_conversation("nonexistent-conversation")
-        
-        # Check that the load failed
+        # We can't delete the active session
         self.assertFalse(success)
         
-        # Check that the conversation ID was not updated
-        self.assertEqual(self.engine.conversation_id, "test-conversation")
+        # Create another engine with a new session
+        another_engine = Engine(
+            llm_providers=[self.llm_provider],
+            default_model_id="mock-model",
+            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
+            memory_dir=self.test_dir
+        )
+        
+        # Get the new session ID and save it
+        another_session_id = another_engine.get_session_id()
+        another_engine.session.save()  # We need to save this session too
+        
+        # Now delete the first session from this new engine
+        success = another_engine.delete_session(session_id)
+        self.assertTrue(success)
+        
+        # List sessions again
+        sessions = self.engine.list_sessions()
+        self.assertEqual(len(sessions), 1)
+        self.assertTrue(session_id not in sessions)
+        self.assertTrue(another_session_id in sessions)
+        
+    def test_checkpoint_interval(self):
+        """Test the checkpoint interval functionality."""
+        # Set the checkpoint interval to 2
+        self.engine.checkpoint_interval = 2
+        
+        # Set up mock responses
+        self.llm_provider.add_mock_response("Response 1")
+        self.llm_provider.add_mock_response("Response 2")
+        
+        # Reset the message count explicitly to ensure we start fresh
+        self.engine.message_count_since_checkpoint = 0
+        
+        with patch.object(self.engine.session, 'save') as mock_save:
+            # First message (user)
+            self.engine.session.add_message({"role": "user", "content": "Message 1"})
+            self.engine._checkpoint_if_needed()  # Manually call to increment counter to 1
+            
+            # First message (assistant)
+            self.engine.session.add_message({"role": "assistant", "content": "Response 1"})
+            self.engine._checkpoint_if_needed()  # Increment counter to 2, which matches interval
+            
+            # Verify the session was saved after the second message (assistant)
+            mock_save.assert_called_once()
+            self.assertEqual(self.engine.message_count_since_checkpoint, 0)  # Should be reset
+            
+            # Counter should be reset, so add two more messages to hit 2 again
+            
+            # Second message (user)
+            self.engine.session.add_message({"role": "user", "content": "Message 2"})
+            self.engine._checkpoint_if_needed()  # Increment counter to 1
+            
+            # Second message (assistant)
+            self.engine.session.add_message({"role": "assistant", "content": "Response 2"})
+            self.engine._checkpoint_if_needed()  # Increment counter to 2 again
+            
+            # Should be called twice now
+            self.assertEqual(mock_save.call_count, 2)
+            self.assertEqual(self.engine.message_count_since_checkpoint, 0)
+            
+    def test_tool_call_handling(self):
+        """Test handling of tool calls."""
+        # Create a mock tool call
+        tool_call = ToolCall(
+            id="call_123",
+            name="echo",
+            arguments='{"text":"Hello, world!"}',
+            required=["text"]
+        )
+        
+        # Set up the mock response with a tool call
+        self.llm_provider.add_mock_response(
+            content="I'll execute that tool for you",
+            tool_calls=[tool_call]
+        )
+        
+        # Set up a mock for the tool execution
+        tool_result = "Hello, world!"
+        self.engine.tool_dict["echo"] = MagicMock()
+        self.engine.tool_dict["echo"].run.return_value = tool_result
+        
+        # Set up a mock tool call handler
+        tool_call_handler = MagicMock()
+        
+        # Send a message that will trigger a tool call
+        self.engine.send_message("Run echo", "mock-model", tool_call_handler)
+        
+        # Check that the tool call handler was called with the right arguments
+        tool_call_handler.assert_called_once_with("echo", {"text": "Hello, world!"}, tool_result)
+        
+        # Check that the messages include the tool call and response
+        messages = self.engine.session.messages
+        self.assertEqual(len(messages), 4)  # user, assistant, tool, assistant
+        self.assertEqual(messages[0]["role"], "user")
+        self.assertEqual(messages[1]["role"], "assistant")
+        self.assertEqual(messages[2]["role"], "tool")
+        self.assertEqual(messages[2]["name"], "echo")
 
 
 if __name__ == "__main__":
