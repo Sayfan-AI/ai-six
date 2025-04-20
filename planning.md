@@ -10,10 +10,11 @@ It is focused on tool use and management.
 
 - [ ] MCP support (engine is MCP client, local tools can run as MCP server)
 - [ ] Streaming
-- [ ] Context window management (summarization)
+- [x] Context window management (summarization)
 - [x] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
-- [ ] Expose usage information (tokens)
+- [x] Expose usage information (tokens)
 - [ ] Computer use (browser and debugging in the IDE!)
+- [ ] Voice UI
 
 ## Tools
 
@@ -28,12 +29,13 @@ It is focused on tool use and management.
 
 ## Permission model
 
-- [] Document the security model 
-  - OS user based, access to remote services credentials and k8s clusters, run in a container
+- [] Document the security model
+    - OS user based, access to remote services credentials and k8s clusters, run in a container
 - [] Dedicated tool Support for defining OS model and permissions for AI-6 and specific tools
 - [] Run in a container (mounting directories and config files like .kube/config and .aws/config)
 
 ## Fully-autonomous AI software engineer
+
 - [ ] Watch Github issues
 - [ ] Respond to new issues assigned to it
 - [ ] Create local branch
@@ -56,8 +58,7 @@ It is focused on tool use and management.
 - [x] Local models (via ollama provider)
 - [x] Memory (via session)
 - [ ] Streaming
-- [ ] New tools
-
+- [ ] New tools - ed, awk and patch
 
 ### Working with OpenHands
 
@@ -75,7 +76,24 @@ docker run -it --rm --pull=always \
     docker.all-hands.dev/all-hands-ai/openhands:0.33
 ```
 
+### Research
 
+Look into the Google eco-system for LLMs and tools.
+
+- Gemini 2.5 is arguably the best LLM available today.
+- Look into their OpenAI compatibility layer
+- If it doesn't work then build a native Gemini LLM provider
+- Look into their a2a (agent to agent) protocol
+
+On the OpenAI side, look into the following:
+
+- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/quickstart/)
+- [Responses API](https://platform.openai.com/docs/api-reference/responses)
+- [Voice Agents](https://openai.github.io/openai-agents-python/voice/quickstart/)
+
+For voice in general, ElvenLabs is highly recommended, but only 10K credits per month, which are you good for about 15
+minutes of conversational AI.
+https://elevenlabs.io
 
 ### Actions items
 
@@ -86,17 +104,17 @@ docker run -it --rm --pull=always \
     - sed (for string replace and other edits on a file)
     - patch
 - Support for Anthropic built-in text editor tool
-  - https://docs.anthropic.com/en/docs/build-with-claude/tool-use/text-editor-tool  
+    - https://docs.anthropic.com/en/docs/build-with-claude/tool-use/text-editor-tool
 - Streaming (display content as it is generated)
 - Managing long-running processes (e.g. ollama serve)
 
 - Support for multiple LLM providers
-  - OpenAI
-  - Ollama + Gemma 3 function calling (no tool use on Ollama)
-  - Anthropic
-  - Gemini 2.5 pro experimental (free tier)
-  - Llamma 4 Scout
- 
+    - OpenAI
+    - Ollama + Gemma 3 function calling (no tool use on Ollama)
+    - Anthropic
+    - Gemini 2.5 pro experimental (free tier)
+    - Llamma 4 Scout
+
 ### Action Items
 
 - [x] Saar/Gigi - Multiple LLM Providers
@@ -111,10 +129,9 @@ docker run -it --rm --pull=always \
 
 - [x] Gigi - Check out chainlit
 - [x] Gigi - Issues
-  - [x] AI-6 slack should ignore messages that mention other users
-  - [x] AI-6 slack bot should leave the channel on app exit
-  - [x] Bootstrap tool to restart itself (AI-6 runs new code after changes)
- 
+    - [x] AI-6 slack should ignore messages that mention other users
+    - [x] AI-6 slack bot should leave the channel on app exit
+    - [x] Bootstrap tool to restart itself (AI-6 runs new code after changes)
 
 ## Project Meeting 22-mar-2025
 
