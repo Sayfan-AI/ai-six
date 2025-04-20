@@ -14,7 +14,7 @@ class TestOpenAIStreaming(unittest.TestCase):
         # Skip tests if no API key is available
         if 'OPENAI_API_KEY' not in os.environ:
             self.skipTest("OPENAI_API_KEY environment variable not set")
-        
+            
         self.api_key = os.environ['OPENAI_API_KEY']
         self.provider = OpenAIProvider(self.api_key)
     

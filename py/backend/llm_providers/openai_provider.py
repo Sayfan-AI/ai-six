@@ -79,7 +79,7 @@ class OpenAIProvider(LLMProvider):
                 output_tokens=output_tokens
             )
         )
-    
+
     def stream(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Iterator[Response]:
         """
         Stream a message to the OpenAI LLM and receive responses as they are generated.
@@ -111,11 +111,11 @@ class OpenAIProvider(LLMProvider):
         role = "assistant"
         tool_calls = []
         current_tool_calls = {}
-        
+    
         # Track tokens for usage
         input_tokens = 0
         output_tokens = 0
-        
+    
         for chunk in stream:
             # Check if this is the final usage statistics chunk
             if chunk.usage:
@@ -123,15 +123,15 @@ class OpenAIProvider(LLMProvider):
                 input_tokens = chunk.usage.prompt_tokens
                 output_tokens = chunk.usage.completion_tokens
                 continue
-                
+            
             # Skip chunks with no choices
             if not chunk.choices:
                 continue
-                
+            
             # Update content if available
             if chunk.choices[0].delta.content:
                 content += chunk.choices[0].delta.content
-                
+            
                 # Yield a partial response with the updated content
                 yield Response(
                     content=content,
@@ -139,7 +139,7 @@ class OpenAIProvider(LLMProvider):
                     tool_calls=[],  # No tool calls yet
                     usage=None  # We'll only have accurate usage at the end
                 )
-            
+        
             # Handle tool calls
             if chunk.choices[0].delta.tool_calls:
                 for delta_tool_call in chunk.choices[0].delta.tool_calls:
@@ -152,19 +152,19 @@ class OpenAIProvider(LLMProvider):
                                 "arguments": ""
                             }
                         }
-                    
+                
                     # Update tool call ID if provided
                     if delta_tool_call.id:
                         current_tool_calls[delta_tool_call.index]["id"] = delta_tool_call.id
-                    
+                
                     # Update function name if provided
                     if delta_tool_call.function and delta_tool_call.function.name:
                         current_tool_calls[delta_tool_call.index]["function"]["name"] = delta_tool_call.function.name
-                    
+                
                     # Update function arguments if provided
                     if delta_tool_call.function and delta_tool_call.function.arguments:
                         current_tool_calls[delta_tool_call.index]["function"]["arguments"] += delta_tool_call.function.arguments
-            
+        
             # If we have a finish reason, check if it's for tool calls
             if chunk.choices[0].finish_reason == "tool_calls":
                 # Convert accumulated tool calls to ToolCall objects
@@ -180,7 +180,7 @@ class OpenAIProvider(LLMProvider):
                                 required=tool_dict[function_name].spec.parameters.required
                             )
                         )
-                
+            
                 # Yield a response with the tool calls
                 yield Response(
                     content=content,
@@ -188,7 +188,7 @@ class OpenAIProvider(LLMProvider):
                     tool_calls=tool_calls,
                     usage=None  # We'll only have accurate usage at the end
                 )
-        
+    
         # Yield the final complete response with usage statistics
         if not tool_calls:
             # Convert accumulated tool calls to ToolCall objects if we haven't already
@@ -204,7 +204,7 @@ class OpenAIProvider(LLMProvider):
                             required=tool_dict[function_name].spec.parameters.required
                         )
                     )
-        
+    
         # Yield the final complete response with usage statistics
         yield Response(
             content=content,

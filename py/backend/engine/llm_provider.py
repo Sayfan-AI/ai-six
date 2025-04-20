@@ -16,7 +16,7 @@ class LLMProvider(ABC):
         :return: The response from the LLM.
         """
         pass
-    
+
     def stream(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Iterator[Response]:
         """
         Stream a message to the LLM and receive responses as they are generated.

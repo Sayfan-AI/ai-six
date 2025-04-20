@@ -37,13 +37,13 @@ def main():
     parser.add_argument('--session', '-s', type=str, help='Session ID to load')
     parser.add_argument('--list', '-l', action='store_true', help='List available sessions')
     args = parser.parse_args()
-    
+
     # Initialize OpenAI provider
     default_model = "gpt-4o"
     openai_provider = OpenAIProvider(
         os.environ['OPENAI_API_KEY'],
         default_model)
-    
+
     # Initialize engine with session support
     engine = Engine(
         llm_providers=[openai_provider],
@@ -52,7 +52,7 @@ def main():
         memory_dir=memory_dir,
         session_id=args.session
     )
-    
+
     # Handle --list argument
     if args.list:
         sessions = engine.list_sessions()
@@ -63,13 +63,13 @@ def main():
         else:
             print("No sessions found.")
         return
-    
+
     # Print current session ID
     print(f"Current session ID: {engine.get_session_id()}")
-    
+
     # Run the session loop with streaming
     print("AI-6 CLI with streaming support. Type 'exit' to quit.")
-    
+
     try:
         while user_input := get_user_input():
             print("[AI-6]:", end=' ', flush=True)

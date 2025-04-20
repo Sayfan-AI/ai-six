@@ -44,18 +44,18 @@ async def on_message(message: cl.Message):
     # Create a new message for the response
     response_message = cl.Message(content="")
     await response_message.send()
-    
+
     # Define a callback function to handle streaming chunks
     async def on_chunk(chunk: str):
         await response_message.stream_token(chunk)
-    
+
     # Stream the response
     response = engine.stream_message(
         message.content, 
         default_model, 
         on_chunk_func=lambda chunk: cl.run_sync(on_chunk(chunk))
     )
-    
+
     # Ensure the message is complete
     await response_message.update()
 
