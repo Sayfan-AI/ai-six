@@ -14,6 +14,14 @@ class ToolCall(NamedTuple):
     required: list[str]
 
 
+class Usage(NamedTuple):
+    """
+    A class to represent the usage information.
+    """
+    input_tokens: int
+    output_tokens: int
+
+
 class Response(NamedTuple):
     """
     A class to represent a response from the LLM.
@@ -21,6 +29,7 @@ class Response(NamedTuple):
     content: str
     role: str
     tool_calls: list[ToolCall]
+    usage: Usage
 
 
 class LLMProvider(ABC):
@@ -49,5 +58,4 @@ class LLMProvider(ABC):
         :return: The message in a dictionary format.
         """
         pass
-
 

@@ -96,7 +96,8 @@ class MemoryProvider(ABC):
             message['timestamp'] = time.time()
         return message
         
-    def _validate_message_structure(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _validate_message_structure(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Validate and fix the message structure to ensure compatibility with OpenAI API.
         
@@ -127,8 +128,7 @@ class MemoryProvider(ABC):
                         print(f"[DEBUG] Found tool_call_id in assistant message: {tool_call['id']}")
                         if tool_call['id'] in tool_call_ids_seen:
                             print(f"[DEBUG] Duplicate tool_call_id found: {tool_call['id']}")
-                        tool_call_ids_seen.add(tool_call['id'])
-        
+
         # Also check for orphaned tool messages (tool messages without corresponding tool_calls)
         orphaned_tool_messages = []
         for i, message in enumerate(messages):
