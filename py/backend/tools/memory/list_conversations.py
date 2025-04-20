@@ -1,7 +1,7 @@
 from ...tools.base.tool import Tool, Spec, Parameter, Parameters
 
 class ListConversations(Tool):
-    """Tool to list all available conversations in memory."""
+    """Tool to list all available sessions in memory."""
     
     def __init__(self, engine=None):
         """
@@ -14,7 +14,7 @@ class ListConversations(Tool):
         
         spec = Spec(
             name='list_conversations',
-            description='List all available conversations in memory.',
+            description='List all available conversation sessions in memory.',
             parameters=Parameters(
                 properties=[],
                 required=[]
@@ -24,17 +24,17 @@ class ListConversations(Tool):
     
     def run(self, **kwargs):
         """
-        List all available conversations.
+        List all available sessions.
         
         Returns:
-            String with the list of conversation IDs
+            String with the list of session IDs
         """
         if not self.engine:
             return "Error: Engine reference not set."
         
-        conversations = self.engine.list_conversations()
+        sessions = self.engine.list_conversations()
         
-        if not conversations:
-            return "No conversations found in memory."
+        if not sessions:
+            return "No sessions found in memory."
         
-        return "Available conversations:\n" + "\n".join(conversations)
+        return "Available sessions:\n" + "\n".join(sessions)

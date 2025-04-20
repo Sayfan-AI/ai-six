@@ -1,7 +1,7 @@
 from ...tools.base.tool import Tool, Spec, Parameter, Parameters
 
 class DeleteConversation(Tool):
-    """Tool to delete a specific conversation from memory."""
+    """Tool to delete a specific session by ID."""
     
     def __init__(self, engine=None):
         """
@@ -14,50 +14,43 @@ class DeleteConversation(Tool):
         
         spec = Spec(
             name='delete_conversation',
-            description='Delete a specific conversation from memory.',
+            description='Delete a specific conversation session by ID.',
             parameters=Parameters(
                 properties=[
                     Parameter(
-                        name='conversation_id',
+                        name='session_id',
                         type='string',
-                        description='ID of the conversation to delete'
+                        description='ID of the session to delete'
                     )
                 ],
-                required=['conversation_id']
+                required=['session_id']
             )
         )
         super().__init__(spec)
     
-    def run(self, **kwargs):
+    def run(self, session_id, **kwargs):
         """
-        Delete a specific conversation.
+        Delete a specific session.
         
         Args:
-            conversation_id: ID of the conversation to delete
+            session_id: ID of the session to delete
             
         Returns:
-            Success or error message
+            String indicating success or failure
         """
         if not self.engine:
             return "Error: Engine reference not set."
         
-        if not self.engine.memory_provider:
-            return "Error: No memory provider available."
+        if not session_id:
+            return "Error: Session ID is required."
         
-        conversation_id = kwargs.get('conversation_id')
+        # Don't allow deleting the current session
+        if session_id == self.engine.get_conversation_id():
+            return "Error: Cannot delete the current active session."
         
-        # Check if the conversation exists
-        if conversation_id not in self.engine.memory_provider.list_conversations():
-            return f"Conversation {conversation_id} not found."
-        
-        # Don't allow deleting the current conversation
-        if conversation_id == self.engine.conversation_id:
-            return "Cannot delete the current conversation."
-        
-        # Delete the conversation
-        success = self.engine.memory_provider.delete_conversation(conversation_id)
+        success = self.engine.delete_conversation(session_id)
         
         if success:
-            return f"Successfully deleted conversation: {conversation_id}"
+            return f"Successfully deleted session: {session_id}"
         else:
-            return f"Failed to delete conversation: {conversation_id}"
+            return f"Failed to delete session: {session_id}. Session may not exist."

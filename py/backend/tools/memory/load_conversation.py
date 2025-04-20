@@ -1,7 +1,7 @@
 from ...tools.base.tool import Tool, Spec, Parameter, Parameters
 
 class LoadConversation(Tool):
-    """Tool to load a specific conversation from memory."""
+    """Tool to load a specific session by ID."""
     
     def __init__(self, engine=None):
         """
@@ -14,38 +14,39 @@ class LoadConversation(Tool):
         
         spec = Spec(
             name='load_conversation',
-            description='Load a specific conversation from memory.',
+            description='Load a specific conversation session by ID.',
             parameters=Parameters(
                 properties=[
                     Parameter(
-                        name='conversation_id',
+                        name='session_id',
                         type='string',
-                        description='ID of the conversation to load'
+                        description='ID of the session to load'
                     )
                 ],
-                required=['conversation_id']
+                required=['session_id']
             )
         )
         super().__init__(spec)
     
-    def run(self, **kwargs):
+    def run(self, session_id, **kwargs):
         """
-        Load a specific conversation.
+        Load a specific session.
         
         Args:
-            conversation_id: ID of the conversation to load
+            session_id: ID of the session to load
             
         Returns:
-            Success or error message
+            String indicating success or failure
         """
         if not self.engine:
             return "Error: Engine reference not set."
         
-        conversation_id = kwargs.get('conversation_id')
+        if not session_id:
+            return "Error: Session ID is required."
         
-        success = self.engine.load_conversation(conversation_id)
+        success = self.engine.load_conversation(session_id)
         
         if success:
-            return f"Successfully loaded conversation: {conversation_id}"
+            return f"Successfully loaded session: {session_id}"
         else:
-            return f"Failed to load conversation: {conversation_id}. It may not exist."
+            return f"Failed to load session: {session_id}. Session may not exist."
