@@ -1,3 +1,5 @@
+import json
+
 from ...tools.base.tool import Tool, Spec, Parameter, Parameters
 
 class ListSessions(Tool):
@@ -37,4 +39,4 @@ class ListSessions(Tool):
         if not sessions:
             return "No sessions found in memory."
         
-        return "Available sessions:\n" + "\n".join(sessions)
+        return "Available sessions:\n" + json.dumps(sessions)

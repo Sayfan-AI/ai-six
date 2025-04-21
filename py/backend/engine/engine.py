@@ -421,10 +421,13 @@ class Engine:
                             self.session.add_message(tool_message)
             
             # If we have tool calls, we need to continue the conversation
-            if final_tool_calls:
+            if final_tool_calls and message:  # Only continue if we had a real user message
                 # Continue the conversation with another send
-                continuation = self.stream_message("", model_id, on_chunk_func, on_tool_call_func)
-                final_content += continuation
+                continuation = self._send(model_id, on_tool_call_func)
+                if continuation:
+                    if on_chunk_func:
+                        on_chunk_func(f"\n\n{continuation}")
+                    final_content += f"\n\n{continuation}"
                 
         except Exception as e:
             raise RuntimeError(f"Error streaming message: {e}")
@@ -440,10 +443,9 @@ class Engine:
         """Get the current session ID."""
         return self.session.session_id
         
-    def list_sessions(self) -> List[str]:
+    def list_sessions(self) -> list[dict]:
         """List all available sessions."""
-        sessions = self.session_manager.list_sessions()
-        return list(sessions.keys())
+        return self.session_manager.list_sessions()
         
     def load_session(self, session_id: str) -> bool:
         """

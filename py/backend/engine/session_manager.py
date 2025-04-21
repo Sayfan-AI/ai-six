@@ -6,7 +6,7 @@ class SessionManager:
     def __init__(self, memory_dir: str):
         self.memory_dir = memory_dir
 
-    def list_sessions(self) -> dict[str, tuple[str, str]]:
+    def list_sessions(self) -> dict[str, dict]:
         """List all sessions in the memory directory.
         
         Returns:
@@ -25,9 +25,9 @@ class SessionManager:
                     with open(full_path, 'r') as file:
                         try:
                             # Attempt to parse the JSON
-                            json.loads(file.read())
+                            session = json.loads(file.read())
                             # Only add if we could parse the JSON
-                            sessions[session_id] = ('', full_path)
+                            sessions[session_id] = dict(title=session['title'], filename=full_path)
                         except json.JSONDecodeError:
                             # Skip files with invalid JSON
                             print(f"Skipping file with invalid JSON: {f}")

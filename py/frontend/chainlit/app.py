@@ -42,22 +42,25 @@ async def on_chat_start():
 async def on_message(message: cl.Message):
     """Process user messages and generate responses."""
     # Create a new message for the response
-    response_message = cl.Message(content="")
-    await response_message.send()
+    msg = cl.Message(content="")
+    await msg.send()
 
     # Define a callback function to handle streaming chunks
     async def on_chunk(chunk: str):
-        await response_message.stream_token(chunk)
+        # Use the Chainlit built-in streaming method
+        await msg.stream_token(chunk)
 
     # Stream the response
-    response = engine.stream_message(
-        message.content, 
-        default_model, 
-        on_chunk_func=lambda chunk: cl.run_sync(on_chunk(chunk))
-    )
-
-    # Ensure the message is complete
-    await response_message.update()
+    try:
+        response = engine.stream_message(
+            message.content, 
+            default_model, 
+            on_chunk_func=lambda chunk: cl.run_sync(on_chunk(chunk))
+        )
+        # Mark the message as complete
+        await msg.update()
+    except Exception as e:
+        await cl.Message(content=f"Error: {str(e)}").send()
 
 
 if __name__ == "__main__":
