@@ -1,18 +1,18 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from py.backend.tools.file_system.command_tool import sh
+from unittest.mock import patch
+from py.backend.tools.file_system import ls
 from py.backend.tools.file_system.ls import Ls  # Adjust import path as needed
 
 
 class LsToolTest(unittest.TestCase):
 
-    @patch("py.backend.tools.file_system.command_tool.sh")  # Adjust to actual import path of sh in your Ls module
+    @patch.object(ls, "sh")
     def test_run_ls_as_current_user(self, mock_sh):
         ls_tool = Ls(user=None)
         ls_tool.run(args="-l /tmp")
         mock_sh.ls.assert_called_with("-l", "/tmp")
 
-    @patch.object (ls, "sh")  # Adjust to actual import path of sh in your Ls module
+    @patch.object (ls, "sh")
     def test_run_ls_as_different_user(self, mock_sh):
         ls_tool = Ls("other-user")
         ls_tool.run(args="-a /home")

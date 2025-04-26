@@ -6,7 +6,7 @@ class CommandTool(Tool):
     def __init__(self, command_name: str, user: str | None = None, doc_link: str = ""):
         self.command_name = command_name
         self.user = user
-        description = f'{command_name} tool. See {doc_link}'
+        description = f'{command_name} tool. ' + f'See {doc_link}' if doc_link else ''
         parameters = Parameters(
             properties=[Parameter(name='args', type='string', description=f'command-line arguments for {command_name}')],
             required=['args']
