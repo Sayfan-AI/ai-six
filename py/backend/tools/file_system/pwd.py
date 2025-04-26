@@ -1,19 +1,9 @@
 import subprocess
+from .command_tool import CommandTool
 
-from ..base.tool import Tool, Spec, Parameters
-
-
-class Pwd(Tool):
+class Pwd(CommandTool):
     def __init__(self, user: str | None = None):
-        self.user = user
-
-        desc = 'Print the name of the current/working directory. See https://www.gnu.org/software/coreutils/manual/html_node/pwd-invocation.html'
-        spec = Spec(name='pwd',
-                    description=desc,
-                    parameters=Parameters(properties=[], required=[])
-        )
-
-        super().__init__(spec)
+        super().__init__(command_name='pwd', user=user)
 
     def run(self, **kwargs):
         # Decide which user to run as (None means run as the current user)

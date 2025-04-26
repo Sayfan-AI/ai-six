@@ -1,18 +1,18 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.file_system import cat
+from py.backend.tools.file_system.command_tool import sh
 from py.backend.tools.file_system.cat import Cat
 
 
 class CatToolTest(unittest.TestCase):
 
-    @patch.object(cat, "sh")
+    @patch("py.backend.tools.file_system.command_tool.sh")
     def test_run_cat_as_current_user(self, mock_sh):
         cat_tool = Cat(user=None)
         cat_tool.run(args="/tmp/testfile.txt")
         mock_sh.cat.assert_called_with("/tmp/testfile.txt")
 
-    @patch.object(cat, "sh")
+    @patch("py.backend.tools.file_system.command_tool.sh")
     def test_run_cat_as_different_user(self, mock_sh):
         cat_tool = Cat("other-user")
         cat_tool.run(args="/home/other-user/testfile.txt")

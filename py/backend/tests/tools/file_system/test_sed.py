@@ -1,18 +1,18 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.file_system import sed
+from py.backend.tools.file_system.command_tool import sh
 from py.backend.tools.file_system.sed import Sed
 
 
 class SedToolTest(unittest.TestCase):
 
-    @patch.object(sed, "sh")
+    @patch("py.backend.tools.file_system.command_tool.sh")
     def test_run_sed_as_current_user(self, mock_sh):
         sed_tool = Sed(user=None)
         sed_tool.run(args="s/old/new/g /tmp/testfile.txt")
         mock_sh.sed.assert_called_with("s/old/new/g", "/tmp/testfile.txt")
 
-    @patch.object(sed, "sh")
+    @patch("py.backend.tools.file_system.command_tool.sh")
     def test_run_sed_as_different_user(self, mock_sh):
         sed_tool = Sed("other-user")
         sed_tool.run(args="s/old/new/g /home/other-user/testfile.txt")
