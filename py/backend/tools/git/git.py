@@ -1,3 +1,5 @@
+import shlex
+
 from ..base.command_tool import CommandTool
 
 class Git(CommandTool):

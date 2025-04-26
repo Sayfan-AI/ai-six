@@ -1,18 +1,18 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from py.backend.tools.git import git
+from unittest.mock import patch
+from py.backend.tools.base import command_tool
 from py.backend.tools.git.git import Git  # Adjust import path as needed
 
 
 class GitToolTest(unittest.TestCase):
 
-    @patch.object(git, "sh")
+    @patch.object(command_tool, "sh")
     def test_run_git_as_current_user(self, mock_sh):
         git_tool = Git(user=None)
         git_tool.run(args="status")
         mock_sh.git.assert_called_with("--no-pager", "status")
 
-    @patch.object (git, "sh")
+    @patch.object(command_tool, "sh")
     def test_run_git_as_different_user(self, mock_sh):
         git_tool = Git("other-user")
         git_tool.run(args="pull")
