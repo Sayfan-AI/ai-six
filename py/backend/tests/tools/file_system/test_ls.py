@@ -1,18 +1,18 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.file_system import ls
-from py.backend.tools.file_system.ls import Ls  # Adjust import path as needed
+from py.backend.tools.base import command_tool
+from py.backend.tools.file_system.ls import Ls
 
 
 class LsToolTest(unittest.TestCase):
 
-    @patch.object(ls, "sh")
+    @patch.object(command_tool, "sh")
     def test_run_ls_as_current_user(self, mock_sh):
         ls_tool = Ls(user=None)
         ls_tool.run(args="-l /tmp")
         mock_sh.ls.assert_called_with("-l", "/tmp")
 
-    @patch.object (ls, "sh")
+    @patch.object(command_tool, "sh")
     def test_run_ls_as_different_user(self, mock_sh):
         ls_tool = Ls("other-user")
         ls_tool.run(args="-a /home")
