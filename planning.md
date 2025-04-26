@@ -55,11 +55,15 @@ It is focused on tool use and management.
 
 ### AI-6 Status
 
-- [x] Multi-provider support (OPenAI + Ollama providers)
+- [x] Multi-provider support (OpenAI + Ollama providers)
 - [x] Local models (via ollama provider)
 - [x] Memory (via session)
 - [x] Streaming
+<<<<<<< HEAD
 - [ ] New tools - ed, awk and patch
+=======
+- [ ] New tools - sed, awk and patch
+>>>>>>> fe94e13 (update planning.md)
 
 ### Working with OpenHands
 
