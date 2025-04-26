@@ -1,13 +1,14 @@
 import json
 import os.path
 from pathlib import Path
-from typing import Callable, Optional, List
+from typing import Callable, Optional
 import importlib.util
 import inspect
 import sh
 import uuid
 
 from py.backend.engine.llm_provider import LLMProvider
+from py.backend.tools.base.command_tool import CommandTool
 from py.backend.tools.base.tool import Tool
 from py.backend.engine.session import Session
 from py.backend.engine.session_manager import SessionManager
@@ -57,11 +58,15 @@ class Engine:
                     print(f"Failed to import {module_name}: {e}")
                     continue
 
-                # Inspect module for subclasses of Tool
-                for name, obj in inspect.getmembers(module, inspect.isclass):
-                    if issubclass(obj, Tool) and obj is not Tool:
+                # Inspect module for subclasses of Tool or CommandTool
+                for name, clazz in inspect.getmembers(module, inspect.isclass):
+                    if issubclass(clazz, Tool) and clazz.__module__ not in (Tool.__module__, CommandTool.__module__):
                         print(f"Found Tool subclass: {name} in {module_name}")
-                        tool = obj()
+                        try:
+                            tool = clazz()
+                        except Exception as e:
+                            print(f"Failed to instantiate {name} from {module_name}")
+                            continue
                         tools.append(tool)
 
             except Exception as e:
