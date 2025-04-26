@@ -22,7 +22,7 @@ It is focused on tool use and management.
 - [ ] AI-6 (recursive agent mesh)
 - [ ] Slack tool
 - [x] Kubectl
-- [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration
+- [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration (track and schedule music listening)
 - [ ] aws
 - [ ] Cloudflare
 - [ ] Github
@@ -100,6 +100,12 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### Actions items
 
+- [ ] Gigi - Fix tests and merge new tools
+- [ ] Gigi - Engine + Tool configuration
+- [ ] Gigi - Look into MCP
+- [ ] Saar - Review current state
+- [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
+- [ ] Saar - Work on dOpus
 
 
 ## Project Meeting 5-apr-2025

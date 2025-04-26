@@ -46,11 +46,9 @@ class TestSessionManager(unittest.TestCase):
         self.assertIn("session2", sessions)
         self.assertIn("session3", sessions)
         
-        # In the new format, we don't store the title in the filename,
-        # so the first element of the tuple is an empty string
-        self.assertEqual(sessions["session1"][0], "")
-        self.assertEqual(sessions["session2"][0], "")
-        self.assertEqual(sessions["session3"][0], "")
+        self.assertEqual(sessions["session1"]["title"], "Test Session 1")
+        self.assertEqual(sessions["session2"]["title"], "Test Session 2")
+        self.assertEqual(sessions["session3"]["title"], "Test Session 3")
         
     def test_delete_session(self):
         """Test deleting a session."""

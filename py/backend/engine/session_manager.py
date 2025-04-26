@@ -6,6 +6,21 @@ class SessionManager:
     def __init__(self, memory_dir: str):
         self.memory_dir = memory_dir
 
+    def set_title(self, session_id: str, title: str):
+        """Set the title of a session."""
+        sessions = self.list_sessions()
+        if session_id not in sessions:
+            raise RuntimeError(f"Session {session_id} not found.")
+
+        filename = sessions[session_id]['filename']
+        with open(filename, 'r+') as f:
+            data = json.load(f)
+            data['title'] = title
+            f.seek(0)
+            json.dump(data, f, indent=4)
+            f.truncate()
+
+
     def list_sessions(self) -> dict[str, dict]:
         """List all sessions in the memory directory.
         
@@ -45,5 +60,5 @@ class SessionManager:
         if session_id not in sessions:
             raise RuntimeError(f"Session {session_id} not found.")
 
-        filename = sessions[session_id][1]
+        filename = sessions[session_id]['filename']
         os.remove(filename)

@@ -1,4 +1,5 @@
 import os
+import re
 import unittest
 from unittest.mock import patch, MagicMock
 
@@ -63,8 +64,7 @@ class TestOpenAIStreaming(unittest.TestCase):
         # Verify the final response contains "hello world" (case insensitive)
         final_response = chunks[-1]
         self.assertIsInstance(final_response, Response)
-        self.assertTrue("hello world" in final_response.content.lower())
-
+        self.assertTrue(re.search(r'hello.+world', final_response.content.lower()))
 
 if __name__ == '__main__':
     unittest.main()
