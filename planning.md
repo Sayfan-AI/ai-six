@@ -9,12 +9,13 @@ It is focused on tool use and management.
 ## Capabilities
 
 - [ ] MCP support (engine is MCP client, local tools can run as MCP server)
-- [ ] Streaming
+- [x] Streaming
 - [x] Context window management (summarization)
 - [x] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
 - [x] Expose usage information (tokens)
 - [ ] Computer use (browser and debugging in the IDE!)
 - [ ] Voice UI
+- [ ] Configuration
 
 ## Tools
 
@@ -57,7 +58,7 @@ It is focused on tool use and management.
 - [x] Multi-provider support (OPenAI + Ollama providers)
 - [x] Local models (via ollama provider)
 - [x] Memory (via session)
-- [ ] Streaming
+- [x] Streaming
 - [ ] New tools - ed, awk and patch
 
 ### Working with OpenHands
@@ -83,7 +84,7 @@ Look into the Google eco-system for LLMs and tools.
 - Gemini 2.5 is arguably the best LLM available today.
 - Look into their OpenAI compatibility layer
 - If it doesn't work then build a native Gemini LLM provider
-- Look into their a2a (agent to agent) protocol
+- Look into their [A2A](https://github.com/google/A2A) (agent to agent) protocol
 
 On the OpenAI side, look into the following:
 
@@ -95,7 +96,11 @@ For voice in general, ElvenLabs is highly recommended, but only 10K credits per 
 minutes of conversational AI.
 https://elevenlabs.io
 
+They have a free plan of 10-15 minutes per month, which is good for testing.
+
 ### Actions items
+
+
 
 ## Project Meeting 5-apr-2025
 
