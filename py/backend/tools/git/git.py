@@ -1,29 +1,12 @@
-from ..base.tool import Tool, Spec, Parameter, Parameters
-import sh
-import shlex
+from ..base.command_tool import CommandTool
 
-class Git(Tool):
+class Git(CommandTool):
     def __init__(self, user: str | None = None):
-        self.user = user
-
-        desc = 'Simple Git tool to interact with Git repositories.'
-        spec = Spec(name='git',
-                    description=desc,
-                    parameters=Parameters(
-                        properties=[Parameter(name='args', type='string', description='command-line arguments for git')],
-                        required=['args']))
-        super().__init__(spec)
+        super().__init__(command_name='git', user=user, doc_link='https://git-scm.com/doc')
 
     def run(self, **kwargs):
         args = shlex.split(kwargs['args'])
 
         if "--no-pager" not in args:
             args = ["--no-pager"] + args
-        # Decide which user to run as (None means run as the current user)
-        try:
-            if self.user is not None:
-                return sh.sudo('-u', self.user, 'git', *args)
-            else:
-                return sh.git(*args)
-        except Exception as e:
-            raise
+        return super().run(args=' '.join(args))

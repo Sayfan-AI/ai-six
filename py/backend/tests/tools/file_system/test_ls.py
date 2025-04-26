@@ -12,7 +12,7 @@ class LsToolTest(unittest.TestCase):
         ls_tool.run(args="-l /tmp")
         mock_sh.ls.assert_called_with("-l", "/tmp")
 
-    @patch("py.backend.tools.file_system.command_tool.sh")  # Adjust to actual import path of sh in your Ls module
+    @patch.object (ls, "sh")  # Adjust to actual import path of sh in your Ls module
     def test_run_ls_as_different_user(self, mock_sh):
         ls_tool = Ls("other-user")
         ls_tool.run(args="-a /home")
