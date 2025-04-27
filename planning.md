@@ -6,16 +6,38 @@ It is focused on tool use and management.
 
 # Roadmap
 
+## Research
+
+Look into the Google eco-system for LLMs and tools.
+
+- Gemini 2.5 is arguably the best LLM available today.
+- Look into their OpenAI compatibility layer
+- If it doesn't work then build a native Gemini LLM provider
+- Look into their [A2A](https://github.com/google/A2A) (agent to agent) protocol
+
+On the OpenAI side, look into the following:
+
+- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/quickstart/)
+- [Responses API](https://platform.openai.com/docs/api-reference/responses)
+- [Voice Agents](https://openai.github.io/openai-agents-python/voice/quickstart/)
+
+For voice in general, ElvenLabs is highly recommended, but only 10K credits per month, which are you good for about 15
+minutes of conversational AI.
+https://elevenlabs.io
+
+They have a free plan of 10-15 minutes per month, which is good for testing.
+
+
 ## Capabilities
 
-- [ ] MCP support (engine is MCP client, local tools can run as MCP server)
 - [x] Streaming
 - [x] Context window management (summarization)
 - [x] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
 - [x] Expose usage information (tokens)
+- [x] Configuration
+- [ ] MCP support (engine is MCP client, local tools can run as MCP server)
 - [ ] Computer use (browser and debugging in the IDE!)
 - [ ] Voice UI
-- [ ] Configuration
 
 ## Tools
 
@@ -51,6 +73,14 @@ It is focused on tool use and management.
 
 # Meetings
 
+## Project Meeting 3-may-2025
+
+### AI-6 Status
+
+- [x] Gigi - Fixed tests and merge new tools
+- [x] Gigi - Engine + Tool configuration
+- [ ] Gigi - Look into MCP
+
 ## Project Meeting 26-apr-2025
 
 ### AI-6 Status
@@ -59,11 +89,7 @@ It is focused on tool use and management.
 - [x] Local models (via ollama provider)
 - [x] Memory (via session)
 - [x] Streaming
-<<<<<<< HEAD
-- [ ] New tools - ed, awk and patch
-=======
-- [ ] New tools - sed, awk and patch
->>>>>>> fe94e13 (update planning.md)
+- [x] New tools - sed, awk and patch
 
 ### Working with OpenHands
 
@@ -81,30 +107,9 @@ docker run -it --rm --pull=always \
     docker.all-hands.dev/all-hands-ai/openhands:0.33
 ```
 
-### Research
-
-Look into the Google eco-system for LLMs and tools.
-
-- Gemini 2.5 is arguably the best LLM available today.
-- Look into their OpenAI compatibility layer
-- If it doesn't work then build a native Gemini LLM provider
-- Look into their [A2A](https://github.com/google/A2A) (agent to agent) protocol
-
-On the OpenAI side, look into the following:
-
-- [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/quickstart/)
-- [Responses API](https://platform.openai.com/docs/api-reference/responses)
-- [Voice Agents](https://openai.github.io/openai-agents-python/voice/quickstart/)
-
-For voice in general, ElvenLabs is highly recommended, but only 10K credits per month, which are you good for about 15
-minutes of conversational AI.
-https://elevenlabs.io
-
-They have a free plan of 10-15 minutes per month, which is good for testing.
-
 ### Actions items
 
-- [ ] Gigi - Fix tests and merge new tools
+- [x] Gigi - Fix tests and merge new tools
 - [ ] Gigi - Engine + Tool configuration
 - [ ] Gigi - Look into MCP
 - [ ] Saar - Review current state

@@ -1,6 +1,7 @@
 import json
 import os.path
 from pathlib import Path
+from types import MappingProxyType
 from typing import Callable, Optional
 import importlib.util
 import inspect
@@ -20,7 +21,7 @@ from py.backend.engine.summarizer import SessionSummarizer
 
 class Engine:
     @staticmethod
-    def discover_tools(tools_dir):
+    def discover_tools(tools_dir, tool_config):
         tools = []
 
         base_path = Path(tools_dir).resolve()  # e.g., /Users/gigi/git/ai-six/py/backend/tools
@@ -64,6 +65,9 @@ class Engine:
                         print(f"Found Tool subclass: {name} in {module_name}")
                         try:
                             tool = clazz()
+                            conf = tool_config.get(tool.spec.name, {})
+                            if conf:
+                                tool.configure(conf)
                         except Exception as e:
                             print(f"Failed to instantiate {name} from {module_name}")
                             continue
@@ -73,27 +77,98 @@ class Engine:
                 print(f"Error processing {file_path}: {e}")
 
         return tools
+        
+    @staticmethod
+    def discover_llm_providers(llm_providers_dir, provider_config):
+        providers = []
+
+        base_path = Path(llm_providers_dir).resolve()  # e.g., /Users/gigi/git/ai-six/py/backend/llm_providers
+        module_root_path = base_path.parents[2]  # Three levels up → /Users/gigi/git/ai-six
+        base_module = 'py.backend.llm_providers'  # Base module for LLM providers
+
+        # Walk through all .py files in the directory (non-recursive)
+        for file_path in base_path.glob("*.py"):
+            if file_path.name == '__init__.py':
+                continue
+
+            try:
+                # Get the path relative to the Python root dir
+                relative_path = file_path.relative_to(module_root_path)
+
+                # Convert path parts to a valid Python module name
+                module_name = '.'.join(relative_path.with_suffix('').parts)
+
+                # Validate it starts with the expected base_module
+                if not module_name.startswith(base_module):
+                    print(f"Skipping {module_name} (outside of {base_module})")
+                    continue
+
+                # Load module from file
+                spec = importlib.util.spec_from_file_location(module_name, file_path)
+                if spec is None:
+                    print(f"Could not create spec for {module_name}")
+                    continue
+
+                module = importlib.util.module_from_spec(spec)
+
+                try:
+                    spec.loader.exec_module(module)
+                except Exception as e:
+                    print(f"Failed to import {module_name}: {e}")
+                    continue
+
+                # Inspect module for subclasses of LLMProvider
+                for name, clazz in inspect.getmembers(module, inspect.isclass):
+                    if issubclass(clazz, LLMProvider) and clazz.__module__ != LLMProvider.__module__:
+                        print(f"Found LLMProvider subclass: {name} in {module_name}")
+                        try:
+                            # Get configuration for this provider type
+                            provider_type = name.lower().replace('provider', '')
+                            conf = provider_config.get(provider_type, {})
+                            if not conf:
+                                print(f"No configuration found for {name}, skipping")
+                                continue
+                                
+                            # Instantiate provider with configuration
+                            provider = clazz(**conf)
+                            providers.append(provider)
+                            print(f"Successfully instantiated {name}")
+                        except Exception as e:
+                            print(f"Failed to instantiate {name} from {module_name}: {e}")
+                            continue
+
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")
+
+        return providers
 
     def __init__(self, 
-                llm_providers: list[LLMProvider], 
                 default_model_id: str, 
                 tools_dir: str,
+                llm_providers_dir: str,
                 memory_dir: str,
                 session_id: Optional[str] = None,
-                checkpoint_interval: int = 3):  # Checkpoint every 3 messages by default
+                checkpoint_interval: int = 3, # Checkpoint every 3 messages by default
+                tool_config: dict[dict] = MappingProxyType({}),
+                provider_config: dict[dict] = MappingProxyType({})):
         assert (os.path.isdir(tools_dir))
+        assert (os.path.isdir(llm_providers_dir))
         assert (os.path.isdir(memory_dir))
         
-        self.llm_providers = llm_providers
+        # Discover available LLM providers
+        self.llm_providers = Engine.discover_llm_providers(llm_providers_dir, provider_config)
+        if not self.llm_providers:
+            raise ValueError("No LLM providers found or initialized")
+            
         self.default_model_id = default_model_id
         self.model_provider_map = {
             model_id: llm_provider
-            for llm_provider in llm_providers
+            for llm_provider in self.llm_providers
             for model_id in llm_provider.models
         }
         
         # Discover available tools
-        tool_list = Engine.discover_tools(tools_dir)
+        tool_list = Engine.discover_tools(tools_dir, tool_config)
         self.tool_dict = {t.spec.name: t for t in tool_list}
         
         # Initialize session and session manager

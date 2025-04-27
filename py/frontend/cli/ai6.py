@@ -3,11 +3,11 @@ import argparse
 import pathology.path
 from pathlib import Path
 
-from py.backend.llm_providers.openai_provider import OpenAIProvider
 from ...backend.engine.engine import Engine
 
 # Get the tools directory
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
+llm_providers_dir = str((pathology.path.Path.script_dir() / '../../backend/llm_providers').resolve())
 
 # Get the memory directory (create it if it doesn't exist)
 memory_dir = str((pathology.path.Path.script_dir() / '../../../memory/cli').resolve())
@@ -38,19 +38,26 @@ def main():
     parser.add_argument('--list', '-l', action='store_true', help='List available sessions')
     args = parser.parse_args()
 
-    # Initialize OpenAI provider
+    # Set up provider configuration
     default_model = "gpt-4o"
-    openai_provider = OpenAIProvider(
-        os.environ['OPENAI_API_KEY'],
-        default_model)
+    provider_config = {
+        "openai": {
+            "api_key": os.environ['OPENAI_API_KEY'],  # Assume this is in .env
+            "default_model": default_model
+        },
+        "ollama": {
+            "model": "qwen2.5-coder:32b"
+        }
+    }
 
     # Initialize engine with session support
     engine = Engine(
-        llm_providers=[openai_provider],
         default_model_id=default_model,
         tools_dir=tools_dir,
+        llm_providers_dir=llm_providers_dir,
         memory_dir=memory_dir,
-        session_id=args.session
+        session_id=args.session,
+        provider_config=provider_config
     )
 
     # Handle --list argument

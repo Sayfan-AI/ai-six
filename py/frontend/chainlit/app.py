@@ -1,34 +1,44 @@
 import os
 from pathlib import Path
+from readline import backend
 
 import chainlit as cl
 from chainlit.cli import run_chainlit
 
 import pathology.path
 
-from py.backend.llm_providers.openai_provider import OpenAIProvider
 from py.backend.engine.engine import Engine
 
 script_dir = pathology.path.Path.script_dir()
 
 # Get the tools directory
-tools_dir = str((script_dir / '../../backend/tools').resolve())
+backend_dir = script_dir / '../../backend'
+tools_dir = str((backend_dir / 'tools').resolve())
+llm_providers_dir = str((backend_dir / 'llm_providers').resolve())
 
 # Get the memory directory (create it if it doesn't exist)
 memory_dir = str((script_dir / '../../../memory/chainlit').resolve())
 Path(memory_dir).mkdir(parents=True, exist_ok=True)
 
-# Initialize the OpenAI provider
+# Set up provider configuration
 default_model = "gpt-4o"
-openai_provider = OpenAIProvider(
-    os.environ['OPENAI_API_KEY'],
-    default_model)
+
+provider_config = {
+    "openai": {
+        "api_key": os.environ['OPENAI_API_KEY'],  # Assume this is in .env
+        "default_model": default_model
+    },
+    "ollama": {
+        "model": "qwen2.5-coder:32b"
+    }
+}
 
 engine = Engine(
-    llm_providers=[openai_provider],
+    llm_providers_dir=llm_providers_dir,
     default_model_id=default_model,
     tools_dir=tools_dir,
-    memory_dir=memory_dir
+    memory_dir=memory_dir,
+    provider_config=provider_config
 )
 
 

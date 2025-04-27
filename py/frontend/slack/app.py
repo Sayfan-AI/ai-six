@@ -9,13 +9,11 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from slack_sdk.errors import SlackApiError
 
-from openai import OpenAI
-
-from py.backend.llm_providers.openai_provider import OpenAIProvider
 from ...backend.engine.engine import Engine
 
 # Get the tools directory
 tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
+llm_providers_dir = str((pathology.path.Path.script_dir() / '../../backend/llm_providers').resolve())
 
 # Get the memory directory (create it if it doesn't exist)
 memory_dir = str((pathology.path.Path.script_dir() / '../../../memory/slack').resolve())
@@ -32,11 +30,17 @@ app = App(token=bot_token)
 last_message = ""
 latest_ts = None
 
-# Initialize providers
+# Set up provider configuration
 default_model = "gpt-4o"
-openai_provider = OpenAIProvider(
-    os.environ['OPENAI_API_KEY'],
-    default_model)
+provider_config = {
+    "openai": {
+        "api_key": os.environ['OPENAI_API_KEY'],  # Assume this is in .env
+        "default_model": default_model
+    },
+    "ollama": {
+        "model": "qwen2.5-coder:32b"
+    }
+}
 
 # Initialize engines with separate session storage per channel
 engines = {}
@@ -50,10 +54,11 @@ def get_or_create_engine(channel_id):
 
         # Create a new engine for this channel
         engines[channel_id] = Engine(
-            llm_providers=[openai_provider],
             default_model_id=default_model,
             tools_dir=tools_dir,
-            memory_dir=channel_memory_dir
+            llm_providers_dir=llm_providers_dir,
+            memory_dir=channel_memory_dir,
+            provider_config=provider_config
         )
 
     return engines[channel_id]

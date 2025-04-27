@@ -39,6 +39,10 @@ class Tool(ABC):
             }
         }
 
+    def configure(self, config: dict) -> None:
+        """Optional: configure the tool with given parameters."""
+        pass
+
     @abstractmethod
     def run(self, **kwargs) -> str:
         pass
