@@ -410,11 +410,7 @@ class Engine:
                             
                             # Add the tool message to the session
                             self.session.add_message(tool_message)
-                            
-                            # Call the callback if provided
-                            if on_tool_call_func:
-                                on_tool_call_func(tool_call.name, kwargs, str(tool_result))
-                                
+
                         except Exception as e:
                             # Handle errors in tool execution
                             tool_message = {

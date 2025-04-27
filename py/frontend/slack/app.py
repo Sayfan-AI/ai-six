@@ -47,7 +47,7 @@ def get_or_create_engine(channel_id):
         # Create a channel-specific memory directory
         channel_memory_dir = f"{memory_dir}/{channel_id}"
         Path(channel_memory_dir).mkdir(exist_ok=True)
-    
+
         # Create a new engine for this channel
         engines[channel_id] = Engine(
             llm_providers=[openai_provider],
@@ -58,12 +58,14 @@ def get_or_create_engine(channel_id):
 
     return engines[channel_id]
 
+
 def handle_tool_call(client, channel, name, args, result):
     """Handle a tool call from the AI-6 engine."""
     # Post the tool call result as a message
     try:
+        global latest_ts
         client.chat_postMessage(
-            channel=channel,
+            channel=channel, thread_ts=latest_ts,
             text=f"_Tool call: `{name}` {', '.join(args.values()) if args else ''}_\n{result}"
         )
     except SlackApiError as e:
