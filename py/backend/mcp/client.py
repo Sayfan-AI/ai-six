@@ -1,25 +1,22 @@
 import asyncio
 import sys
+import json
 from contextlib import AsyncExitStack
 from typing import Optional
 
 from mcp import ClientSession, StdioServerParameters, types
 from mcp.client.stdio import stdio_client
+from openai import OpenAI
 
 
 class MCPClient:
     def __init__(self):
-        # Initialize session and client objects
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
-
+        self.openai_client = OpenAI()
 
     async def connect_to_server(self, server_path: str):
-        """Connect to an MCP server
-
-        Args:
-            server_path: Path to the server script (.py or .js)
-        """
+        """Connect to an MCP server"""
         is_python = server_path.endswith('.py')
         is_js = server_path.endswith('.js')
         if not (is_python or is_js):
@@ -40,68 +37,74 @@ class MCPClient:
 
         # List available tools
         response = await self.session.list_tools()
-        tools = response.tools
+        tools = response.tools  # Correct way, no .choices[0]
         print("\nConnected to server with tools:", [tool.name for tool in tools])
 
     async def process_query(self, query: str) -> str:
-        """Process a query using Claude and available tools"""
+        """Process a query using OpenAI and available tools"""
         messages = [
-            {
-                "role": "user",
-                "content": query
-            }
+            {"role": "system", "content": "You are an intelligent assistant. You will execute tasks as prompted."},
+            {"role": "user", "content": query}
         ]
 
         response = await self.session.list_tools()
         available_tools = [{
-            "name": tool.name,
-            "description": tool.description,
-            "input_schema": tool.inputSchema
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.inputSchema
+            }
         } for tool in response.tools]
 
-        # Initial Claude API call
-        response = self.anthropic.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1000,
+        # First LLM call
+        response = self.openai_client.chat.completions.create(
+            model="gpt-4o-mini",
             messages=messages,
-            tools=available_tools
+            tools=available_tools,
+            max_tokens=250,
+            temperature=0.2,
         )
 
-        # Process response and handle tool calls
-        tool_results = []
         final_text = []
+        tool_results = []
 
-        for content in response.content:
-            if content.type == 'text':
-                final_text.append(content.text)
-            elif content.type == 'tool_use':
-                tool_name = content.name
-                tool_args = content.input
+        choice = response.choices[0].message
 
-                # Execute tool call
+        if choice.content:
+            final_text.append(choice.content)
+
+        if choice.tool_calls:
+            for tool_call in choice.tool_calls:
+                tool_name = tool_call.function.name
+                tool_args = json.loads(tool_call.function.arguments)
+
+                # Execute the tool
                 result = await self.session.call_tool(tool_name, tool_args)
                 tool_results.append({"call": tool_name, "result": result})
-                final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
 
-                # Continue session with tool results
-                if hasattr(content, 'text') and content.text:
-                    messages.append({
-                        "role": "assistant",
-                        "content": content.text
-                    })
+                final_text.append(f"[Called tool {tool_name} with args {tool_args}]")
+
+                # Continue conversation with tool result
                 messages.append({
-                    "role": "user",
+                    "role": "assistant",
+                    "tool_calls": [tool_call.model_dump()]  # echo the tool call
+                })
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
                     "content": result.content
                 })
 
-                # Get next response from Claude
-                response = self.anthropic.messages.create(
-                    model="claude-3-5-sonnet-20241022",
-                    max_tokens=1000,
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
                     messages=messages,
+                    max_tokens=1000,
                 )
 
-                final_text.append(response.content[0].text)
+                choice = response.choices[0].message
+                if choice.content:
+                    final_text.append(choice.content)
 
         return "\n".join(final_text)
 
@@ -124,8 +127,9 @@ class MCPClient:
                 print(f"\nError: {str(e)}")
 
     async def cleanup(self):
-        """ Cleanup resources"""
+        """Cleanup resources"""
         await self.exit_stack.aclose()
+
 
 async def main():
     if len(sys.argv) < 2:
