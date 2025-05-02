@@ -7,6 +7,8 @@ The current implementation is in Python. check out the [py](py/README.MD) direct
 
 There may be implementations in other languages too, in the near future.
 
+See this [link](https://deepwiki.com/Sayfan-AI/ai-six) for a super-deep dive into the project.
+
 # LLM Access
 
 Obviously, it delegates all the heavy lifting to an LLM provider. At the moment it is OpenAI.
