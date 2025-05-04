@@ -3,15 +3,9 @@ import argparse
 import pathology.path
 from pathlib import Path
 
-from ...backend.engine.engine import Engine
+from ..common import engine_utils
 
-# Get the tools directory
-tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
-llm_providers_dir = str((pathology.path.Path.script_dir() / '../../backend/llm_providers').resolve())
-
-# Get the memory directory (create it if it doesn't exist)
-memory_dir = str((pathology.path.Path.script_dir() / '../../../memory/cli').resolve())
-Path(memory_dir).mkdir(parents=True, exist_ok=True)
+script_dir = pathology.path.Path.script_dir()
 
 def get_user_input():
     user_input = input("[You]: ")
@@ -36,53 +30,43 @@ def main():
     parser = argparse.ArgumentParser(description='AI-6 CLI with session support')
     parser.add_argument('--session', '-s', type=str, help='Session ID to load')
     parser.add_argument('--list', '-l', action='store_true', help='List available sessions')
+    parser.add_argument('--config', '-c', type=str, 
+                        default=str((script_dir / 'config.json').resolve()),
+                        help='Path to config file (default: config.json)')
     args = parser.parse_args()
 
-    # Set up provider configuration
-    default_model = "gpt-4o"
-    provider_config = {
-        "openai": {
-            "api_key": os.environ['OPENAI_API_KEY'],  # Assume this is in .env
-            "default_model": default_model
-        },
-        "ollama": {
-            "model": "qwen2.5-coder:32b"
-        }
-    }
-
-    # Initialize engine with session support
-    engine = Engine(
-        default_model_id=default_model,
-        tools_dir=tools_dir,
-        llm_providers_dir=llm_providers_dir,
-        memory_dir=memory_dir,
-        session_id=args.session,
-        provider_config=provider_config
-    )
+    # Load configuration from JSON file
+    config_path = args.config
+    
+    try:
+        # Create engine from configuration, optionally loading a session
+        engine, config = engine_utils.create_from_config(
+            config_path, 
+            session_id=args.session
+        )
+    except ValueError as e:
+        return
 
     # Handle --list argument
     if args.list:
         sessions = engine.list_sessions()
         if sessions:
-            print("Available sessions:")
             for session_id in sessions:
-                print(f"- {session_id}")
+                print(f"Session ID: {session_id}, Title: {sessions[session_id]['title']}")
         else:
             print("No sessions found.")
         return
 
     # Print current session ID
-    print(f"Current session ID: {engine.get_session_id()}")
 
     # Run the session loop with streaming
-    print("AI-6 CLI with streaming support. Type 'exit' to quit.")
 
     try:
         while user_input := get_user_input():
             print("[AI-6]:", end=' ', flush=True)
             response = engine.stream_message(
                 user_input,
-                default_model,
+                engine.default_model_id,
                 on_chunk_func=handle_chunk,
                 on_tool_call_func=handle_tool_call
             )

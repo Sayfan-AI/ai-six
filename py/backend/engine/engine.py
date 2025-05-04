@@ -1,13 +1,13 @@
 import json
 import os.path
 from pathlib import Path
-from types import MappingProxyType
-from typing import Callable, Optional
+from typing import Callable
 import importlib.util
 import inspect
 import sh
 import uuid
 
+from py.backend.engine.config import Config
 from py.backend.engine.llm_provider import LLMProvider
 from py.backend.tools.base.command_tool import CommandTool
 from py.backend.tools.base.tool import Tool
@@ -42,13 +42,11 @@ class Engine:
 
                 # Validate it starts with the expected base_module
                 if not module_name.startswith(base_module):
-                    print(f"Skipping {module_name} (outside of {base_module})")
                     continue
 
                 # Load module from file
                 spec = importlib.util.spec_from_file_location(module_name, file_path)
                 if spec is None:
-                    print(f"Could not create spec for {module_name}")
                     continue
 
                 module = importlib.util.module_from_spec(spec)
@@ -56,25 +54,24 @@ class Engine:
                 try:
                     spec.loader.exec_module(module)
                 except Exception as e:
-                    print(f"Failed to import {module_name}: {e}")
                     continue
 
                 # Inspect module for subclasses of Tool or CommandTool
                 for name, clazz in inspect.getmembers(module, inspect.isclass):
                     if issubclass(clazz, Tool) and clazz.__module__ not in (Tool.__module__, CommandTool.__module__):
-                        print(f"Found Tool subclass: {name} in {module_name}")
                         try:
                             tool = clazz()
                             conf = tool_config.get(tool.spec.name, {})
                             if conf:
                                 tool.configure(conf)
                         except Exception as e:
-                            print(f"Failed to instantiate {name} from {module_name}")
                             continue
                         tools.append(tool)
 
             except Exception as e:
-                print(f"Error processing {file_path}: {e}")
+                # Handle any errors that occur during module loading
+                print(f"Error loading module {module_name}: {e}")
+                continue
 
         return tools
         
@@ -100,13 +97,11 @@ class Engine:
 
                 # Validate it starts with the expected base_module
                 if not module_name.startswith(base_module):
-                    print(f"Skipping {module_name} (outside of {base_module})")
                     continue
 
                 # Load module from file
                 spec = importlib.util.spec_from_file_location(module_name, file_path)
                 if spec is None:
-                    print(f"Could not create spec for {module_name}")
                     continue
 
                 module = importlib.util.module_from_spec(spec)
@@ -114,53 +109,72 @@ class Engine:
                 try:
                     spec.loader.exec_module(module)
                 except Exception as e:
-                    print(f"Failed to import {module_name}: {e}")
                     continue
 
                 # Inspect module for subclasses of LLMProvider
                 for name, clazz in inspect.getmembers(module, inspect.isclass):
                     if issubclass(clazz, LLMProvider) and clazz.__module__ != LLMProvider.__module__:
-                        print(f"Found LLMProvider subclass: {name} in {module_name}")
                         try:
                             # Get configuration for this provider type
                             provider_type = name.lower().replace('provider', '')
                             conf = provider_config.get(provider_type, {})
                             if not conf:
-                                print(f"No configuration found for {name}, skipping")
                                 continue
                                 
                             # Instantiate provider with configuration
                             provider = clazz(**conf)
                             providers.append(provider)
-                            print(f"Successfully instantiated {name}")
                         except Exception as e:
-                            print(f"Failed to instantiate {name} from {module_name}: {e}")
                             continue
 
             except Exception as e:
-                print(f"Error processing {file_path}: {e}")
+                # Handle any errors that occur during module loading
+                print(f"Error loading module {module_name}: {e}")
+                continue
 
         return providers
 
-    def __init__(self, 
-                default_model_id: str, 
-                tools_dir: str,
-                llm_providers_dir: str,
-                memory_dir: str,
-                session_id: Optional[str] = None,
-                checkpoint_interval: int = 3, # Checkpoint every 3 messages by default
-                tool_config: dict[dict] = MappingProxyType({}),
-                provider_config: dict[dict] = MappingProxyType({})):
-        assert (os.path.isdir(tools_dir))
-        assert (os.path.isdir(llm_providers_dir))
-        assert (os.path.isdir(memory_dir))
+    @classmethod
+    def from_config(cls, config_file: str) -> "Engine":
+        """Create an Engine instance from a configuration file.
+        
+        Parameters
+        ----------
+        config_file : str
+            Path to the configuration file (json, yaml, or toml)
+            
+        Returns
+        -------
+        Engine
+            A configured Engine instance
+        """
+        from py.backend.engine.config import Config
+        config = Config.from_file(config_file)
+        return cls(config)
+
+    def __init__(self, config: Config):
+        # Extract configuration values
+        tools_dir = config.tools_dir
+        memory_dir = config.memory_dir
+        session_id = config.session_id
+        checkpoint_interval = config.checkpoint_interval
+        tool_config = config.tool_config
+        provider_config = config.provider_config
+        
+        # Validate required directories
+        assert (os.path.isdir(tools_dir)), f"Tools directory not found: {tools_dir}"
+        assert (os.path.isdir(memory_dir)), f"Memory directory not found: {memory_dir}"
+        
+        # Find LLM providers directory (assuming standard project structure)
+        llm_providers_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "llm_providers")
+        assert (os.path.isdir(llm_providers_dir)), f"LLM providers directory not found: {llm_providers_dir}"
         
         # Discover available LLM providers
         self.llm_providers = Engine.discover_llm_providers(llm_providers_dir, provider_config)
         if not self.llm_providers:
             raise ValueError("No LLM providers found or initialized")
             
-        self.default_model_id = default_model_id
+        self.default_model_id = config.default_model_id
         self.model_provider_map = {
             model_id: llm_provider
             for llm_provider in self.llm_providers
@@ -210,14 +224,12 @@ class Engine:
         self.tool_dict[get_session_id_tool.spec.name] = get_session_id_tool
         self.tool_dict[delete_session_tool.spec.name] = delete_session_tool
 
-    def _checkpoint_if_needed(self) -> None:
+    def _checkpoint_if_needed(self):
         """Check if we need to save a checkpoint and do so if needed."""
         self.message_count_since_checkpoint += 1
-        print(f"[DEBUG] Incremented message_count_since_checkpoint to {self.message_count_since_checkpoint}")
         
         # Only save if we've reached the checkpoint interval exactly
         if self.message_count_since_checkpoint == self.checkpoint_interval:
-            print(f"[DEBUG] Checkpoint interval reached ({self.checkpoint_interval}), saving session")
             self.session.save()
             self.message_count_since_checkpoint = 0
             
@@ -226,10 +238,8 @@ class Engine:
 
     def _validate_messages_before_send(self):
         """Validate messages before sending to LLM provider to ensure OpenAI API compatibility."""
-        print(f"[DEBUG] Validating {len(self.session.messages)} messages before sending to LLM")
         
         # First pass: collect all tool_call_ids from assistant messages
-        print("[DEBUG] First pass: collecting tool_call_ids from assistant messages")
         all_tool_call_ids = {}  # Map from tool_call_id to position of assistant message
         
         for i, message in enumerate(self.session.messages):
@@ -237,9 +247,7 @@ class Engine:
                 for tool_call in message['tool_calls']:
                     if 'id' in tool_call:
                         all_tool_call_ids[tool_call['id']] = i
-                        print(f"[DEBUG] Found tool_call_id in assistant message at position {i}: {tool_call['id']}")
         
-        print(f"[DEBUG] Collected {len(all_tool_call_ids)} unique tool_call_ids from assistant messages")
         
         # Second pass: validate the sequence
         validated_messages = []
@@ -252,7 +260,6 @@ class Engine:
                 # Reset available tool_call_ids for user messages
                 if message.get('role') == 'user':
                     available_tool_call_ids = set()
-                    print(f"[DEBUG] Reset available_tool_call_ids due to user message")
             elif message.get('role') == 'assistant':
                 # Always include assistant messages
                 validated_messages.append(message)
@@ -261,7 +268,6 @@ class Engine:
                     for tool_call in message['tool_calls']:
                         if 'id' in tool_call:
                             available_tool_call_ids.add(tool_call['id'])
-                            print(f"[DEBUG] Added tool_call_id to available set: {tool_call['id']}")
             elif message.get('role') == 'tool':
                 # Only include tool messages if their tool_call_id exists in an assistant message
                 # AND that assistant message comes before this tool message
@@ -270,14 +276,14 @@ class Engine:
                     assistant_pos = all_tool_call_ids[tool_call_id]
                     if assistant_pos < i:  # Ensure assistant message comes before tool message
                         validated_messages.append(message)
-                        print(f"[DEBUG] Added valid tool message with tool_call_id: {tool_call_id}")
                     else:
-                        print(f"[DEBUG] Skipping tool message - assistant message position {assistant_pos} not before tool message position {i}")
+                        # Tool message is invalid, log an error or raise an exception
+                        print(f"Invalid tool message: {message}")
                 else:
-                    print(f"[DEBUG] Skipping tool message - tool_call_id not found in any assistant message: {tool_call_id}")
-        
+                    # Tool message is invalid, log an error or raise an exception
+                    print(f"Invalid tool message: {message}")
+
         self.session.messages = validated_messages
-        print(f"[DEBUG] After sequence validation: {len(self.session.messages)} messages")
 
     def _send(self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
         # Validate messages before sending to LLM
@@ -303,7 +309,6 @@ class Engine:
                     if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
                         new_id = f"tool_{uuid.uuid4().hex}"
                         id_mapping[tool_call.id] = new_id
-                        print(f"[DEBUG] Will replace tool_call_id: {tool_call.id} -> {new_id}")
             
             # Get the assistant message from the provider
             assistant_message = llm_provider.model_response_to_message(response)
@@ -314,11 +319,9 @@ class Engine:
                     if tool_call.get('id') in id_mapping:
                         original_id = tool_call['id']
                         tool_call['id'] = id_mapping[original_id]
-                        print(f"[DEBUG] Replaced tool_call_id in message: {original_id} -> {tool_call['id']}")
             
             # Add the assistant message with updated tool_calls
             self.session.add_message(assistant_message)
-            print(f"[DEBUG] Added assistant message with {len(response.tool_calls)} tool_calls")
             
             # Track tool_call_ids from this assistant message
             tool_call_ids = set()
@@ -372,7 +375,6 @@ class Engine:
                 
                 # Add the tool message (ID is guaranteed to be valid since we manage it)
                 self.session.add_message(tool_message)
-                print(f"[DEBUG] Added tool message with tool_call_id: {tool_message.get('tool_call_id')}")
 
             # Continue the session with another send
             return self._send(model_id, on_tool_call_func)
@@ -396,7 +398,6 @@ class Engine:
                 self._checkpoint_if_needed()
                 
                 on_response_func(response)
-            print('Done!')
         finally:
             # Save the session when we're done
             self.session.save()
@@ -554,12 +555,10 @@ class Engine:
         """
         # Don't allow deleting the active session
         if session_id == self.session.session_id:
-            print(f"Cannot delete the active session {session_id}")
             return False
             
         try:
             self.session_manager.delete_session(session_id)
             return True
         except Exception as e:
-            print(f"Error deleting session {session_id}: {e}")
             return False

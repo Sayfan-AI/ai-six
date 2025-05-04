@@ -9,16 +9,11 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 
 from slack_sdk.errors import SlackApiError
 
-from ...backend.engine.engine import Engine
+from ..common import engine_utils
 
-# Get the tools directory
-tools_dir = str((pathology.path.Path.script_dir() / '../../backend/tools').resolve())
-llm_providers_dir = str((pathology.path.Path.script_dir() / '../../backend/llm_providers').resolve())
+script_dir = pathology.path.Path.script_dir()
 
-# Get the memory directory (create it if it doesn't exist)
-memory_dir = str((pathology.path.Path.script_dir() / '../../../memory/slack').resolve())
-Path(memory_dir).mkdir(parents=True, exist_ok=True)
-
+# Load environment variables
 load_dotenv()
 
 app_token = os.environ.get("AI6_APP_TOKEN")
@@ -30,17 +25,8 @@ app = App(token=bot_token)
 last_message = ""
 latest_ts = None
 
-# Set up provider configuration
-default_model = "gpt-4o"
-provider_config = {
-    "openai": {
-        "api_key": os.environ['OPENAI_API_KEY'],  # Assume this is in .env
-        "default_model": default_model
-    },
-    "ollama": {
-        "model": "qwen2.5-coder:32b"
-    }
-}
+# Load configuration from TOML file
+config_path = str((script_dir / 'config.toml').resolve())
 
 # Initialize engines with separate session storage per channel
 engines = {}
@@ -48,17 +34,10 @@ engines = {}
 def get_or_create_engine(channel_id):
     """Get an existing engine for a channel or create a new one."""
     if channel_id not in engines:
-        # Create a channel-specific memory directory
-        channel_memory_dir = f"{memory_dir}/{channel_id}"
-        Path(channel_memory_dir).mkdir(exist_ok=True)
-
-        # Create a new engine for this channel
-        engines[channel_id] = Engine(
-            default_model_id=default_model,
-            tools_dir=tools_dir,
-            llm_providers_dir=llm_providers_dir,
-            memory_dir=channel_memory_dir,
-            provider_config=provider_config
+        # Create a channel-specific engine using the utility function
+        engines[channel_id] = engine_utils.create_channel_engine(
+            base_config_path=config_path,
+            channel_id=channel_id
         )
 
     return engines[channel_id]
@@ -127,7 +106,7 @@ def handle_message(message, ack, say, client):
         # Stream the message to the AI-6 engine
         response = engine.stream_message(
             text, 
-            default_model, 
+            engine.default_model_id, 
             on_chunk_func=handle_chunk,
             on_tool_call_func=channel_tool_call_handler
         )
@@ -193,7 +172,7 @@ def handle_app_mention(event, say, client):
         # Stream the message to the AI-6 engine
         response = engine.stream_message(
             text, 
-            default_model, 
+            engine.default_model_id, 
             on_chunk_func=handle_chunk,
             on_tool_call_func=channel_tool_call_handler
         )
