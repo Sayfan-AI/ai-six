@@ -79,7 +79,15 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 - [x] Gigi - Fixed tests and merge new tools
 - [x] Gigi - Engine + Tool configuration
-- [ ] Gigi - Look into MCP
+- [x] Gigi - Look into MCP
+
+
+### Action Items
+
+- [ ] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary not implemented)
+- [ ] Gigi - Integrate MCP in addition to our tools, think about MCP tool discovery, local vs remote
+- [ ] Saar - develop dOpus with AI-6
+- [ ] Saar - show tool list in a chainlit side panel
 
 ## Project Meeting 26-apr-2025
 

@@ -343,7 +343,6 @@ class Engine:
                 tool_call_id = tool_call.id
                 if tool_call.id in id_mapping and model_id != 'mock-model':
                     tool_call_id = id_mapping[tool_call.id]
-                    
                 try:
                     # Execute the tool without passing any ID information
                     tool_result = tool.run(**kwargs)
