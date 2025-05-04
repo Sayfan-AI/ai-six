@@ -5,6 +5,7 @@ from pathlib import Path
 import pathology.path
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
+from dotenv import load_dotenv
 
 from slack_sdk.errors import SlackApiError
 
@@ -12,6 +13,14 @@ from ..common import engine_utils
 from . import utils
 
 script_dir = pathology.path.Path.script_dir()
+
+# Try to load environment variables from .env file in the same directory as this script
+env_file_path = os.path.join(script_dir, ".env")
+if os.path.exists(env_file_path):
+    load_dotenv(env_file_path)
+    print(f"Loaded environment variables from {env_file_path}")
+else:
+    print(f"Warning: No .env file found at {env_file_path}")
 
 app_token = os.environ.get("AI6_APP_TOKEN")
 bot_token = os.environ.get("AI6_BOT_TOKEN")
@@ -34,7 +43,8 @@ def get_or_create_engine(channel_id):
         # Create a channel-specific engine using the Slack utility function
         engines[channel_id] = utils.create_channel_engine(
             base_config_path=config_path,
-            channel_id=channel_id
+            channel_id=channel_id,
+            env_file_path=env_file_path
         )
 
     return engines[channel_id]

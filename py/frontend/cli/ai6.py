@@ -36,16 +36,28 @@ def main():
     parser.add_argument('--config', '-c', type=str,
                         default=str((script_dir / 'config.json').resolve()),
                         help='Path to config file (default: config.json)')
+    parser.add_argument('--env', '-e', type=str,
+                        help='Path to .env file for environment variables')
     args = parser.parse_args()
 
     # Load configuration from JSON file
     config_path = args.config
+    
+    # Check for .env file
+    env_file_path = args.env
+    if not env_file_path:
+        # Try to find .env in the same directory as the script
+        possible_env_path = os.path.join(script_dir, ".env")
+        if os.path.exists(possible_env_path):
+            env_file_path = possible_env_path
+            print(f"Using .env file from {env_file_path}")
 
     try:
         # Create engine from configuration, optionally loading a session
         engine, config = engine_utils.create_from_config(
             config_path,
-            session_id=args.session
+            session_id=args.session,
+            env_file_path=env_file_path
         )
     except ValueError as e:
         return

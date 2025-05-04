@@ -36,6 +36,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Expose usage information (tokens)
 - [x] Configuration
 - [ ] MCP support (engine is MCP client, local tools can run as MCP server)
+- [ ] Async tool use (continue interacting with the user while tools are running in the background)
 - [ ] Computer use (browser and debugging in the IDE!)
 - [ ] Voice UI
 
