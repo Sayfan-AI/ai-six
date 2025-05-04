@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator, Callable, Dict, Any
+from typing import Iterator, Callable, Any
 
 from py.backend.engine.object_model import Response
 from py.backend.tools.base.tool import Tool
@@ -7,11 +7,11 @@ from py.backend.tools.base.tool import Tool
 
 class LLMProvider(ABC):
     @abstractmethod
-    def send(self, messages: list, tool_list: list[Tool], model: str | None = None) -> Response:
+    def send(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Response:
         """
         Send a message to the LLM and receive a response.
         :param messages: The list of messages to send.
-        :param tool_list: The list of tools available for the LLM to use.
+        :param tool_dict: A dictionary of tools available for the LLM to use.
         :param model: The model to use (optional).
         :return: The response from the LLM.
         """

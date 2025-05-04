@@ -18,9 +18,25 @@ from py.backend.tools.memory.load_session import LoadSession
 from py.backend.tools.memory.get_session_id import GetSessionId
 from py.backend.tools.memory.delete_session import DeleteSession
 from py.backend.engine.summarizer import SessionSummarizer
+from py.backend.llm_providers.model_info import get_context_window_size
+
+
+def generate_tool_call_id(original_id: str = None) -> str:
+    """
+    Generate a UUID for tool call identification.
+    
+    Args:
+        original_id: Optional original ID to preserve for debugging
+        
+    Returns:
+        A string ID for the tool call, prefixed with "tool_"
+    """
+    return f"tool_{uuid.uuid4().hex}"
 
 
 class Engine:
+    SUMMARY_THRESHOLD_RATIO = 0.8  # Summarize when token count reaches 80% of context window
+
     @staticmethod
     def discover_tools(tools_dir, tool_config):
         tools = []
@@ -161,6 +177,10 @@ class Engine:
         checkpoint_interval = config.checkpoint_interval
         tool_config = config.tool_config
         provider_config = config.provider_config
+        self.default_model_id = config.default_model_id
+        # Get the context window size from model_info based on the default model
+        self.context_window_size = get_context_window_size(self.default_model_id)
+        self.token_threshold = int(self.context_window_size * self.SUMMARY_THRESHOLD_RATIO)
 
         # Validate required directories
         assert (os.path.isdir(tools_dir)), f"Tools directory not found: {tools_dir}"
@@ -174,8 +194,6 @@ class Engine:
         self.llm_providers = Engine.discover_llm_providers(llm_providers_dir, provider_config)
         if not self.llm_providers:
             raise ValueError("No LLM providers found or initialized")
-
-        self.default_model_id = config.default_model_id
         self.model_provider_map = {
             model_id: llm_provider
             for llm_provider in self.llm_providers
@@ -234,9 +252,86 @@ class Engine:
             self.session.save()
             self.message_count_since_checkpoint = 0
 
-            # Generate and save a summary if we have enough messages
-            # TODO: Implement summary generation
+            # Check and summarize if above token threshold (80% of context window)
+            total_tokens = self.session.usage.input_tokens + self.session.usage.output_tokens
+            if total_tokens >= self.token_threshold:
+                print(f"Session tokens ({total_tokens}) have reached {self.SUMMARY_THRESHOLD_RATIO*100}% of context window ({self.context_window_size}). Summarizing...")
+                self._summarize_and_reset_session()
 
+    def _summarize_and_reset_session(self):
+        """
+        Summarize the current session, save detailed logs, and create a new session with the summary.
+        This is triggered when the session token count exceeds the threshold (80% of context window).
+        """
+        # Save the current session before summarizing (ensure we have a complete record)
+        self.session.save()
+
+        # Generate summary using the first provider's model
+        summary = self.summarizer.summarize(self.session.messages, self.default_model_id)
+
+        # Append current session to the detailed log
+        self._append_to_detailed_log(self.session.session_id, summary)
+
+        # Store the old session ID for reference
+        old_session_id = self.session.session_id
+        
+        # Create a new session with summary as the starting point
+        new_session = Session(self.session.memory_dir)
+        summary_message = dict(
+            role='system',  # Using system role for the summary to distinguish it
+            content=f'Summary of previous conversation (session {old_session_id}):\n\n{summary}'
+        )
+        
+        # Add an estimated token count for the summary message to track usage
+        # This is an approximation - in a production system you might want to use a tokenizer
+        estimated_summary_tokens = len(summary.split()) * 1.3  # Simple approximation
+        
+        # Add the message with usage info
+        new_session.messages = [summary_message]
+        
+        # Create a new Usage object with the estimated summary tokens (Usage is immutable)
+        from py.backend.engine.object_model import Usage
+        new_session.usage = Usage(
+            input_tokens=int(estimated_summary_tokens),
+            output_tokens=0
+        )
+        
+        # Update session reference and ID
+        self.session = new_session
+        self.active_session_id = new_session.session_id
+        
+        # Save the new session immediately
+        self.session.save()
+
+        print(f"Session summarized and reset. Previous session: {old_session_id}, New session: {new_session.session_id}")
+
+    def _append_to_detailed_log(self, session_id, summary):
+        """
+        Save detailed session logs including all messages and the generated summary.
+        This maintains a complete history even after summarization.
+        
+        Args:
+            session_id: The ID of the session being summarized
+            summary: The generated summary text
+        """
+        log_filename = os.path.join(self.session.memory_dir, f"{session_id}_detailed_log.json")
+        
+        # Include more metadata to make the logs more useful
+        detailed_log = dict(
+            session_id=session_id,
+            messages=self.session.messages,  # All original messages
+            summary=summary,
+            token_count=self.session.usage.input_tokens + self.session.usage.output_tokens,
+            timestamp=str(uuid.uuid1().time),  # Using uuid1 time as a timestamp
+            context_window_size=self.context_window_size
+        )
+        
+        # Create parent directory if it doesn't exist
+        os.makedirs(self.session.memory_dir, exist_ok=True)
+        
+        # Save the detailed log
+        with open(log_filename, 'w') as f:
+            json.dump(detailed_log, f, indent=4)
 
     def _send(self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None) -> str:
         llm_provider = self.model_provider_map.get(model_id)
@@ -252,13 +347,11 @@ class Engine:
             # Create a mapping of original IDs to new UUIDs if needed
             id_mapping = {}
 
-            # Skip ID replacement in test mode (when model_id is 'mock-model')
-            if model_id != 'mock-model':
-                for tool_call in response.tool_calls:
-                    # Check if we need to replace the ID with a UUID
-                    if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
-                        new_id = f"tool_{uuid.uuid4().hex}"
-                        id_mapping[tool_call.id] = new_id
+            for tool_call in response.tool_calls:
+                # Check if we need to replace the ID with a UUID
+                if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
+                    new_id = generate_tool_call_id(tool_call.id)
+                    id_mapping[tool_call.id] = new_id
 
             # Get the assistant message from the provider
             assistant_message = llm_provider.model_response_to_message(response)
@@ -291,7 +384,7 @@ class Engine:
 
                 # Get the potentially updated tool call ID
                 tool_call_id = tool_call.id
-                if tool_call.id in id_mapping and model_id != 'mock-model':
+                if tool_call.id in id_mapping:
                     tool_call_id = id_mapping[tool_call.id]
                 try:
                     # Execute the tool without passing any ID information
@@ -413,7 +506,7 @@ class Engine:
                         if tool is None:
                             raise RuntimeError(f'Unknown tool: {tool_call.name}')
 
-                        tool_call_id = f"tool_{uuid.uuid4().hex}"
+                        tool_call_id = generate_tool_call_id(tool_call.id)
                         tool_calls_message['tool_calls'].append(
                             dict(id=tool_call_id,
                                  type='function',

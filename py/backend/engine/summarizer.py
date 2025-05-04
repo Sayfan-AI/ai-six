@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Any
 import json
 
 class SessionSummarizer:
@@ -15,7 +15,7 @@ class SessionSummarizer:
         """
         self.llm_provider = llm_provider
     
-    def summarize(self, messages: List[Dict[str, Any]], model_id: str) -> str:
+    def summarize(self, messages: list[dict[str, Any]], model_id: str) -> str:
         """
         Summarize a list of messages using the LLM.
         
@@ -33,10 +33,14 @@ class SessionSummarizer:
         formatted_messages.append({
             "role": "system",
             "content": (
-                "You are a helpful assistant tasked with summarizing a session. "
-                "Create a concise summary that captures the key points, questions, and decisions "
+                "You are a helpful assistant tasked with summarizing a conversation. "
+                "Create a concise summary that captures the key points, questions, decisions, and context "
                 "from the session. The summary should be informative enough that someone "
-                "reading it would understand the main topics and outcomes of the session."
+                "reading it would understand what was discussed, what conclusions were reached, "
+                "and what important context should be carried forward. "
+                "Focus on preserving information that will be useful for continuing the conversation, "
+                "including names, technical terms, important numbers, and specific details that might "
+                "be referenced later. Avoid unnecessary details, repetitive information, or tangential discussions."
             )
         })
         
@@ -53,7 +57,8 @@ class SessionSummarizer:
         response = self.llm_provider.send(formatted_messages, {}, model_id)
         return response.content.strip()
     
-    def _format_session(self, messages: List[Dict[str, Any]]) -> str:
+    @staticmethod
+    def _format_session(messages: list[dict[str, Any]]) -> str:
         """
         Format a list of messages into a readable session.
         

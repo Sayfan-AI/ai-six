@@ -9,6 +9,7 @@ from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk.errors import SlackApiError
 
 from ..common import engine_utils
+from . import utils
 
 script_dir = pathology.path.Path.script_dir()
 
@@ -30,8 +31,8 @@ engines = {}
 def get_or_create_engine(channel_id):
     """Get an existing engine for a channel or create a new one."""
     if channel_id not in engines:
-        # Create a channel-specific engine using the utility function
-        engines[channel_id] = engine_utils.create_channel_engine(
+        # Create a channel-specific engine using the Slack utility function
+        engines[channel_id] = utils.create_channel_engine(
             base_config_path=config_path,
             channel_id=channel_id
         )

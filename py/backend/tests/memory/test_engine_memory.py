@@ -4,7 +4,8 @@ import shutil
 import os
 from unittest.mock import MagicMock, patch
 
-from py.backend.engine.engine import Engine
+from py.backend.engine.config import Config
+from py.backend.engine.engine import Engine, generate_tool_call_id
 from py.backend.engine.llm_provider import LLMProvider
 from py.backend.engine.object_model import Response, ToolCall
 from py.backend.engine.session import Session
@@ -62,15 +63,40 @@ class TestEngineMemory(unittest.TestCase):
         # Create a mock LLM provider
         self.llm_provider = MockLLMProvider()
         
-        # Create an engine with the mock provider
-        self.engine = Engine(
-            llm_providers=[self.llm_provider],
+        # Create a config object for the engine
+        
+        # Create a config with the mock provider
+        self.config = Config(
+            llm_providers=[self.llm_provider],  # This is ignored by Engine but required by Config
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
             memory_dir=self.test_dir
         )
         
+        # Patch the provider discovery method
+        self.discover_patcher = patch('py.backend.engine.engine.Engine.discover_llm_providers')
+        self.mock_discover = self.discover_patcher.start()
+        self.mock_discover.return_value = [self.llm_provider]
+        
+        # Patch the tool discovery method to avoid actual discovery
+        self.tool_patcher = patch('py.backend.engine.engine.Engine.discover_tools')
+        self.mock_tool_discover = self.tool_patcher.start()
+        self.mock_tool_discover.return_value = []
+        
+        # Patch the get_context_window_size function to return a fixed value for testing
+        self.window_size_patcher = patch('py.backend.engine.engine.get_context_window_size')
+        self.mock_window_size = self.window_size_patcher.start()
+        self.mock_window_size.return_value = 1000
+        
+        # Create an engine with the config
+        self.engine = Engine(self.config)
+        
     def tearDown(self):
+        # Stop the patchers
+        self.discover_patcher.stop()
+        self.tool_patcher.stop()
+        self.window_size_patcher.stop()
+        
         # Clean up the temporary directory
         shutil.rmtree(self.test_dir)
         
@@ -118,14 +144,19 @@ class TestEngineMemory(unittest.TestCase):
         session_file = f"{self.test_dir}/{session_id}.json"
         self.assertTrue(os.path.exists(session_file))
         
-        # Create a new engine and load the session
-        new_engine = Engine(
+        # Create a new config with the session ID
+        new_config = Config(
             llm_providers=[self.llm_provider],
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
             memory_dir=self.test_dir,
             session_id=session_id
         )
+        
+        # Create a new engine with the config (using the same patchers as in setUp)
+        with patch('py.backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
+             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]):
+            new_engine = Engine(new_config)
         
         # Check that the session was loaded
         self.assertEqual(len(new_engine.session.messages), 2)
@@ -157,13 +188,18 @@ class TestEngineMemory(unittest.TestCase):
         # We can't delete the active session
         self.assertFalse(success)
         
-        # Create another engine with a new session
-        another_engine = Engine(
+        # Create a config for another engine
+        another_config = Config(
             llm_providers=[self.llm_provider],
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
             memory_dir=self.test_dir
         )
+        
+        # Create another engine with a new session
+        with patch('py.backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
+             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]):
+            another_engine = Engine(another_config)
         
         # Get the new session ID and save it
         another_session_id = another_engine.get_session_id()
@@ -242,19 +278,24 @@ class TestEngineMemory(unittest.TestCase):
         # Set up a mock tool call handler
         tool_call_handler = MagicMock()
         
-        # Send a message that will trigger a tool call
-        self.engine.send_message("Run echo", "mock-model", tool_call_handler)
-        
-        # Check that the tool call handler was called with the right arguments
-        tool_call_handler.assert_called_once_with("echo", {"text": "Hello, world!"}, tool_result)
-        
-        # Check that the messages include the tool call and response
-        messages = self.engine.session.messages
-        self.assertEqual(len(messages), 4)  # user, assistant, tool, assistant
-        self.assertEqual(messages[0]["role"], "user")
-        self.assertEqual(messages[1]["role"], "assistant")
-        self.assertEqual(messages[2]["role"], "tool")
-        self.assertEqual(messages[2]["name"], "echo")
+        # Mock the generate_tool_call_id function to return consistent IDs for testing
+        with patch('py.backend.engine.engine.generate_tool_call_id', return_value='tool_test_id_123'):
+            # Send a message that will trigger a tool call
+            self.engine.send_message("Run echo", "mock-model", tool_call_handler)
+            
+            # Check that the tool call handler was called with the right arguments
+            tool_call_handler.assert_called_once_with("echo", {"text": "Hello, world!"}, tool_result)
+            
+            # Check that the messages include the tool call and response
+            messages = self.engine.session.messages
+            self.assertEqual(len(messages), 4)  # user, assistant, tool, assistant
+            self.assertEqual(messages[0]["role"], "user")
+            self.assertEqual(messages[1]["role"], "assistant")
+            self.assertEqual(messages[2]["role"], "tool")
+            self.assertEqual(messages[2]["name"], "echo")
+            
+            # Verify that the tool_call_id was properly set with our mocked ID
+            self.assertEqual(messages[2]["tool_call_id"], "tool_test_id_123")
 
 
 if __name__ == "__main__":
