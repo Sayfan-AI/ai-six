@@ -2,8 +2,11 @@ import os
 import argparse
 import pathology.path
 from pathlib import Path
+from dotenv import load_dotenv
 
 from ..common import engine_utils
+
+load_dotenv()
 
 script_dir = pathology.path.Path.script_dir()
 

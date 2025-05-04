@@ -3,10 +3,13 @@ from pathlib import Path
 
 import chainlit as cl
 from chainlit.cli import run_chainlit
+from dotenv import load_dotenv
 
 import pathology.path
 
 from py.frontend.common import engine_utils
+
+load_dotenv()
 
 script_dir = pathology.path.Path.script_dir()
 
