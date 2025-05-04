@@ -10,7 +10,9 @@ echo "virtualenv: ${VIRTUAL_ENV}"
 # Create memory directories if they don't exist
 mkdir -p memory/cli memory/slack memory/chainlit
 
-if [[ "$1" == "cli" ]]; then
+if [[ "$1" == "update" ]]; then
+  pip install -r py/requirements.txt
+elif [[ "$1" == "cli" ]]; then
   shift  # Drops the first argument ("cli")
   python -m py.frontend.cli.ai6 "$@"
 elif [[ "$1" == "slack" ]]; then
