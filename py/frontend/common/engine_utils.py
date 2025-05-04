@@ -8,6 +8,7 @@ across different frontends (CLI, Chainlit, Slack, etc.).
 import os
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
+from dotenv import load_dotenv
 
 from py.backend.engine.config import Config
 from py.backend.engine.engine import Engine
@@ -27,6 +28,8 @@ def create_from_config(
         A tuple containing (engine, config) where engine is the initialized
         Engine instance and config is the loaded Config object.
     """
+    load_dotenv()
+
     # Load the configuration
     config = Config.from_file(config_path)
     

@@ -3,7 +3,6 @@ from functools import partial
 from pathlib import Path
 
 import pathology.path
-from dotenv import load_dotenv
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 
@@ -12,9 +11,6 @@ from slack_sdk.errors import SlackApiError
 from ..common import engine_utils
 
 script_dir = pathology.path.Path.script_dir()
-
-# Load environment variables
-load_dotenv()
 
 app_token = os.environ.get("AI6_APP_TOKEN")
 bot_token = os.environ.get("AI6_BOT_TOKEN")
