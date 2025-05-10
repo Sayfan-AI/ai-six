@@ -11,7 +11,7 @@ from py.frontend.common import engine_utils
 script_dir = pathology.path.Path.script_dir()
 
 # Load the engine from YAML configuration
-config_path = str((script_dir / 'config.yaml').resolve())
+config_path = str((script_dir / "config.yaml").resolve())
 
 # Create engine from configuration file
 # Environment variables will be automatically interpolated by Config.from_file
@@ -23,8 +23,7 @@ default_model = engine.default_model_id
 
 @cl.on_chat_start
 async def on_chat_start():
-    await cl.Message(
-        content=f"AI-6 is ready. Let's go 🚀!").send()
+    await cl.Message(content=f"AI-6 is ready. Let's go 🚀!").send()
 
 
 @cl.on_message
@@ -42,9 +41,9 @@ async def on_message(message: cl.Message):
     # Stream the response
     try:
         response = engine.stream_message(
-            message.content, 
-            default_model, 
-            on_chunk_func=lambda chunk: cl.run_sync(on_chunk(chunk))
+            message.content,
+            default_model,
+            on_chunk_func=lambda chunk: cl.run_sync(on_chunk(chunk)),
         )
         # Mark the message as complete
         await msg.update()
