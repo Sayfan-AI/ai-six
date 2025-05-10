@@ -514,6 +514,7 @@ class Engine:
         model_id: str,
         on_chunk_func: Callable[[str], None],
         on_tool_call_func: Callable[[str, dict, str], None] | None = None,
+        available_tool_ids: list[str] | None = None,
     ) -> str:
         """
         Send a single message and stream the response.
@@ -538,9 +539,14 @@ class Engine:
         final_content = ""
         tool_calls_handled = False
 
+        available_tools = self.tool_dict
+        if available_tool_ids is not None:
+            available_tools = {
+                k: v for k, v in self.tool_dict.items() if k in available_tool_ids
+            }
         try:
             for response in llm_provider.stream(
-                self.session.messages, self.tool_dict, model_id
+                self.session.messages, available_tools, model_id
             ):
                 if response.content != final_content:
                     new_content = response.content[len(final_content) :]
