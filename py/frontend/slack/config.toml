@@ -1,6 +1,7 @@
 # AI-6 Slack Configuration File
 default_model_id = "gpt-4o"
 tools_dir = "${HOME}/git/ai-six/py/backend/tools"
+mcp_tools_dir = "${HOME}/git/ai-six/py/backend/mcp_tools"
 memory_dir = "${HOME}/git/ai-six/memory/slack"
 checkpoint_interval = 3
 

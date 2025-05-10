@@ -6,6 +6,7 @@ import importlib.util
 import inspect
 import sh
 import uuid
+import asyncio
 
 from py.backend.engine.config import Config
 from py.backend.engine.llm_provider import LLMProvider
@@ -19,6 +20,8 @@ from py.backend.tools.memory.get_session_id import GetSessionId
 from py.backend.tools.memory.delete_session import DeleteSession
 from py.backend.engine.summarizer import SessionSummarizer
 from py.backend.llm_providers.model_info import get_context_window_size
+
+from py.backend.mcp_client.client import Client
 
 
 def generate_tool_call_id(original_id: str = None) -> str:
@@ -42,13 +45,8 @@ class Engine:
     @staticmethod
     def discover_tools(tools_dir, tool_config):
         tools = []
-
-        base_path = Path(
-            tools_dir
-        ).resolve()  # e.g., /Users/gigi/git/ai-six/py/backend/tools
-        module_root_path = base_path.parents[
-            2
-        ]  # Three levels up → /Users/gigi/git/ai-six
+        base_path = Path(tools_dir).resolve()  # e.g., /Users/gigi/git/ai-six/py/backend/tools
+        module_root_path = base_path.parents[2] # Three levels up
         base_module = "py.backend.tools"  # Static base module for tools
 
         # Walk through all .py files in the directory (recursive)
@@ -82,8 +80,8 @@ class Engine:
                 # Inspect module for subclasses of Tool or CommandTool
                 for name, clazz in inspect.getmembers(module, inspect.isclass):
                     if issubclass(clazz, Tool) and clazz.__module__ not in (
-                        Tool.__module__,
-                        CommandTool.__module__,
+                            Tool.__module__,
+                            CommandTool.__module__
                     ):
                         try:
                             tool = clazz()
@@ -144,8 +142,8 @@ class Engine:
                 # Inspect module for subclasses of LLMProvider
                 for name, clazz in inspect.getmembers(module, inspect.isclass):
                     if (
-                        issubclass(clazz, LLMProvider)
-                        and clazz.__module__ != LLMProvider.__module__
+                            issubclass(clazz, LLMProvider)
+                            and clazz.__module__ != LLMProvider.__module__
                     ):
                         try:
                             # Get configuration for this provider type
@@ -189,6 +187,7 @@ class Engine:
     def __init__(self, config: Config):
         # Extract configuration values
         tools_dir = config.tools_dir
+        mcp_tools_dir = config.mcp_tools_dir
         memory_dir = config.memory_dir
         session_id = config.session_id
         checkpoint_interval = config.checkpoint_interval
@@ -203,6 +202,7 @@ class Engine:
 
         # Validate required directories
         assert os.path.isdir(tools_dir), f"Tools directory not found: {tools_dir}"
+        assert os.path.isdir(mcp_tools_dir), f"MCP tools directory not found: {mcp_tools_dir}"
         assert os.path.isdir(memory_dir), f"Memory directory not found: {memory_dir}"
 
         # Find LLM providers directory (assuming standard project structure)
@@ -227,6 +227,10 @@ class Engine:
 
         # Discover available tools
         tool_list = Engine.discover_tools(tools_dir, tool_config)
+
+        # Discover MCP tools
+        mcp_tool_list = Engine.discover_mcp_tools(mcp_tools_dir)
+
         self.tool_dict = {t.spec.name: t for t in tool_list}
 
         # Initialize session and session manager
@@ -254,6 +258,18 @@ class Engine:
                 # Load summary if available
                 # TODO: Implement loading summaries
 
+    @staticmethod
+    def discover_mcp_tools(mcp_tools_dir):
+        """Discover MCP tools synchronously using asyncio.run."""
+        if not os.path.isdir(mcp_tools_dir):
+            raise ValueError(f"MCP tools directory not found: {mcp_tools_dir}")
+
+        client = Client(mcp_tools_dir)
+        tools = asyncio.run(client.connect_to_servers())
+        print("Discovered MCP Tools:", tools)
+        return tools
+
+
     def _register_memory_tools(self):
         """Register memory management tools with the engine."""
         # Create tool instances with a reference to the engine
@@ -279,7 +295,7 @@ class Engine:
 
             # Check and summarize if above token threshold (80% of context window)
             total_tokens = (
-                self.session.usage.input_tokens + self.session.usage.output_tokens
+                    self.session.usage.input_tokens + self.session.usage.output_tokens
             )
             if total_tokens >= self.token_threshold:
                 print(
@@ -357,7 +373,7 @@ class Engine:
             messages=self.session.messages,  # All original messages
             summary=summary,
             token_count=self.session.usage.input_tokens
-            + self.session.usage.output_tokens,
+                        + self.session.usage.output_tokens,
             timestamp=str(uuid.uuid1().time),  # Using uuid1 time as a timestamp
             context_window_size=self.context_window_size,
         )
@@ -370,7 +386,7 @@ class Engine:
             json.dump(detailed_log, f, indent=4)
 
     def _send(
-        self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None
+            self, model_id, on_tool_call_func: Callable[[str, dict, str], None] | None
     ) -> str:
         llm_provider = self.model_provider_map.get(model_id)
         if llm_provider is None:
@@ -390,7 +406,7 @@ class Engine:
             for tool_call in response.tool_calls:
                 # Check if we need to replace the ID with a UUID
                 if (
-                    not tool_call.id or len(tool_call.id) < 32
+                        not tool_call.id or len(tool_call.id) < 32
                 ):  # Simple check for non-UUID
                     new_id = generate_tool_call_id(tool_call.id)
                     id_mapping[tool_call.id] = new_id
@@ -468,10 +484,10 @@ class Engine:
         return response.content.strip()
 
     def run(
-        self,
-        get_input_func: Callable[[], None],
-        on_tool_call_func: Callable[[str, dict, str], None] | None,
-        on_response_func: Callable[[str], None],
+            self,
+            get_input_func: Callable[[], None],
+            on_tool_call_func: Callable[[str, dict, str], None] | None,
+            on_response_func: Callable[[str], None],
     ):
         """Run the session loop."""
         try:
@@ -491,10 +507,10 @@ class Engine:
             self.session.save()
 
     def send_message(
-        self,
-        message: str,
-        model_id: str,
-        on_tool_call_func: Callable[[str, dict, str], None] | None,
+            self,
+            message: str,
+            model_id: str,
+            on_tool_call_func: Callable[[str, dict, str], None] | None,
     ) -> str:
         """Send a single message and get a response."""
         user_message = {"role": "user", "content": message}
@@ -509,12 +525,12 @@ class Engine:
         return response
 
     def stream_message(
-        self,
-        message: str,
-        model_id: str,
-        on_chunk_func: Callable[[str], None],
-        on_tool_call_func: Callable[[str, dict, str], None] | None = None,
-        available_tool_ids: list[str] | None = None,
+            self,
+            message: str,
+            model_id: str,
+            on_chunk_func: Callable[[str], None],
+            on_tool_call_func: Callable[[str, dict, str], None] | None = None,
+            available_tool_ids: list[str] | None = None,
     ) -> str:
         """
         Send a single message and stream the response.
@@ -546,10 +562,10 @@ class Engine:
             }
         try:
             for response in llm_provider.stream(
-                self.session.messages, available_tools, model_id
+                    self.session.messages, available_tools, model_id
             ):
                 if response.content != final_content:
-                    new_content = response.content[len(final_content) :]
+                    new_content = response.content[len(final_content):]
                     final_content = response.content
                     if new_content and on_chunk_func:
                         on_chunk_func(new_content)

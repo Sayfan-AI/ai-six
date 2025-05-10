@@ -13,6 +13,7 @@ class Config:
     llm_providers: list[LLMProvider]
     default_model_id: str
     tools_dir: str
+    mcp_tools_dir: str
     memory_dir: str
     session_id: Optional[str] = None
     checkpoint_interval: int = 3
@@ -92,16 +93,17 @@ class Config:
 
         # Extract relevant configuration fields
         tools_dir = config_data.get('tools_dir')
+        mcp_tools_dir = config_data.get('mcp_tools_dir')
         memory_dir = config_data.get('memory_dir')
         default_model_id = config_data.get('default_model_id')
         session_id = config_data.get('session_id')
         checkpoint_interval = config_data.get('checkpoint_interval', 3)
         tool_config = config_data.get('tool_config', {})
         provider_config = config_data.get('provider_config', {})
-        
+
         # Validate required fields
-        if not tools_dir or not memory_dir or not default_model_id:
-            raise ValueError("Configuration file must contain 'tools_dir', 'memory_dir', "
+        if not tools_dir or not mcp_tools_dir or not memory_dir or not default_model_id:
+            raise ValueError("Configuration file must contain 'tools_dir', 'mcp_tools_dir', 'memory_dir', "
                            "and 'default_model_id' fields")
             
         # For now, return a Config without llm_providers, which should be initialized
@@ -110,6 +112,7 @@ class Config:
             llm_providers=[],  # Empty list, to be populated by Engine
             default_model_id=default_model_id,
             tools_dir=tools_dir,
+            mcp_tools_dir=mcp_tools_dir,
             memory_dir=memory_dir,
             session_id=session_id,
             checkpoint_interval=checkpoint_interval,
