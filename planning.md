@@ -65,8 +65,8 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Watch Github issues
 - [ ] Respond to new issues assigned to it
 - [ ] Create local branch
-- [ ] Make changes + tests
-- [ ] Run tests
+- [x] Make changes + tests
+- [x] Run tests
 - [ ] Open PR
 - [ ] Watch for PR comments
 - [ ] Make further changes based on PR comments
@@ -75,6 +75,19 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Rollback if something goes wrong
 
 # Meetings
+
+## Project Meeting 10-may-2025
+
+### AI-6 Status
+
+- [x] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary not implemented)
+- [ ] Gigi - Integrate MCP in addition to our tools, think about MCP tool discovery, local vs remote
+
+### Agenda
+
+- Discuss development process, branches, PRs, etc
+- Tooling - ruff
+- CI/CD - Github actions to run linters, formatters, tests, etc on PRs
 
 ## Project Meeting 3-may-2025
 
@@ -87,7 +100,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### Action Items
 
-- [ ] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary not implemented)
+- [x] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary not implemented)
 - [ ] Gigi - Integrate MCP in addition to our tools, think about MCP tool discovery, local vs remote
 - [ ] Saar - develop dOpus with AI-6
 - [ ] Saar - show tool list in a chainlit side panel
