@@ -6,6 +6,7 @@ import importlib.util
 import inspect
 import sh
 import uuid
+import asyncio
 
 from py.backend.engine.config import Config
 from py.backend.engine.llm_provider import LLMProvider
@@ -20,6 +21,7 @@ from py.backend.tools.memory.delete_session import DeleteSession
 from py.backend.engine.summarizer import SessionSummarizer
 from py.backend.llm_providers.model_info import get_context_window_size
 
+from py.backend.mcp_client.client import Client
 
 def generate_tool_call_id(original_id: str = None) -> str:
     """
@@ -229,6 +231,11 @@ class Engine:
                 # Load summary if available
                 # TODO: Implement loading summaries
 
+    def discover_mcp_tools(self, mcp_tools_dir):
+        """Discover MCP tools in the specified directory and print them."""
+        client = Client(mcp_tools_dir)
+        tools = asyncio.run(client.connect_to_servers())
+        print("Discovered MCP Tools:", tools)
     def _register_memory_tools(self):
         """Register memory management tools with the engine."""
         # Create tool instances with a reference to the engine
