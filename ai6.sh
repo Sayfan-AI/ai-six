@@ -7,6 +7,16 @@ fi
 
 echo "virtualenv: ${VIRTUAL_ENV}"
 
+# Default Python runner
+PY_RUN="python"
+
+# Check for global --debug flag
+if [[ "$2" == "--debug" ]]; then
+  PY_RUN="python -m debugpy --listen 5678 --wait-for-client"
+  # Remove the debug flag so it doesn't confuse the client command
+  set -- "$1" "${@:3}"
+fi
+
 # Create memory directories if they don't exist
 mkdir -p memory/cli memory/slack memory/chainlit
 
@@ -14,11 +24,11 @@ if [[ "$1" == "update" ]]; then
   pip install -r py/requirements.txt
 elif [[ "$1" == "cli" ]]; then
   shift  # Drops the first argument ("cli")
-  python -m py.frontend.cli.ai6 "$@"
+  $PY_RUN -m py.frontend.cli.ai6 "$@"
 elif [[ "$1" == "slack" ]]; then
-  python -m py.frontend.slack.app
+  $PY_RUN -m py.frontend.slack.app
 elif [[ "$1" == "chainlit" ]]; then
-  python -m py.frontend.chainlit.app
+  $PY_RUN -m py.frontend.chainlit.app
 elif [[ "$1" == "list-conversations" ]]; then
   # List all conversations in memory
   echo "CLI conversations:"
@@ -30,7 +40,7 @@ elif [[ "$1" == "list-conversations" ]]; then
   echo "Chainlit conversations:"
   ls -1 memory/chainlit/conversations/ 2>/dev/null | sed 's/\.json$//' || echo "  No conversations found"
 else
-  echo 'Usage: ai6.sh <cli | slack | chainlit | list-conversations>'
+  echo 'Usage: ai6.sh <cli | slack | chainlit | list-conversations> [--debug]'
   echo
   echo 'CLI options:'
   echo '  ai6.sh cli                     Start a new conversation'

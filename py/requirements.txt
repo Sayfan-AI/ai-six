@@ -8,3 +8,4 @@ chainlit
 ollama
 pyyaml
 toml
+debugpy
