@@ -109,6 +109,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Gigi - Finalize MCP integration
 - [ ] Gigi - Github actions to run linters, formatters, tests, etc on PRs
 - [ ] Gigi - Look into migrating the engine to Async IO
+- [ ] Gigi - try [devestral](https://mistral.ai/news/devstral) on ollama
 - [ ] Saar - Use models from model_info.py
 - [ ] Saar - Look into usable local models
 - [ ] Saar - Add tool calls view to Chainlit UI
