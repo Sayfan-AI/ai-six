@@ -27,6 +27,10 @@ https://elevenlabs.io
 
 They have a free plan of 10-15 minutes per month, which is good for testing.
 
+## Software Development Life Cycle
+
+- Saar and Gigi will create PRs and merge them at will. Review is optional.
+- We will use Github Actions for CI/CD
 
 ## Capabilities
 
@@ -80,14 +84,34 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### AI-6 Status
 
-- [x] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary not implemented)
-- [ ] Gigi - Integrate MCP in addition to our tools, think about MCP tool discovery, local vs remote
+- [x] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary
+  not implemented)
+- [x] Gigi - Partially MCP in addition to our tools (can discover the tools)
+- [x] Saar - Adding settings to Chainlit app to select model and disable tools.
+
+### Ideas
+
+- Saar is hitting rate limits, explore dynamic + automatic provider switching (rotate calls to different providers under
+  the covers)
+- Explore local models - Qwen 2.5 is too slow. 
 
 ### Agenda
 
 - Discuss development process, branches, PRs, etc
-- Tooling - ruff
+- Tooling - ruff √
 - CI/CD - Github actions to run linters, formatters, tests, etc on PRs
+- Async I/O ???
+
+
+### Action Items
+
+- [ ] Gigi - fix unit tests (some failing)
+- [ ] Gigi - Finalize MCP integration
+- [ ] Gigi - Github actions to run linters, formatters, tests, etc on PRs
+- [ ] Gigi - Look into migrating the engine to Async IO
+- [ ] Saar - Use models from model_info.py
+- [ ] Saar - Look into usable local models
+- [ ] Saar - Add tool calls view to Chainlit UI
 
 ## Project Meeting 3-may-2025
 
@@ -97,11 +121,11 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Gigi - Engine + Tool configuration
 - [x] Gigi - Look into MCP
 
-
 ### Action Items
 
-- [x] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary not implemented)
-- [ ] Gigi - Integrate MCP in addition to our tools, think about MCP tool discovery, local vs remote
+- [x] Gigi - go over the AI-generated code and make it right (test code in _send, warning in validate message, summary
+  not implemented)
+- [/] Gigi - Integrate MCP in addition to our tools, think about MCP tool discovery, local vs remote
 - [ ] Saar - develop dOpus with AI-6
 - [ ] Saar - show tool list in a chainlit side panel
 
@@ -139,7 +163,6 @@ docker run -it --rm --pull=always \
 - [ ] Saar - Review current state
 - [ ] Saar - look into making bot output nicer on slack (e.g. render markdown as markdown)
 - [ ] Saar - Work on dOpus
-
 
 ## Project Meeting 5-apr-2025
 
