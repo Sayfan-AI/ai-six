@@ -70,6 +70,7 @@ class TestEngineMemory(unittest.TestCase):
             llm_providers=[self.llm_provider],  # This is ignored by Engine but required by Config
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
+            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
             memory_dir=self.test_dir
         )
         
@@ -83,6 +84,11 @@ class TestEngineMemory(unittest.TestCase):
         self.mock_tool_discover = self.tool_patcher.start()
         self.mock_tool_discover.return_value = []
         
+        # Patch the MCP tool discovery method to avoid actual discovery
+        self.mcp_tool_patcher = patch('py.backend.engine.engine.Engine.discover_mcp_tools')
+        self.mock_mcp_tool_discover = self.mcp_tool_patcher.start()
+        self.mock_mcp_tool_discover.return_value = []
+        
         # Patch the get_context_window_size function to return a fixed value for testing
         self.window_size_patcher = patch('py.backend.engine.engine.get_context_window_size')
         self.mock_window_size = self.window_size_patcher.start()
@@ -95,6 +101,7 @@ class TestEngineMemory(unittest.TestCase):
         # Stop the patchers
         self.discover_patcher.stop()
         self.tool_patcher.stop()
+        self.mcp_tool_patcher.stop()
         self.window_size_patcher.stop()
         
         # Clean up the temporary directory
@@ -149,13 +156,15 @@ class TestEngineMemory(unittest.TestCase):
             llm_providers=[self.llm_provider],
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
+            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
             memory_dir=self.test_dir,
             session_id=session_id
         )
         
         # Create a new engine with the config (using the same patchers as in setUp)
         with patch('py.backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
-             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]):
+             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]), \
+             patch('py.backend.engine.engine.Engine.discover_mcp_tools', return_value=[]):
             new_engine = Engine(new_config)
         
         # Check that the session was loaded
@@ -193,12 +202,14 @@ class TestEngineMemory(unittest.TestCase):
             llm_providers=[self.llm_provider],
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
+            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
             memory_dir=self.test_dir
         )
         
         # Create another engine with a new session
         with patch('py.backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
-             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]):
+             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]), \
+             patch('py.backend.engine.engine.Engine.discover_mcp_tools', return_value=[]):
             another_engine = Engine(another_config)
         
         # Get the new session ID and save it
