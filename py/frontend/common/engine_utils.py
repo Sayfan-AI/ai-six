@@ -44,7 +44,7 @@ def create_from_config(
     memory_dir.mkdir(parents=True, exist_ok=True)
     
     # Create the engine from the configuration
-    engine = Engine.from_config(config_path)
+    engine = Engine.from_config_file(config_path)
     
     # Load session if provided
     if session_id:

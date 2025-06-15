@@ -17,6 +17,7 @@ class Config:
     memory_dir: str
     session_id: Optional[str] = None
     checkpoint_interval: int = 3
+    summary_threshold_ratio: float = 0.8
     tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     provider_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
 
@@ -98,6 +99,7 @@ class Config:
         default_model_id = config_data.get('default_model_id')
         session_id = config_data.get('session_id')
         checkpoint_interval = config_data.get('checkpoint_interval', 3)
+        summary_threshold_ratio = config_data.get('summary_threshold_ratio', 0.8)
         tool_config = config_data.get('tool_config', {})
         provider_config = config_data.get('provider_config', {})
 
@@ -116,6 +118,7 @@ class Config:
             memory_dir=memory_dir,
             session_id=session_id,
             checkpoint_interval=checkpoint_interval,
+            summary_threshold_ratio=summary_threshold_ratio,
             tool_config=MappingProxyType(tool_config),
             provider_config=MappingProxyType(provider_config)
         )

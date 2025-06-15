@@ -38,9 +38,99 @@ def generate_tool_call_id(original_id: str = None) -> str:
 
 
 class Engine:
-    SUMMARY_THRESHOLD_RATIO = (
-        0.8  # Summarize when token count reaches 80% of context window
-    )
+    def __init__(self, config: Config):
+        # Extract configuration values
+        tools_dir = config.tools_dir
+        mcp_tools_dir = config.mcp_tools_dir
+        memory_dir = config.memory_dir
+        session_id = config.session_id
+        checkpoint_interval = config.checkpoint_interval
+        tool_config = config.tool_config
+        provider_config = config.provider_config
+        self.default_model_id = config.default_model_id
+        self.summary_threshold_ratio = config.summary_threshold_ratio
+        # Get the context window size from model_info based on the default model
+        self.context_window_size = get_context_window_size(self.default_model_id)
+        self.token_threshold = int(
+            self.context_window_size * self.summary_threshold_ratio
+        )
+
+        # Validate required directories
+        assert os.path.isdir(tools_dir), f"Tools directory not found: {tools_dir}"
+        assert os.path.isdir(mcp_tools_dir), f"MCP tools directory not found: {mcp_tools_dir}"
+        assert os.path.isdir(memory_dir), f"Memory directory not found: {memory_dir}"
+
+        # Find LLM providers directory (assuming standard project structure)
+        llm_providers_dir = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "llm_providers"
+        )
+        assert os.path.isdir(llm_providers_dir), (
+            f"LLM providers directory not found: {llm_providers_dir}"
+        )
+
+        # Discover available LLM providers
+        self.llm_providers = Engine.discover_llm_providers(
+            llm_providers_dir, provider_config
+        )
+        if not self.llm_providers:
+            raise ValueError("No LLM providers found or initialized")
+        self.model_provider_map = {
+            model_id: llm_provider
+            for llm_provider in self.llm_providers
+            for model_id in llm_provider.models
+        }
+
+        # Discover available tools
+        tool_list = Engine.discover_tools(tools_dir, tool_config)
+
+        # Discover MCP tools
+        mcp_tool_list = Engine.discover_mcp_tools(mcp_tools_dir)
+
+        self.tool_dict = {t.spec.name: t for t in tool_list}
+
+        # Initialize session and session manager
+        self.session_manager = SessionManager(memory_dir)
+        self.session = Session(memory_dir)
+
+        # Session-related attributes
+        self.checkpoint_interval = checkpoint_interval
+        self.message_count_since_checkpoint = 0
+
+        # Initialize summarizer if llm providers available
+        if self.llm_providers:
+            self.summarizer = SessionSummarizer(self.llm_providers[0])
+
+        # Register memory tools with the engine
+        self._register_memory_tools()
+
+        # Load previous session if session_id is provided and exists
+        if session_id:
+            available_sessions = self.session_manager.list_sessions()
+            if session_id in available_sessions:
+                self.session = Session(memory_dir)  # Create a new session object
+                self.session.load(session_id)  # Load from disk
+
+                # Load summary if available
+                # TODO: Implement loading summaries
+
+    @classmethod
+    def from_config_file(cls, config_file: str) -> "Engine":
+        """Create an Engine instance from a configuration file.
+
+        Parameters
+        ----------
+        config_file : str
+            Path to the configuration file (json, yaml, or toml)
+
+        Returns
+        -------
+        Engine
+            A configured Engine instance
+        """
+        from py.backend.engine.config import Config
+
+        config = Config.from_file(config_file)
+        return cls(config)
 
     @staticmethod
     def discover_tools(tools_dir, tool_config):
@@ -165,99 +255,6 @@ class Engine:
 
         return providers
 
-    @classmethod
-    def from_config(cls, config_file: str) -> "Engine":
-        """Create an Engine instance from a configuration file.
-
-        Parameters
-        ----------
-        config_file : str
-            Path to the configuration file (json, yaml, or toml)
-
-        Returns
-        -------
-        Engine
-            A configured Engine instance
-        """
-        from py.backend.engine.config import Config
-
-        config = Config.from_file(config_file)
-        return cls(config)
-
-    def __init__(self, config: Config):
-        # Extract configuration values
-        tools_dir = config.tools_dir
-        mcp_tools_dir = config.mcp_tools_dir
-        memory_dir = config.memory_dir
-        session_id = config.session_id
-        checkpoint_interval = config.checkpoint_interval
-        tool_config = config.tool_config
-        provider_config = config.provider_config
-        self.default_model_id = config.default_model_id
-        # Get the context window size from model_info based on the default model
-        self.context_window_size = get_context_window_size(self.default_model_id)
-        self.token_threshold = int(
-            self.context_window_size * self.SUMMARY_THRESHOLD_RATIO
-        )
-
-        # Validate required directories
-        assert os.path.isdir(tools_dir), f"Tools directory not found: {tools_dir}"
-        assert os.path.isdir(mcp_tools_dir), f"MCP tools directory not found: {mcp_tools_dir}"
-        assert os.path.isdir(memory_dir), f"Memory directory not found: {memory_dir}"
-
-        # Find LLM providers directory (assuming standard project structure)
-        llm_providers_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "llm_providers"
-        )
-        assert os.path.isdir(llm_providers_dir), (
-            f"LLM providers directory not found: {llm_providers_dir}"
-        )
-
-        # Discover available LLM providers
-        self.llm_providers = Engine.discover_llm_providers(
-            llm_providers_dir, provider_config
-        )
-        if not self.llm_providers:
-            raise ValueError("No LLM providers found or initialized")
-        self.model_provider_map = {
-            model_id: llm_provider
-            for llm_provider in self.llm_providers
-            for model_id in llm_provider.models
-        }
-
-        # Discover available tools
-        tool_list = Engine.discover_tools(tools_dir, tool_config)
-
-        # Discover MCP tools
-        mcp_tool_list = Engine.discover_mcp_tools(mcp_tools_dir)
-
-        self.tool_dict = {t.spec.name: t for t in tool_list}
-
-        # Initialize session and session manager
-        self.session_manager = SessionManager(memory_dir)
-        self.session = Session(memory_dir)
-
-        # Session-related attributes
-        self.checkpoint_interval = checkpoint_interval
-        self.message_count_since_checkpoint = 0
-
-        # Initialize summarizer if llm providers available
-        if self.llm_providers:
-            self.summarizer = SessionSummarizer(self.llm_providers[0])
-
-        # Register memory tools with the engine
-        self._register_memory_tools()
-
-        # Load previous session if session_id is provided and exists
-        if session_id:
-            available_sessions = self.session_manager.list_sessions()
-            if session_id in available_sessions:
-                self.session = Session(memory_dir)  # Create a new session object
-                self.session.load(session_id)  # Load from disk
-
-                # Load summary if available
-                # TODO: Implement loading summaries
-
     @staticmethod
     def discover_mcp_tools(mcp_tools_dir):
         """Discover MCP tools synchronously using asyncio.run."""
@@ -299,7 +296,7 @@ class Engine:
             )
             if total_tokens >= self.token_threshold:
                 print(
-                    f"Session tokens ({total_tokens}) have reached {self.SUMMARY_THRESHOLD_RATIO * 100}% of context window ({self.context_window_size}). Summarizing..."
+                    f"Session tokens ({total_tokens}) have reached {self.summary_threshold_ratio * 100}% of context window ({self.context_window_size}). Summarizing..."
                 )
                 self._summarize_and_reset_session()
 

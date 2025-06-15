@@ -1,8 +1,5 @@
 from typing import NamedTuple
 
-from py.backend.tools.base.tool import Tool
-
-
 class ToolCall(NamedTuple):
     """
     A class to represent a tool call made by the LLM.
