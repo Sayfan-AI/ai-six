@@ -61,7 +61,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 - [] Document the security model
     - OS user based, access to remote services credentials and k8s clusters, run in a container
-- [] Dedicated tool Support for defining OS model and permissions for AI-6 and specific tools
+- [] Dedicated tool support for defining OS model and permissions for AI-6 and specific tools
 - [] Run in a container (mounting directories and config files like .kube/config and .aws/config)
 
 ## Fully-autonomous AI software engineer
@@ -79,6 +79,16 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Rollback if something goes wrong
 
 # Meetings
+
+## Project Meeting 15-june-2025
+
+### Agenda
+
+- Review status of AI-6
+- Book
+- Discuss next steps
+
+### Action Items
 
 ## Project Meeting 10-may-2025
 
