@@ -3,8 +3,8 @@ import re
 import unittest
 from unittest.mock import patch, MagicMock
 
-from py.backend.llm_providers.openai_provider import OpenAIProvider
-from py.backend.engine.object_model import Response, ToolCall, Usage
+from backend.llm_providers.openai_provider import OpenAIProvider
+from backend.object_model import AssistantMessage, ToolCall, Usage, UserMessage
 
 
 class TestOpenAIStreaming(unittest.TestCase):
@@ -49,7 +49,7 @@ class TestOpenAIStreaming(unittest.TestCase):
     def test_stream_integration(self):
         """Integration test for streaming with the actual OpenAI API."""
         # This test will only run if OPENAI_API_KEY is set
-        messages = [{"role": "user", "content": "Say hello world"}]
+        messages = [UserMessage(content="Say hello world")]
         tool_dict = {}
         
         # Get the stream
@@ -63,7 +63,7 @@ class TestOpenAIStreaming(unittest.TestCase):
         
         # Verify the final response contains "hello world" (case insensitive)
         final_response = chunks[-1]
-        self.assertIsInstance(final_response, Response)
+        self.assertIsInstance(final_response, AssistantMessage)
         self.assertTrue(re.search(r'hello.+world', final_response.content.lower()))
 
 if __name__ == '__main__':

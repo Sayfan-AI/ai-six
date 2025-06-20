@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from py.backend.engine.summarizer import SessionSummarizer
-from py.backend.engine.llm_provider import Response
+from backend.engine.summarizer import SessionSummarizer
+from backend.object_model import AssistantMessage, UserMessage, ToolMessage, ToolCall
 
 
 class TestSessionSummarizer(unittest.TestCase):
@@ -15,10 +15,10 @@ class TestSessionSummarizer(unittest.TestCase):
         
         # Sample messages for testing
         self.sample_messages = [
-            {"role": "user", "content": "Hello, AI-6!"},
-            {"role": "assistant", "content": "Hello! How can I help you today?"},
-            {"role": "user", "content": "Tell me about yourself."},
-            {"role": "assistant", "content": "I am AI-6, an agentic AI assistant."}
+            UserMessage(content="Hello, AI-6!"),
+            AssistantMessage(content="Hello! How can I help you today?"),
+            UserMessage(content="Tell me about yourself."),
+            AssistantMessage(content="I am AI-6, an agentic AI assistant.")
         ]
         
         # Sample model ID
@@ -40,7 +40,7 @@ class TestSessionSummarizer(unittest.TestCase):
     def test_format_session_with_tool_calls(self):
         """Test formatting a session that includes tool calls."""
         messages_with_tools = self.sample_messages + [
-            {"role": "tool", "name": "ls", "content": "file1.txt\nfile2.txt"}
+            ToolMessage(content="file1.txt\nfile2.txt", name="ls", tool_call_id="call_123")
         ]
         
         formatted = self.summarizer._format_session(messages_with_tools)
@@ -58,10 +58,10 @@ class TestSessionSummarizer(unittest.TestCase):
     def test_summarize(self):
         """Test summarizing a session."""
         # Set up the mock response
-        mock_response = Response(
+        mock_response = AssistantMessage(
             content="This is a summary of the session.",
             role="assistant",
-            tool_calls=[],
+            tool_calls=None,
             usage=MagicMock(input_tokens=10, output_tokens=5)
         )
         self.mock_llm_provider.send.return_value = mock_response

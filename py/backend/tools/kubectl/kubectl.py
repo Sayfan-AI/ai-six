@@ -1,4 +1,4 @@
-from ..base.tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool, Parameter
 import sh
 import shlex
 
@@ -7,13 +7,12 @@ class Kubectl(Tool):
         self.user = user
 
         desc = 'Simple Kubectl tool to interact with Kubernetes clusters.'
-        spec = Spec(name='kubectl',
-                    description=desc,
-                    parameters=Parameters(
-                        properties=[Parameter(name='args', type='string', description='command-line arguments for kubectl')],
-                        required=['args'])
+        super().__init__(
+            name='kubectl',
+            description=desc,
+            parameters=[Parameter(name='args', type='string', description='command-line arguments for kubectl')],
+            required={'args'}
         )
-        super().__init__(spec)
 
     def run(self, **kwargs):
         args = shlex.split(kwargs['args'])

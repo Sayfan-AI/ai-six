@@ -1,16 +1,15 @@
+from argparse import ArgumentError
 from typing import Iterator
-from py.backend.engine.llm_provider import LLMProvider, Response
-from py.backend.engine.object_model import ToolCall, Usage
+from dataclasses import asdict
 
-from py.backend.tools.base.tool import Tool
+from backend.object_model import LLMProvider, ToolCall, Usage, Tool, AssistantMessage, Message
 from openai import OpenAI
 
 
 class OpenAIProvider(LLMProvider):
-
-    def __init__(self, api_key: str, default_model: str = "gpt-4o"):
+    def __init__(self, api_key: str, base_url = None, default_model: str = "gpt-4o"):
         self.default_model = default_model
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(base_url=base_url, api_key=api_key)
 
     @staticmethod
     def _tool2dict(tool: Tool) -> dict:
@@ -18,22 +17,34 @@ class OpenAIProvider(LLMProvider):
         return {
             "type": "function",
             "function": {
-                "name": tool.spec.name,
-                "description": tool.spec.description,
+                "name": tool.name,
+                "description": tool.description,
                 "parameters": {
                     "type": "object",
-                    "required": tool.spec.parameters.required,
+                    "required": list(tool.required),
                     "properties": {
                         param.name: {
                             "type": param.type,
                             "description": param.description
-                        } for param in tool.spec.parameters.properties
+                        } for param in tool.parameters
                     },
                 }
             }
         }
 
-    def send(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Response:
+    @staticmethod
+    def _tool_call2dict(tool_call: ToolCall) -> dict:
+        """Convert a ToolCall to OpenAI API format."""
+        return {
+            "id": tool_call.id,
+            "type": "function",
+            "function": {
+                "name": tool_call.name,
+                "arguments": tool_call.arguments
+            }
+        }
+
+    def send(self, messages: list[Message], tool_dict: dict[str, Tool], model: str | None = None) -> AssistantMessage:
         """
         Send a message to the OpenAI LLM and receive a response.
         :param tool_dict: The tools available for the LLM to use.
@@ -41,21 +52,29 @@ class OpenAIProvider(LLMProvider):
         :param model: The model to use (optional).
         :return: The response from the LLM.
         """
+        if not messages:
+            raise ArgumentError("messages", "At least one message is required to send to the LLM.")
+
         if model is None:
             model = self.default_model
 
         tool_data = [self._tool2dict(tool) for tool in tool_dict.values()]
 
-        try:
-            response = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=tool_data,
-                tool_choice="auto"
-            )
-        except Exception as e:
-            raise
-
+        # Convert Message objects to dictionaries for OpenAI API
+        message_dicts = []
+        for msg in messages:
+            msg_dict = asdict(msg)
+            # Convert tool_calls to OpenAI format if present
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                msg_dict['tool_calls'] = [self._tool_call2dict(tc) for tc in msg.tool_calls]
+            message_dicts.append(msg_dict)
+        
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=message_dicts,
+            tools=tool_data,
+            tool_choice="auto"
+        )
         tool_calls = response.choices[0].message.tool_calls
         tool_calls = [] if tool_calls is None else tool_calls
 
@@ -63,24 +82,23 @@ class OpenAIProvider(LLMProvider):
         input_tokens = response.usage.prompt_tokens
         output_tokens = response.usage.completion_tokens
 
-        return Response(
+        return AssistantMessage(
             content=response.choices[0].message.content,
-            role=response.choices[0].message.role,
             tool_calls=[
                 ToolCall(
                     id=tool_call.id,
                     name=tool_call.function.name,
                     arguments=tool_call.function.arguments,
-                    required=tool_dict[tool_call.function.name].spec.parameters.required
+                    required=list(tool_dict[tool_call.function.name].required)
                 ) for tool_call in tool_calls if tool_call.function
-            ],
+            ] if tool_calls else None,
             usage=Usage(
                 input_tokens=input_tokens,
                 output_tokens=output_tokens
             )
         )
 
-    def stream(self, messages: list, tool_dict: dict[str, Tool], model: str | None = None) -> Iterator[Response]:
+    def stream(self, messages: list[Message], tool_dict: dict[str, Tool], model: str | None = None) -> Iterator[AssistantMessage]:
         """
         Stream a message to the OpenAI LLM and receive responses as they are generated.
         :param messages: The list of messages to send.
@@ -93,18 +111,24 @@ class OpenAIProvider(LLMProvider):
 
         tool_data = [self._tool2dict(tool) for tool in tool_dict.values()]
 
-        try:
-            # Create a streaming response with usage statistics
-            stream = self.client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=tool_data if tool_data else None,
-                tool_choice="auto" if tool_data else None,
-                stream=True,
-                stream_options={"include_usage": True}  # Get usage statistics in the final chunk
-            )
-        except Exception as e:
-            raise
+        # Convert Message objects to dictionaries for OpenAI API
+        message_dicts = []
+        for msg in messages:
+            msg_dict = asdict(msg)
+            # Convert tool_calls to OpenAI format if present
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                msg_dict['tool_calls'] = [self._tool_call2dict(tc) for tc in msg.tool_calls]
+            message_dicts.append(msg_dict)
+        
+        # Create a streaming response with usage statistics
+        stream = self.client.chat.completions.create(
+            model=model,
+            messages=message_dicts,
+            tools=tool_data if tool_data else None,
+            tool_choice="auto" if tool_data else None,
+            stream=True,
+            stream_options={"include_usage": True}  # Get usage statistics in the final chunk
+        )
 
         # Initialize variables to accumulate the response
         content = ""
@@ -132,11 +156,11 @@ class OpenAIProvider(LLMProvider):
             if chunk.choices[0].delta.content:
                 content += chunk.choices[0].delta.content
             
-                # Yield a partial response with the updated content
-                yield Response(
+                # Yield a partial response with the updated content  
+                yield AssistantMessage(
                     content=content,
                     role=role,
-                    tool_calls=[],  # No tool calls yet
+                    tool_calls=None,  # No tool calls yet
                     usage=None  # We'll only have accurate usage at the end
                 )
         
@@ -177,15 +201,15 @@ class OpenAIProvider(LLMProvider):
                                 id=tool_call_data["id"],
                                 name=function_name,
                                 arguments=tool_call_data["function"]["arguments"],
-                                required=tool_dict[function_name].spec.parameters.required
+                                required=tool_dict[function_name].parameters.required
                             )
                         )
             
                 # Yield a response with the tool calls
-                yield Response(
+                yield AssistantMessage(
                     content=content,
                     role=role,
-                    tool_calls=tool_calls,
+                    tool_calls=tool_calls if tool_calls else None,
                     usage=None  # We'll only have accurate usage at the end
                 )
     
@@ -201,15 +225,15 @@ class OpenAIProvider(LLMProvider):
                             id=tool_call_data["id"],
                             name=function_name,
                             arguments=tool_call_data["function"]["arguments"],
-                            required=tool_dict[function_name].spec.parameters.required
+                            required=tool_dict[function_name].parameters.required
                         )
                     )
     
         # Yield the final complete response with usage statistics
-        yield Response(
+        yield AssistantMessage(
             content=content,
             role=role,
-            tool_calls=tool_calls,
+            tool_calls=tool_calls if tool_calls else None,
             usage=Usage(
                 input_tokens=input_tokens,
                 output_tokens=output_tokens
@@ -221,23 +245,3 @@ class OpenAIProvider(LLMProvider):
         """ """
         return [m.id for m in self.client.models.list().data]
 
-    def model_response_to_message(self, response: Response) -> dict:
-        """
-        Build a message with tool calls from a response.
-        :return: The provider specific message
-        """
-        return dict(role="assistant",
-            content=response.content,
-            tool_calls=[
-                dict(
-                    id=t.id,
-                    type="function",
-                    function=dict(
-                        name=t.name,
-                        arguments=t.arguments
-                    )
-                ) for t in response.tool_calls
-            ],
-            input_tokens=response.usage.input_tokens,
-            output_tokens=response.usage.output_tokens
-        )

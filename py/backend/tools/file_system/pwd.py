@@ -1,9 +1,6 @@
 import subprocess
 
-import sys
-
-import sh
-from ..base.tool import Tool, Spec, Parameters
+from backend.object_model import Tool
 
 
 class Pwd(Tool):
@@ -11,14 +8,12 @@ class Pwd(Tool):
         self.user = user
 
         desc = 'Print the name of the current/working directory. See https://www.gnu.org/software/coreutils/manual/html_node/pwd-invocation.html'
-        spec = Spec(name='pwd',
-                    description=desc,
-                    parameters=Parameters(
-                        properties=[],
-                        required=[]
-                    ))
-
-        super().__init__(spec)
+        super().__init__(
+            name='pwd',
+            description=desc,
+            parameters=[],
+            required=set()
+        )
 
     def run(self, **kwargs):
         # Decide which user to run as (None means run as the current user)

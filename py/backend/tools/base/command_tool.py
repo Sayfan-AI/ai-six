@@ -1,22 +1,20 @@
 import sh
 import shlex
-from .tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool, Parameter
 
 class CommandTool(Tool):
     def __init__(self, command_name: str, user: str | None = None, doc_link: str = ""):
         self.command_name = command_name
         self.user = user
         description = f'{command_name} tool. ' + f'See {doc_link}' if doc_link else ''
-        parameters = Parameters(
-            properties=[Parameter(name='args', type='string', description=f'command-line arguments for {command_name}')],
-            required=['args']
-        )
-        spec = Spec(
+        parameters = [Parameter(name='args', type='string', description=f'command-line arguments for {command_name}')]
+        required = {'args'}
+        super().__init__(
             name=command_name,
             description=description,
-            parameters=parameters
+            parameters=parameters,
+            required=required
         )
-        super().__init__(spec)
 
     def run(self, **kwargs):
         args = shlex.split(kwargs['args'])

@@ -1,4 +1,4 @@
-from ...tools.base.tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool, Parameter
 
 class DeleteSession(Tool):
     """Tool to delete a specific session by ID."""
@@ -12,21 +12,18 @@ class DeleteSession(Tool):
         """
         self.engine = engine
         
-        spec = Spec(
+        super().__init__(
             name='delete_session',
             description='Delete a specific session by ID.',
-            parameters=Parameters(
-                properties=[
-                    Parameter(
-                        name='session_id',
-                        type='string',
-                        description='ID of the session to delete'
-                    )
-                ],
-                required=['session_id']
-            )
+            parameters=[
+                Parameter(
+                    name='session_id',
+                    type='string',
+                    description='ID of the session to delete'
+                )
+            ],
+            required={'session_id'}
         )
-        super().__init__(spec)
     
     def run(self, session_id, **kwargs):
         """

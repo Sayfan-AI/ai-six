@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.base import command_tool
-from py.backend.tools.git.git import Git  # Adjust import path as needed
+from backend.tools.base import command_tool
+from backend.tools.git.git import Git  # Adjust import path as needed
 
 
 class GitToolTest(unittest.TestCase):

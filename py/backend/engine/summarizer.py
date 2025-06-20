@@ -71,8 +71,8 @@ class SessionSummarizer:
         formatted = []
         
         for msg in messages:
-            role = msg.get("role", "unknown")
-            content = msg.get("content", "")
+            role = msg.role
+            content = msg.content
             
             if role == "user":
                 formatted.append(f"User: {content}")
@@ -81,7 +81,7 @@ class SessionSummarizer:
             elif role == "system":
                 formatted.append(f"System: {content}")
             elif role == "tool":
-                tool_name = msg.get("name", "unknown tool")
+                tool_name = getattr(msg, 'name', 'unknown tool')
                 formatted.append(f"Tool ({tool_name}): {content}")
         
         return "\n\n".join(formatted)

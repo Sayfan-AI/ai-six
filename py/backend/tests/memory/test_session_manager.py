@@ -4,7 +4,7 @@ import os
 import json
 import shutil
 
-from py.backend.engine.session_manager import SessionManager
+from backend.engine.session_manager import SessionManager
 
 
 class TestSessionManager(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.base import command_tool
-from py.backend.tools.file_system.patch import Patch
+from backend.tools.base import command_tool
+from backend.tools.file_system.patch import Patch
 
 
 class PatchToolTest(unittest.TestCase):

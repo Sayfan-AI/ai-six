@@ -394,6 +394,7 @@ Done!
 - [Anon Kode](https://github.com/dnakov/anon-kode)
 - [OpenAI Agent SDK](https://platform.openai.com/docs/guides/agents-sdk)
 - [OpenAI agents guide](https://platform.openai.com/docs/guides/agents)
+- [OpenAI practical guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
 - [Robasta.dev HolmesGPT](https://github.com/robusta-dev/holmesgpt/tree/master)
 - [MCP-Agent](https://github.com/lastmile-ai/mcp-agent)
 - [mcp-cli](https://github.com/chrishayuk/mcp-cli)

@@ -4,12 +4,11 @@ import shutil
 import os
 from unittest.mock import MagicMock, patch
 
-from py.backend.engine.config import Config
-from py.backend.engine.engine import Engine, generate_tool_call_id
-from py.backend.engine.llm_provider import LLMProvider
-from py.backend.engine.object_model import Response, ToolCall
-from py.backend.engine.session import Session
-from py.backend.engine.session_manager import SessionManager
+from backend.engine.config import Config
+from backend.engine.engine import Engine, generate_tool_call_id
+from backend.object_model import LLMProvider, ToolCall, AssistantMessage
+from backend.engine.session import Session
+from backend.engine.session_manager import SessionManager
 
 
 class MockLLMProvider(LLMProvider):
@@ -20,17 +19,17 @@ class MockLLMProvider(LLMProvider):
         
     def add_mock_response(self, content, tool_calls=None):
         """Add a mock response to be returned by the send method."""
-        self.mock_responses.append(Response(
+        self.mock_responses.append(AssistantMessage(
             content=content,
             role="assistant",
-            tool_calls=tool_calls or [],
+            tool_calls=tool_calls,
             usage=None
         ))
         
     def send(self, messages, tool_dict, model=None):
         """Return the next mock response."""
         if not self.mock_responses:
-            return Response(content="Default response", role="assistant", tool_calls=[], usage=None)
+            return AssistantMessage(content="Default response", role="assistant", tool_calls=None, usage=None)
         return self.mock_responses.pop(0)
         
     @property
@@ -67,7 +66,6 @@ class TestEngineMemory(unittest.TestCase):
         
         # Create a config with the mock provider
         self.config = Config(
-            llm_providers=[self.llm_provider],  # This is ignored by Engine but required by Config
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
             mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
@@ -75,22 +73,22 @@ class TestEngineMemory(unittest.TestCase):
         )
         
         # Patch the provider discovery method
-        self.discover_patcher = patch('py.backend.engine.engine.Engine.discover_llm_providers')
+        self.discover_patcher = patch('backend.engine.engine.Engine.discover_llm_providers')
         self.mock_discover = self.discover_patcher.start()
         self.mock_discover.return_value = [self.llm_provider]
         
         # Patch the tool discovery method to avoid actual discovery
-        self.tool_patcher = patch('py.backend.engine.engine.Engine.discover_tools')
+        self.tool_patcher = patch('backend.engine.engine.Engine.discover_tools')
         self.mock_tool_discover = self.tool_patcher.start()
         self.mock_tool_discover.return_value = []
         
         # Patch the MCP tool discovery method to avoid actual discovery
-        self.mcp_tool_patcher = patch('py.backend.engine.engine.Engine.discover_mcp_tools')
+        self.mcp_tool_patcher = patch('backend.engine.engine.Engine.discover_mcp_tools')
         self.mock_mcp_tool_discover = self.mcp_tool_patcher.start()
         self.mock_mcp_tool_discover.return_value = []
         
         # Patch the get_context_window_size function to return a fixed value for testing
-        self.window_size_patcher = patch('py.backend.engine.engine.get_context_window_size')
+        self.window_size_patcher = patch('backend.engine.engine.get_context_window_size')
         self.mock_window_size = self.window_size_patcher.start()
         self.mock_window_size.return_value = 1000
         
@@ -128,10 +126,10 @@ class TestEngineMemory(unittest.TestCase):
         
         # Check that the message was added to the session
         self.assertEqual(len(self.engine.session.messages), 2)
-        self.assertEqual(self.engine.session.messages[0]["role"], "user")
-        self.assertEqual(self.engine.session.messages[0]["content"], "Hello")
-        self.assertEqual(self.engine.session.messages[1]["role"], "assistant")
-        self.assertEqual(self.engine.session.messages[1]["content"], "I'll help you with that!")
+        self.assertEqual(self.engine.session.messages[0].role, "user")
+        self.assertEqual(self.engine.session.messages[0].content, "Hello")
+        self.assertEqual(self.engine.session.messages[1].role, "assistant")
+        self.assertEqual(self.engine.session.messages[1].content, "I'll help you with that!")
         
     def test_session_saving(self):
         """Test that sessions are saved correctly."""
@@ -153,7 +151,6 @@ class TestEngineMemory(unittest.TestCase):
         
         # Create a new config with the session ID
         new_config = Config(
-            llm_providers=[self.llm_provider],
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
             mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
@@ -162,15 +159,15 @@ class TestEngineMemory(unittest.TestCase):
         )
         
         # Create a new engine with the config (using the same patchers as in setUp)
-        with patch('py.backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
-             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('py.backend.engine.engine.Engine.discover_mcp_tools', return_value=[]):
+        with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
+             patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
+             patch('backend.engine.engine.Engine.discover_mcp_tools', return_value=[]):
             new_engine = Engine(new_config)
         
         # Check that the session was loaded
         self.assertEqual(len(new_engine.session.messages), 2)
-        self.assertEqual(new_engine.session.messages[0]["role"], "user")
-        self.assertEqual(new_engine.session.messages[0]["content"], "Hello")
+        self.assertEqual(new_engine.session.messages[0].role, "user")
+        self.assertEqual(new_engine.session.messages[0].content, "Hello")
         
     def test_session_list_and_delete(self):
         """Test listing and deleting sessions."""
@@ -199,7 +196,6 @@ class TestEngineMemory(unittest.TestCase):
         
         # Create a config for another engine
         another_config = Config(
-            llm_providers=[self.llm_provider],
             default_model_id="mock-model",
             tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
             mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
@@ -207,9 +203,9 @@ class TestEngineMemory(unittest.TestCase):
         )
         
         # Create another engine with a new session
-        with patch('py.backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
-             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('py.backend.engine.engine.Engine.discover_mcp_tools', return_value=[]):
+        with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
+             patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
+             patch('backend.engine.engine.Engine.discover_mcp_tools', return_value=[]):
             another_engine = Engine(another_config)
         
         # Get the new session ID and save it
@@ -290,7 +286,7 @@ class TestEngineMemory(unittest.TestCase):
         tool_call_handler = MagicMock()
         
         # Mock the generate_tool_call_id function to return consistent IDs for testing
-        with patch('py.backend.engine.engine.generate_tool_call_id', return_value='tool_test_id_123'):
+        with patch('backend.engine.engine.generate_tool_call_id', return_value='tool_test_id_123'):
             # Send a message that will trigger a tool call
             self.engine.send_message("Run echo", "mock-model", tool_call_handler)
             
@@ -300,13 +296,13 @@ class TestEngineMemory(unittest.TestCase):
             # Check that the messages include the tool call and response
             messages = self.engine.session.messages
             self.assertEqual(len(messages), 4)  # user, assistant, tool, assistant
-            self.assertEqual(messages[0]["role"], "user")
-            self.assertEqual(messages[1]["role"], "assistant")
-            self.assertEqual(messages[2]["role"], "tool")
-            self.assertEqual(messages[2]["name"], "echo")
+            self.assertEqual(messages[0].role, "user")
+            self.assertEqual(messages[1].role, "assistant")
+            self.assertEqual(messages[2].role, "tool")
+            self.assertEqual(messages[2].name, "echo")
             
             # Verify that the tool_call_id was properly set with our mocked ID
-            self.assertEqual(messages[2]["tool_call_id"], "tool_test_id_123")
+            self.assertEqual(messages[2].tool_call_id, "tool_test_id_123")
 
 
 if __name__ == "__main__":

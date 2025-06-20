@@ -3,8 +3,8 @@ import os
 import shutil
 from unittest.mock import patch
 
-from py.backend.tools.file_system import echo
-from py.backend.tools.file_system.echo import Echo
+from backend.tools.file_system import echo
+from backend.tools.file_system.echo import Echo
 
 
 

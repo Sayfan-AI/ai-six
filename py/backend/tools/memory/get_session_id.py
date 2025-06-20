@@ -1,4 +1,4 @@
-from ...tools.base.tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool
 
 class GetSessionId(Tool):
     """Tool to get the current session ID."""
@@ -12,15 +12,12 @@ class GetSessionId(Tool):
         """
         self.engine = engine
         
-        spec = Spec(
+        super().__init__(
             name='get_session_id',
             description='Get the ID of the current session.',
-            parameters=Parameters(
-                properties=[],
-                required=[]
-            )
+            parameters=[],
+            required=set()
         )
-        super().__init__(spec)
     
     def run(self, **kwargs):
         """

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.base import command_tool
-from py.backend.tools.ollama.ollama import Ollama
+from backend.tools.base import command_tool
+from backend.tools.ollama.ollama import Ollama
 
 class TestOllama(unittest.TestCase):
     def setUp(self):

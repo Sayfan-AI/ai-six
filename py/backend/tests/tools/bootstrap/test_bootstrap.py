@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from py.backend.tools.bootstrap.bootstrap import Bootstrap
+from backend.tools.bootstrap.bootstrap import Bootstrap
 import os
 import sys
 
