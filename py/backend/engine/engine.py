@@ -8,20 +8,20 @@ import sh
 import uuid
 import asyncio
 
-from py.backend.engine.config import Config
-from py.backend.engine.llm_provider import LLMProvider
-from py.backend.tools.base.command_tool import CommandTool
-from py.backend.tools.base.tool import Tool
-from py.backend.engine.session import Session
-from py.backend.engine.session_manager import SessionManager
-from py.backend.tools.memory.list_sessions import ListSessions
-from py.backend.tools.memory.load_session import LoadSession
-from py.backend.tools.memory.get_session_id import GetSessionId
-from py.backend.tools.memory.delete_session import DeleteSession
-from py.backend.engine.summarizer import SessionSummarizer
-from py.backend.llm_providers.model_info import get_context_window_size
+from backend.engine.config import Config
+from backend.object_model import LLMProvider, Tool, UserMessage, AssistantMessage, SystemMessage, ToolMessage, ToolCall
+from dataclasses import asdict
+from backend.tools.base.command_tool import CommandTool
+from backend.engine.session import Session
+from backend.engine.session_manager import SessionManager
+from backend.tools.memory.list_sessions import ListSessions
+from backend.tools.memory.load_session import LoadSession
+from backend.tools.memory.get_session_id import GetSessionId
+from backend.tools.memory.delete_session import DeleteSession
+from backend.engine.summarizer import Summarizer
+from backend.llm_providers.model_info import get_context_window_size
 
-from py.backend.mcp_client.client import Client
+from backend.mcp_client.client import Client
 
 
 def generate_tool_call_id(original_id: str = None) -> str:
@@ -39,28 +39,16 @@ def generate_tool_call_id(original_id: str = None) -> str:
 
 class Engine:
     def __init__(self, config: Config):
-        # Extract configuration values
-        tools_dir = config.tools_dir
-        mcp_tools_dir = config.mcp_tools_dir
-        memory_dir = config.memory_dir
-        session_id = config.session_id
-        checkpoint_interval = config.checkpoint_interval
-        tool_config = config.tool_config
-        provider_config = config.provider_config
         self.default_model_id = config.default_model_id
+
+        # Store threshold ratio and calculate token threshold based on default model
         self.summary_threshold_ratio = config.summary_threshold_ratio
-        # Get the context window size from model_info based on the default model
-        self.context_window_size = get_context_window_size(self.default_model_id)
+        context_window_size = get_context_window_size(self.default_model_id)
         self.token_threshold = int(
-            self.context_window_size * self.summary_threshold_ratio
+            context_window_size * config.summary_threshold_ratio
         )
 
-        # Validate required directories
-        assert os.path.isdir(tools_dir), f"Tools directory not found: {tools_dir}"
-        assert os.path.isdir(mcp_tools_dir), f"MCP tools directory not found: {mcp_tools_dir}"
-        assert os.path.isdir(memory_dir), f"Memory directory not found: {memory_dir}"
-
-        # Find LLM providers directory (assuming standard project structure)
+        # Find LLM providers directory
         llm_providers_dir = os.path.join(
             os.path.dirname(os.path.dirname(__file__)), "llm_providers"
         )
@@ -70,7 +58,7 @@ class Engine:
 
         # Discover available LLM providers
         self.llm_providers = Engine.discover_llm_providers(
-            llm_providers_dir, provider_config
+            llm_providers_dir, config.provider_config
         )
         if not self.llm_providers:
             raise ValueError("No LLM providers found or initialized")
@@ -81,34 +69,33 @@ class Engine:
         }
 
         # Discover available tools
-        tool_list = Engine.discover_tools(tools_dir, tool_config)
+        tool_list = Engine.discover_tools(config.tools_dir, config.tool_config)
 
         # Discover MCP tools
-        mcp_tool_list = Engine.discover_mcp_tools(mcp_tools_dir)
+        mcp_tool_list = Engine.discover_mcp_tools(config.mcp_tools_dir)
 
-        self.tool_dict = {t.spec.name: t for t in tool_list}
+        self.tool_dict = {t.name: t for t in tool_list}
 
         # Initialize session and session manager
-        self.session_manager = SessionManager(memory_dir)
-        self.session = Session(memory_dir)
+        self.session_manager = SessionManager(config.memory_dir)
+        self.session = Session(config.memory_dir)
 
         # Session-related attributes
-        self.checkpoint_interval = checkpoint_interval
+        self.checkpoint_interval = config.checkpoint_interval
         self.message_count_since_checkpoint = 0
 
-        # Initialize summarizer if llm providers available
-        if self.llm_providers:
-            self.summarizer = SessionSummarizer(self.llm_providers[0])
+        # Instantiate the summarizer with the first LLM provider
+        self.summarizer = Summarizer(self.llm_providers[0])
 
         # Register memory tools with the engine
         self._register_memory_tools()
 
         # Load previous session if session_id is provided and exists
-        if session_id:
+        if config.session_id:
             available_sessions = self.session_manager.list_sessions()
-            if session_id in available_sessions:
-                self.session = Session(memory_dir)  # Create a new session object
-                self.session.load(session_id)  # Load from disk
+            if config.session_id in available_sessions:
+                self.session = Session(config.memory_dir)  # Create a new session object
+                self.session.load(config.session_id)  # Load from disk
 
                 # Load summary if available
                 # TODO: Implement loading summaries
@@ -127,7 +114,7 @@ class Engine:
         Engine
             A configured Engine instance
         """
-        from py.backend.engine.config import Config
+        from backend.engine.config import Config
 
         config = Config.from_file(config_file)
         return cls(config)
@@ -175,7 +162,7 @@ class Engine:
                     ):
                         try:
                             tool = clazz()
-                            conf = tool_config.get(tool.spec.name, {})
+                            conf = tool_config.get(tool.name, {})
                             if conf:
                                 tool.configure(conf)
                         except Exception as e:
@@ -276,10 +263,10 @@ class Engine:
         delete_session_tool = DeleteSession(self)
 
         # Add tools to the engine's tool dictionary
-        self.tool_dict[list_sessions_tool.spec.name] = list_sessions_tool
-        self.tool_dict[load_session_tool.spec.name] = load_session_tool
-        self.tool_dict[get_session_id_tool.spec.name] = get_session_id_tool
-        self.tool_dict[delete_session_tool.spec.name] = delete_session_tool
+        self.tool_dict[list_sessions_tool.name] = list_sessions_tool
+        self.tool_dict[load_session_tool.name] = load_session_tool
+        self.tool_dict[get_session_id_tool.name] = get_session_id_tool
+        self.tool_dict[delete_session_tool.name] = delete_session_tool
 
     def _checkpoint_if_needed(self):
         """Check if we need to save a checkpoint and do so if needed."""
@@ -295,15 +282,16 @@ class Engine:
                     self.session.usage.input_tokens + self.session.usage.output_tokens
             )
             if total_tokens >= self.token_threshold:
+                context_window_size = get_context_window_size(self.default_model_id)
                 print(
-                    f"Session tokens ({total_tokens}) have reached {self.summary_threshold_ratio * 100}% of context window ({self.context_window_size}). Summarizing..."
+                    f"Session tokens ({total_tokens}) have reached {self.summary_threshold_ratio * 100}% of context window ({context_window_size}). Summarizing..."
                 )
                 self._summarize_and_reset_session()
 
     def _summarize_and_reset_session(self):
         """
         Summarize the current session, save detailed logs, and create a new session with the summary.
-        This is triggered when the session token count exceeds the threshold (80% of context window).
+        This is triggered when the session token count exceeds the threshold (80% of context window by default).
         """
         # Save the current session before summarizing (ensure we have a complete record)
         self.session.save()
@@ -321,9 +309,8 @@ class Engine:
 
         # Create a new session with summary as the starting point
         new_session = Session(self.session.memory_dir)
-        summary_message = dict(
-            role="system",  # Using system role for the summary to distinguish it
-            content=f"Summary of previous conversation (session {old_session_id}):\n\n{summary}",
+        summary_message = SystemMessage(
+            content=f"Summary of previous conversation (session {old_session_id}):\n\n{summary}"
         )
 
         # Add an estimated token count for the summary message to track usage
@@ -331,10 +318,10 @@ class Engine:
         estimated_summary_tokens = len(summary.split()) * 1.3  # Simple approximation
 
         # Add the message with usage info
-        new_session.messages = [summary_message]
+        new_session.add_message(summary_message)
 
         # Create a new Usage object with the estimated summary tokens (Usage is immutable)
-        from py.backend.engine.object_model import Usage
+        from backend.object_model import Usage
 
         new_session.usage = Usage(
             input_tokens=int(estimated_summary_tokens), output_tokens=0
@@ -364,15 +351,18 @@ class Engine:
             self.session.memory_dir, f"{session_id}_detailed_log.json"
         )
 
+        # Convert Message objects to dictionaries for JSON serialization
+        message_dicts = [asdict(msg) for msg in self.session.messages]
+        
         # Include more metadata to make the logs more useful
         detailed_log = dict(
             session_id=session_id,
-            messages=self.session.messages,  # All original messages
+            messages=message_dicts,  # All original messages as dictionaries
             summary=summary,
             token_count=self.session.usage.input_tokens
                         + self.session.usage.output_tokens,
             timestamp=str(uuid.uuid1().time),  # Using uuid1 time as a timestamp
-            context_window_size=self.context_window_size,
+            context_window_size=get_context_window_size(self.default_model_id),
         )
 
         # Create parent directory if it doesn't exist
@@ -408,23 +398,35 @@ class Engine:
                     new_id = generate_tool_call_id(tool_call.id)
                     id_mapping[tool_call.id] = new_id
 
-            # Get the assistant message from the provider
-            assistant_message = llm_provider.model_response_to_message(response)
+            # Update tool call IDs if needed
+            updated_tool_calls = None
+            if response.tool_calls:
+                updated_tool_calls = []
+                for tool_call in response.tool_calls:
+                    updated_id = tool_call.id
+                    if tool_call.id in id_mapping:
+                        updated_id = id_mapping[tool_call.id]
+                    
+                    updated_tool_calls.append(ToolCall(
+                        id=updated_id,
+                        name=tool_call.name,
+                        arguments=tool_call.arguments,
+                        required=tool_call.required
+                    ))
 
-            # Update the tool call IDs in the assistant message if needed
-            if id_mapping:
-                for tool_call in assistant_message.get("tool_calls", []):
-                    if tool_call.get("id") in id_mapping:
-                        original_id = tool_call["id"]
-                        tool_call["id"] = id_mapping[original_id]
-
-            # Add the assistant message with updated tool_calls
+            # Create AssistantMessage object and add to session
+            assistant_message = AssistantMessage(
+                content=response.content,
+                tool_calls=updated_tool_calls,
+                usage=response.usage
+            )
             self.session.add_message(assistant_message)
 
             # Track tool_call_ids from this assistant message
             tool_call_ids = set()
-            for tool_call in assistant_message.get("tool_calls", []):
-                tool_call_ids.add(tool_call.get("id"))
+            if assistant_message.tool_calls:
+                for tool_call in assistant_message.tool_calls:
+                    tool_call_ids.add(tool_call.id)
 
             # Now process each tool call and add the corresponding tool messages
             for i, tool_call in enumerate(response.tool_calls):
@@ -448,29 +450,20 @@ class Engine:
                     tool_result = tool.run(**kwargs)
 
                     # Create the tool message with the Engine managing the tool_call_id
-                    tool_message = {
-                        "role": "tool",
-                        "name": tool_call.name,
-                        "content": str(tool_result),
-                        "tool_call_id": tool_call_id,
-                    }
+                    tool_message = ToolMessage(
+                        content=str(tool_result),
+                        name=tool_call.name,
+                        tool_call_id=tool_call_id,
+                    )
 
                     if on_tool_call_func is not None:
                         on_tool_call_func(tool_call.name, kwargs, str(tool_result))
-                except sh.ErrorReturnCode as e:
-                    tool_message = {
-                        "role": "tool",
-                        "name": tool_call.name,
-                        "content": e.stderr.decode(),
-                        "tool_call_id": tool_call_id,
-                    }
                 except Exception as e:
-                    tool_message = {
-                        "role": "tool",
-                        "name": tool_call.name,
-                        "content": str(e),
-                        "tool_call_id": tool_call_id,
-                    }
+                    tool_message = ToolMessage(
+                        content=str(e),
+                        name=tool_call.name,
+                        tool_call_id=tool_call_id,
+                    )
 
                 # Add the tool message (ID is guaranteed to be valid since we manage it)
                 self.session.add_message(tool_message)
@@ -486,15 +479,14 @@ class Engine:
             on_tool_call_func: Callable[[str, dict, str], None] | None,
             on_response_func: Callable[[str], None],
     ):
-        """Run the session loop."""
         try:
             while user_input := get_input_func():
-                message = {"role": "user", "content": user_input}
+                message = UserMessage(content=user_input)
                 self.session.add_message(message)
                 self._checkpoint_if_needed()
 
                 response = self._send(self.default_model_id, on_tool_call_func)
-                message = {"role": "assistant", "content": response}
+                message = AssistantMessage(content=response)
                 self.session.add_message(message)
                 self._checkpoint_if_needed()
 
@@ -510,12 +502,12 @@ class Engine:
             on_tool_call_func: Callable[[str, dict, str], None] | None,
     ) -> str:
         """Send a single message and get a response."""
-        user_message = {"role": "user", "content": message}
+        user_message = UserMessage(content=message)
         self.session.add_message(user_message)
         self._checkpoint_if_needed()
 
         response = self._send(model_id, on_tool_call_func)
-        assistant_message = {"role": "assistant", "content": response}
+        assistant_message = AssistantMessage(content=response)
         self.session.add_message(assistant_message)
         self._checkpoint_if_needed()
 
@@ -541,7 +533,7 @@ class Engine:
         Returns:
             The complete response
         """
-        user_message = {"role": "user", "content": message}
+        user_message = UserMessage(content=message)
         self.session.add_message(user_message)
         self._checkpoint_if_needed()
 
@@ -570,11 +562,7 @@ class Engine:
                 if response.tool_calls and not tool_calls_handled:
                     tool_calls_handled = True
 
-                    tool_calls_message = {
-                        "role": "assistant",
-                        "content": final_content,
-                        "tool_calls": [],
-                    }
+                    tool_calls_list = []
                     tool_messages = []
 
                     for tool_call in response.tool_calls:
@@ -583,13 +571,12 @@ class Engine:
                             raise RuntimeError(f"Unknown tool: {tool_call.name}")
 
                         tool_call_id = generate_tool_call_id(tool_call.id)
-                        tool_calls_message["tool_calls"].append(
-                            dict(
+                        tool_calls_list.append(
+                            ToolCall(
                                 id=tool_call_id,
-                                type="function",
-                                function=dict(
-                                    name=tool_call.name, arguments=tool_call.arguments
-                                ),
+                                name=tool_call.name,
+                                arguments=tool_call.arguments,
+                                required=list(available_tools[tool_call.name].required) if tool_call.name in available_tools else []
                             )
                         )
 
@@ -600,14 +587,21 @@ class Engine:
                             tool_result = e
 
                         tool_messages.append(
-                            dict(
-                                role="tool",
-                                name=tool_call.name,
+                            ToolMessage(
                                 content=str(tool_result),
+                                name=tool_call.name,
                                 tool_call_id=tool_call_id,
                             )
                         )
+                    
+                    # Create and add the assistant message with tool calls
+                    tool_calls_message = AssistantMessage(
+                        content=final_content,
+                        tool_calls=tool_calls_list
+                    )
                     self.session.add_message(tool_calls_message)
+                    
+                    # Add tool result messages
                     for tool_msg in tool_messages:
                         self.session.add_message(tool_msg)
 
@@ -622,7 +616,7 @@ class Engine:
             raise RuntimeError(f"Error streaming message: {e}")
 
         if not tool_calls_handled:
-            assistant_message = {"role": "assistant", "content": final_content}
+            assistant_message = AssistantMessage(content=final_content)
             self.session.add_message(assistant_message)
             self._checkpoint_if_needed()
 

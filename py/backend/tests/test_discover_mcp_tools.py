@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, call
-from py.backend.engine.engine import Engine
-from py.backend.engine.config import Config
+from backend.engine.engine import Engine
+from backend.engine.config import Config
 
 from pathology.path import Path
 
@@ -16,10 +16,10 @@ class TestDiscoverMCPTools(unittest.TestCase):
         from unittest.mock import patch, MagicMock
         
         # Just test basic Engine creation with proper mocking to avoid interference
-        with patch('py.backend.engine.engine.Engine.discover_llm_providers') as mock_discover_llm_providers, \
-             patch('py.backend.engine.engine.Engine.discover_tools', return_value=[]) as mock_discover_tools, \
-             patch('py.backend.engine.engine.Engine.discover_mcp_tools', return_value=[]) as mock_discover_mcp_tools, \
-             patch('py.backend.engine.engine.get_context_window_size', return_value=1000):
+        with patch('backend.engine.engine.Engine.discover_llm_providers') as mock_discover_llm_providers, \
+             patch('backend.engine.engine.Engine.discover_tools', return_value=[]) as mock_discover_tools, \
+             patch('backend.engine.engine.Engine.discover_mcp_tools', return_value=[]) as mock_discover_mcp_tools, \
+             patch('backend.engine.engine.get_context_window_size', return_value=1000):
             
             # Setup mock LLM provider
             mock_llm_provider = MagicMock()
@@ -28,7 +28,6 @@ class TestDiscoverMCPTools(unittest.TestCase):
             
             # Create a config
             config = Config(
-                llm_providers=[],
                 default_model_id='gpt-4o',
                 tools_dir=tools_dir,
                 mcp_tools_dir=mcp_tools_dir,

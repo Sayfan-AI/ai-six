@@ -1,6 +1,6 @@
 import json
 
-from ...tools.base.tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool
 
 class ListSessions(Tool):
     """Tool to list all available sessions in memory."""
@@ -14,15 +14,12 @@ class ListSessions(Tool):
         """
         self.engine = engine
         
-        spec = Spec(
+        super().__init__(
             name='list_sessions',
             description='List all available sessions in memory.',
-            parameters=Parameters(
-                properties=[],
-                required=[]
-            )
+            parameters=[],
+            required=set()
         )
-        super().__init__(spec)
     
     def run(self, **kwargs):
         """

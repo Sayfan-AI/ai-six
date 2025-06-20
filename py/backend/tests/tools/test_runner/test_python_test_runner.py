@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from py.backend.tools.test_runner import test_runner
-from py.backend.tools.test_runner.test_runner import TestRunner
+from backend.tools.test_runner import test_runner
+from backend.tools.test_runner.test_runner import TestRunner
 
 class PythonTestRunnerTest(unittest.TestCase):
 

@@ -1,17 +1,18 @@
 import importlib
 
-from ..base.tool import Tool, Spec, Parameters
+from backend.object_model import Tool
 import os
 import sys
 
 class Bootstrap(Tool):
     def __init__(self):
         desc = 'Tool to restart the program using execv.'
-        spec = Spec(name='bootstrap',
-                    description=desc,
-                    parameters=Parameters(properties=[], required=[]),  # No parameters needed for execv
+        super().__init__(
+            name='bootstrap',
+            description=desc,
+            parameters=[],  # No parameters needed for execv
+            required=set()
         )
-        super().__init__(spec)
 
     def run(self, **kwargs):
         try:

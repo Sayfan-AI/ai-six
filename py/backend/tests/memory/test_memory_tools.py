@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from py.backend.tools.memory.list_sessions import ListSessions
-from py.backend.tools.memory.load_session import LoadSession
-from py.backend.tools.memory.delete_session import DeleteSession
-from py.backend.tools.memory.get_session_id import GetSessionId
+from backend.tools.memory.list_sessions import ListSessions
+from backend.tools.memory.load_session import LoadSession
+from backend.tools.memory.delete_session import DeleteSession
+from backend.tools.memory.get_session_id import GetSessionId
 
 
 class TestMemoryTools(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from py.backend.tools.base import command_tool
-from py.backend.tools.file_system.awk import Awk
+from backend.tools.base import command_tool
+from backend.tools.file_system.awk import Awk
 
 
 class AwkToolTest(unittest.TestCase):

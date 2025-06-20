@@ -1,6 +1,6 @@
 import os
 import sh
-from ..base.tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool, Parameter
 
 
 class Echo(Tool):
@@ -8,16 +8,15 @@ class Echo(Tool):
         self.user = user
 
         desc = 'Write content to a file, creating any necessary directories.'
-        spec = Spec(name='echo',
-                    description=desc,
-                    parameters=Parameters(
-                        properties=[
-                            Parameter(name='file_path', type='string', description='The path of the file to write to.'),
-                            Parameter(name='content', type='string', description='The content to write to the file.')
-                        ],
-                        required=['file_path', 'content'])
+        super().__init__(
+            name='echo',
+            description=desc,
+            parameters=[
+                Parameter(name='file_path', type='string', description='The path of the file to write to.'),
+                Parameter(name='content', type='string', description='The content to write to the file.')
+            ],
+            required={'file_path', 'content'}
         )
-        super().__init__(spec)
 
     def run(self, **kwargs):
         filename = kwargs['file_path']
@@ -30,9 +29,9 @@ class Echo(Tool):
             sh.sudo('-u', self.user, 'tee', filename, _in=content, _out=os.devnull)
 
             return f"Content written to {filename} as user {self.user}"
-        else:
-            os.makedirs(dir_path, exist_ok=True)
-            with open(filename, 'w') as file:
-                file.write(content)
 
-            return f"Content written to {filename}"
+        os.makedirs(dir_path, exist_ok=True)
+        with open(filename, 'w') as file:
+            file.write(content)
+
+        return f"Content written to {filename}"

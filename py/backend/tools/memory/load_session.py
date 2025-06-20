@@ -1,4 +1,4 @@
-from ...tools.base.tool import Tool, Spec, Parameter, Parameters
+from backend.object_model import Tool, Parameter
 
 class LoadSession(Tool):
     """Tool to load a specific session by ID."""
@@ -12,21 +12,18 @@ class LoadSession(Tool):
         """
         self.engine = engine
         
-        spec = Spec(
+        super().__init__(
             name='load_session',
             description='Load a specific session by ID.',
-            parameters=Parameters(
-                properties=[
-                    Parameter(
-                        name='session_id',
-                        type='string',
-                        description='ID of the session to load'
-                    )
-                ],
-                required=['session_id']
-            )
+            parameters=[
+                Parameter(
+                    name='session_id',
+                    type='string',
+                    description='ID of the session to load'
+                )
+            ],
+            required={'session_id'}
         )
-        super().__init__(spec)
     
     def run(self, session_id, **kwargs):
         """

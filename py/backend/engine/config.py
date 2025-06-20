@@ -4,13 +4,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import Optional, Mapping, Any
-from py.backend.engine.llm_provider import LLMProvider
+from backend.object_model import LLMProvider
 import yaml
 import toml
 
 @dataclass
 class Config:
-    llm_providers: list[LLMProvider]
     default_model_id: str
     tools_dir: str
     mcp_tools_dir: str
@@ -20,6 +19,13 @@ class Config:
     summary_threshold_ratio: float = 0.8
     tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     provider_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
+
+    def invariant(self):
+        # Validate required directories
+        assert self.default_model_id, "default_model_id must be set"
+        assert os.path.isdir(self.tools_dir), f"Tools directory not found: {self.tools_dir}"
+        assert os.path.isdir(self.mcp_tools_dir), f"MCP tools directory not found: {self.mcp_tools_dir}"
+        assert os.path.isdir(self.memory_dir), f"Memory directory not found: {self.memory_dir}"
 
     @staticmethod
     def _interpolate_env_vars(value: Any) -> Any:
@@ -110,8 +116,7 @@ class Config:
             
         # For now, return a Config without llm_providers, which should be initialized
         # by the Engine class after loading providers using the provider_config
-        return Config(
-            llm_providers=[],  # Empty list, to be populated by Engine
+        conf = Config(
             default_model_id=default_model_id,
             tools_dir=tools_dir,
             mcp_tools_dir=mcp_tools_dir,
@@ -122,3 +127,6 @@ class Config:
             tool_config=MappingProxyType(tool_config),
             provider_config=MappingProxyType(provider_config)
         )
+
+        conf.invariant()
+        return conf
