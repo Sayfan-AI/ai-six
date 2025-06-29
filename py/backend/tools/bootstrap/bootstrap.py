@@ -15,25 +15,19 @@ class Bootstrap(Tool):
         )
 
     def run(self, **kwargs):
-        try:
-            # Infer module name from __main__ context
-            main_module = sys.modules['__main__']
-            module_path = getattr(main_module, '__file__', None)
-            if not module_path:
-                raise RuntimeError("Can't determine main module file")
+        main_module = sys.modules['__main__']
+        module_path = getattr(main_module, '__file__', None)
+        if not module_path:
+            raise RuntimeError("Cannot determine __main__.__file__; are you in a REPL or notebook?")
 
-            # Handle both module and direct file execution
-            if hasattr(main_module, '__package__') and main_module.__package__:
-                # Module execution (python -m package.module)
-                spec = importlib.util.find_spec(main_module.__package__)
-                if spec is None:
-                    raise RuntimeError("Cannot resolve package for restart")
-                    
-                module_name = f"{main_module.__package__}.{os.path.basename(module_path).split('.')[0]}"
-                os.execv(sys.executable, [sys.executable, "-m", module_name, *sys.argv[1:]])
-            else:
-                # Direct file execution (python file.py)
-                os.execv(sys.executable, [sys.executable, module_path, *sys.argv[1:]])
+        spec = getattr(main_module, '__spec__', None)
 
-        except Exception as e:
-            raise RuntimeError(f"Failed to restart: {e}") from e
+        if spec and spec.name:
+            # Executed as a module: python -m package.module
+            module_name = spec.name
+            args = [sys.executable, '-m', module_name, *sys.argv[1:]]
+        else:
+            # Executed as a script: python script.py
+            args = [sys.executable, module_path, *sys.argv[1:]]
+
+        os.execv(sys.executable, args)
