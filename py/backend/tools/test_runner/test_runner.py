@@ -1,4 +1,4 @@
-import sh  # Make sure to have the sh module installed: pip install sh
+import sh
 from backend.object_model import Tool, Parameter
 
 class TestRunner(Tool):
