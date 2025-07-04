@@ -402,3 +402,6 @@ Done!
 - [Ollam + Gemma 3](https://www.youtube.com/watch?v=m2rG6zHoxBo)
 - [Ollama API](https://github.com/ollama/ollama/blob/main/docs/api.md)
 - [Lucid Autonomy - Python computer use](https://github.com/RandomInternetPreson/Lucid_Autonomy)
+- [Contex Engineering](https://www.philschmid.de/context-engineering)
+- [Personal AI Factory](https://www.john-rush.com/posts/ai-20250701.html)
+- [Stop building AI agents](https://decodingml.substack.com/p/stop-building-ai-agents)
