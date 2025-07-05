@@ -6,8 +6,7 @@ class ListSessions(Tool):
     """Tool to list all available sessions in memory."""
     
     def __init__(self, engine=None):
-        """
-        Initialize the tool.
+        """Initialize the tool.
         
         Args:
             engine: Reference to the Engine instance
@@ -22,11 +21,10 @@ class ListSessions(Tool):
         )
     
     def run(self, **kwargs):
-        """
-        List all available sessions.
+        """List all available sessions.
         
         Returns:
-            String with the list of session IDs
+            String with the details of all stored sessions (id, title and filename)
         """
         if not self.engine:
             return "Error: Engine reference not set."

@@ -5,7 +5,7 @@ from backend.tools.ollama.ollama import Ollama
 
 class TestOllama(unittest.TestCase):
     def setUp(self):
-        self.tool = Ollama()
+        self.tool = Ollama(user=None)
 
     @patch.object(command_tool, "sh")
     def test_run_ollama_as_current_user(self, mock_sh):

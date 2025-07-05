@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Optional, Tuple
 from dotenv import load_dotenv
 
-from py.backend.engine.config import Config
-from py.backend.engine.engine import Engine
+from backend.engine.config import Config
+from backend.engine.engine import Engine
 
 
 def create_from_config(

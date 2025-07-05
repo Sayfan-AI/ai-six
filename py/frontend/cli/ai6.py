@@ -9,7 +9,7 @@ stream_mode = True
 show_tool_calls = False
 
 def get_user_input():
-    user_input = input("[You]: ")
+    user_input = input("👤 [You]: ")
     if user_input.lower() == 'exit':
         return None
     return user_input
@@ -24,7 +24,7 @@ def handle_chunk(chunk):
 def handle_tool_call(name, args, result):
     if not show_tool_calls:
         return
-    print(f"\n[AI-6 tool call]: {name} {', '.join(args.values()) if args else ''}")
+    print(f"\n🤖 [AI-6 tool call]: {name} {', '.join(args.values()) if args else ''}")
     print(result)
     print('\n----------')
 
@@ -77,7 +77,7 @@ def main():
     # Run the session loop with streaming
     try:
         while user_input := get_user_input():
-            print("[AI-6]:", end=' ', flush=True)
+            print("🤖 [AI-6]:", end=' ', flush=True)
             method  = engine.stream_message
 
             if stream_mode:

@@ -4,8 +4,7 @@ class LoadSession(Tool):
     """Tool to load a specific session by ID."""
     
     def __init__(self, engine=None):
-        """
-        Initialize the tool.
+        """Initialize the tool.
         
         Args:
             engine: Reference to the Engine instance
@@ -25,9 +24,8 @@ class LoadSession(Tool):
             required={'session_id'}
         )
     
-    def run(self, session_id, **kwargs):
-        """
-        Load a specific session.
+    def run(self, session_id, **kwargs) -> str:
+        """Load a specific session.
         
         Args:
             session_id: ID of the session to load

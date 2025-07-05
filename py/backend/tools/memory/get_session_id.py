@@ -4,8 +4,7 @@ class GetSessionId(Tool):
     """Tool to get the current session ID."""
     
     def __init__(self, engine=None):
-        """
-        Initialize the tool.
+        """Initialize the tool.
         
         Args:
             engine: Reference to the Engine instance
@@ -20,8 +19,7 @@ class GetSessionId(Tool):
         )
     
     def run(self, **kwargs):
-        """
-        Get the current session ID.
+        """Get the current session ID.
         
         Returns:
             String with the current session ID

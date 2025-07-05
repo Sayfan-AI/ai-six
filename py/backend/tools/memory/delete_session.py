@@ -4,8 +4,7 @@ class DeleteSession(Tool):
     """Tool to delete a specific session by ID."""
     
     def __init__(self, engine=None):
-        """
-        Initialize the tool.
+        """Initialize the tool.
         
         Args:
             engine: Reference to the Engine instance
@@ -26,8 +25,7 @@ class DeleteSession(Tool):
         )
     
     def run(self, session_id, **kwargs):
-        """
-        Delete a specific session.
+        """Delete a specific session.
         
         Args:
             session_id: ID of the session to delete

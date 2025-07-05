@@ -1,21 +1,15 @@
 #!/bin/bash
 
+# Change dir to the py directory of AI-6
+cd "$(dirname "${BASH_SOURCE[0]}")/py"
+
 # Activate venv if not active already
 if [[ -z "$VIRTUAL_ENV" || "$VIRTUAL_ENV" != *"ai-six/py/venv" ]]; then
-  source py/venv/bin/activate
+  source venv/bin/activate
 fi
 
 echo "virtualenv: ${VIRTUAL_ENV}"
 
-# Default Python runner
-PY_RUN="python"
-
-# Check for global --debug flag
-if [[ "$2" == "--debug" ]]; then
-  PY_RUN="python -m debugpy --listen 5678 --wait-for-client"
-  # Remove the debug flag so it doesn't confuse the client command
-  set -- "$1" "${@:3}"
-fi
 
 # Create memory directories if they don't exist
 mkdir -p memory/cli memory/slack memory/chainlit
@@ -24,11 +18,11 @@ if [[ "$1" == "update" ]]; then
   pip install -r py/requirements.txt
 elif [[ "$1" == "cli" ]]; then
   shift  # Drops the first argument ("cli")
-  $PY_RUN -m py.frontend.cli.ai6 "$@"
+  python -m frontend.cli.ai6 "$@"
 elif [[ "$1" == "slack" ]]; then
-  $PY_RUN -m py.frontend.slack.app
+  python -m frontend.slack.app
 elif [[ "$1" == "chainlit" ]]; then
-  $PY_RUN -m py.frontend.chainlit.app
+  python -m frontend.chainlit.app
 elif [[ "$1" == "list-conversations" ]]; then
   # List all conversations in memory
   echo "CLI conversations:"

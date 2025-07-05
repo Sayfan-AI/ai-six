@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Callable
 import importlib.util
 import inspect
-import sh
 import uuid
 import asyncio
 
@@ -248,9 +247,15 @@ class Engine:
         if not os.path.isdir(mcp_tools_dir):
             raise ValueError(f"MCP tools directory not found: {mcp_tools_dir}")
 
-        client = Client(mcp_tools_dir)
-        tools = asyncio.run(client.connect_to_servers())
-        print("Discovered MCP Tools:", tools)
+        async def _discover_and_cleanup():
+            client = Client(mcp_tools_dir)
+            try:
+                tools = await client.connect_to_servers()
+                return tools
+            finally:
+                await client.cleanup()
+
+        tools = asyncio.run(_discover_and_cleanup())
         return tools
 
 

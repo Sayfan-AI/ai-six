@@ -1,4 +1,4 @@
-from ..base.command_tool import CommandTool
+from backend.tools.base.command_tool import CommandTool
 
 class Ls(CommandTool):
     def __init__(self, user: str | None = None):
