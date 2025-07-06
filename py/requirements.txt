@@ -9,3 +9,4 @@ ollama
 pyyaml
 toml
 debugpy
+anthropic

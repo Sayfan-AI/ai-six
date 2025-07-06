@@ -40,6 +40,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Expose usage information (tokens)
 - [x] Configuration
 - [ ] MCP support (engine is MCP client, local tools can run as MCP server)
+- [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
 - [ ] Async tool use (continue interacting with the user while tools are running in the background)
 - [ ] Graceful handling of rate-limiting
 - [ ] Dynamic model selection (e.g. use a different model for different tasks)
@@ -48,14 +49,15 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ## Tools
 
+- [x] Kubectl
+- [x] Github / Github Actions
 - [ ] AI-6 (recursive agent mesh)
 - [ ] Slack tool
-- [x] Kubectl
+
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration (track and schedule music listening)
 - [ ] aws
 - [ ] Cloudflare
-- [ ] Github
-- [ ] Github actions
+
 
 ## Permission model
 

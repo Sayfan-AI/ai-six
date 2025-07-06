@@ -59,3 +59,6 @@ shelf/
 **/.chailit
 **/.files
 **/cainlit.md
+
+# Frontend config files
+frontend/**/config.*

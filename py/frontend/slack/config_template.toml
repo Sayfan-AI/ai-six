@@ -14,5 +14,5 @@ default_model = "gpt-4o"
 model = "qwen2.5-coder:32b"
 
 # Tool configuration
-[tool_config]
-# Empty for now
+[tool_config.claude]
+api_key = "${ANTHROPIC_API_KEY}"

@@ -14,4 +14,6 @@ provider_config:
     model: "qwen2.5-coder:32b"
 
 # Tool configuration
-tool_config: {}
+tool_config:
+  claude:
+    api_key: ${ANTHROPIC_API_KEY}
