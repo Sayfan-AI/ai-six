@@ -273,6 +273,82 @@ class Engine:
         self.tool_dict[get_session_id_tool.name] = get_session_id_tool
         self.tool_dict[delete_session_tool.name] = delete_session_tool
 
+    def _execute_tools(self, tool_calls, on_tool_call_func: Callable[[str, dict, str], None] | None = None):
+        """
+        Execute a list of tool calls and return the corresponding tool messages.
+        
+        Args:
+            tool_calls: List of tool calls to execute
+            on_tool_call_func: Optional callback function for tool calls
+            
+        Returns:
+            Tuple of (updated_tool_calls, tool_messages)
+        """
+        # Create a mapping of original IDs to new UUIDs if needed
+        id_mapping = {}
+        
+        for tool_call in tool_calls:
+            # Check if we need to replace the ID with a UUID
+            if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
+                new_id = generate_tool_call_id(tool_call.id)
+                id_mapping[tool_call.id] = new_id
+        
+        # Update tool call IDs if needed
+        updated_tool_calls = []
+        for tool_call in tool_calls:
+            updated_id = tool_call.id
+            if tool_call.id in id_mapping:
+                updated_id = id_mapping[tool_call.id]
+            
+            updated_tool_calls.append(ToolCall(
+                id=updated_id,
+                name=tool_call.name,
+                arguments=tool_call.arguments,
+                required=tool_call.required
+            ))
+        
+        # Execute tools and create tool messages
+        tool_messages = []
+        for tool_call in tool_calls:
+            tool = self.tool_dict.get(tool_call.name)
+            if tool is None:
+                raise RuntimeError(f"Unknown tool: {tool_call.name}")
+            
+            try:
+                kwargs = json.loads(tool_call.arguments)
+            except json.JSONDecodeError as e:
+                raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
+            
+            # Get the potentially updated tool call ID
+            tool_call_id = tool_call.id
+            if tool_call.id in id_mapping:
+                tool_call_id = id_mapping[tool_call.id]
+            
+            try:
+                # Execute the tool
+                tool_result = tool.run(**kwargs)
+                
+                # Call the callback if provided
+                if on_tool_call_func is not None:
+                    on_tool_call_func(tool_call.name, kwargs, str(tool_result))
+                    
+                # Create the tool message
+                tool_message = ToolMessage(
+                    content=str(tool_result),
+                    name=tool_call.name,
+                    tool_call_id=tool_call_id,
+                )
+            except Exception as e:
+                tool_message = ToolMessage(
+                    content=str(e),
+                    name=tool_call.name,
+                    tool_call_id=tool_call_id,
+                )
+            
+            tool_messages.append(tool_message)
+        
+        return updated_tool_calls, tool_messages
+
     def _checkpoint_if_needed(self):
         """Check if we need to save a checkpoint and do so if needed."""
         self.message_count_since_checkpoint += 1
@@ -392,32 +468,8 @@ class Engine:
             raise RuntimeError(f"Error sending message to LLM: {e}")
 
         if response.tool_calls:
-            # Create a mapping of original IDs to new UUIDs if needed
-            id_mapping = {}
-
-            for tool_call in response.tool_calls:
-                # Check if we need to replace the ID with a UUID
-                if (
-                        not tool_call.id or len(tool_call.id) < 32
-                ):  # Simple check for non-UUID
-                    new_id = generate_tool_call_id(tool_call.id)
-                    id_mapping[tool_call.id] = new_id
-
-            # Update tool call IDs if needed
-            updated_tool_calls = None
-            if response.tool_calls:
-                updated_tool_calls = []
-                for tool_call in response.tool_calls:
-                    updated_id = tool_call.id
-                    if tool_call.id in id_mapping:
-                        updated_id = id_mapping[tool_call.id]
-                    
-                    updated_tool_calls.append(ToolCall(
-                        id=updated_id,
-                        name=tool_call.name,
-                        arguments=tool_call.arguments,
-                        required=tool_call.required
-                    ))
+            # Execute tools using the unified method
+            updated_tool_calls, tool_messages = self._execute_tools(response.tool_calls, on_tool_call_func)
 
             # Create AssistantMessage object and add to session
             assistant_message = AssistantMessage(
@@ -427,50 +479,8 @@ class Engine:
             )
             self.session.add_message(assistant_message)
 
-            # Track tool_call_ids from this assistant message
-            tool_call_ids = set()
-            if assistant_message.tool_calls:
-                for tool_call in assistant_message.tool_calls:
-                    tool_call_ids.add(tool_call.id)
-
-            # Now process each tool call and add the corresponding tool messages
-            for i, tool_call in enumerate(response.tool_calls):
-                tool = self.tool_dict.get(tool_call.name)
-                if tool is None:
-                    raise RuntimeError(f"Unknown tool: {tool_call.name}")
-
-                try:
-                    kwargs = json.loads(tool_call.arguments)
-                except json.JSONDecodeError as e:
-                    raise RuntimeError(
-                        f"Invalid arguments JSON for tool '{tool_call.name}'"
-                    )
-
-                # Get the potentially updated tool call ID
-                tool_call_id = tool_call.id
-                if tool_call.id in id_mapping:
-                    tool_call_id = id_mapping[tool_call.id]
-                try:
-                    # Execute the tool without passing any ID information
-                    tool_result = tool.run(**kwargs)
-
-                    # Create the tool message with the Engine managing the tool_call_id
-                    tool_message = ToolMessage(
-                        content=str(tool_result),
-                        name=tool_call.name,
-                        tool_call_id=tool_call_id,
-                    )
-
-                    if on_tool_call_func is not None:
-                        on_tool_call_func(tool_call.name, kwargs, str(tool_result))
-                except Exception as e:
-                    tool_message = ToolMessage(
-                        content=str(e),
-                        name=tool_call.name,
-                        tool_call_id=tool_call_id,
-                    )
-
-                # Add the tool message (ID is guaranteed to be valid since we manage it)
+            # Add all tool messages to session
+            for tool_message in tool_messages:
                 self.session.add_message(tool_message)
 
             # Continue the session with another send
@@ -567,42 +577,13 @@ class Engine:
                 if response.tool_calls and not tool_calls_handled:
                     tool_calls_handled = True
 
-                    tool_calls_list = []
-                    tool_messages = []
+                    # Execute tools using the unified method
+                    updated_tool_calls, tool_messages = self._execute_tools(response.tool_calls, on_tool_call_func)
 
-                    for tool_call in response.tool_calls:
-                        tool = self.tool_dict.get(tool_call.name)
-                        if tool is None:
-                            raise RuntimeError(f"Unknown tool: {tool_call.name}")
-
-                        tool_call_id = generate_tool_call_id(tool_call.id)
-                        tool_calls_list.append(
-                            ToolCall(
-                                id=tool_call_id,
-                                name=tool_call.name,
-                                arguments=tool_call.arguments,
-                                required=list(available_tools[tool_call.name].required) if tool_call.name in available_tools else []
-                            )
-                        )
-
-                        try:
-                            kwargs = json.loads(tool_call.arguments)
-                            tool_result = tool.run(**kwargs)
-                        except Exception as e:
-                            tool_result = e
-
-                        tool_messages.append(
-                            ToolMessage(
-                                content=str(tool_result),
-                                name=tool_call.name,
-                                tool_call_id=tool_call_id,
-                            )
-                        )
-                    
                     # Create and add the assistant message with tool calls
                     tool_calls_message = AssistantMessage(
                         content=final_content,
-                        tool_calls=tool_calls_list
+                        tool_calls=updated_tool_calls
                     )
                     self.session.add_message(tool_calls_message)
                     

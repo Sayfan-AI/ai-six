@@ -63,7 +63,7 @@ def handle_tool_call(client, channel, name, args, result):
         print(f"Error posting tool call result: {e}")
 
 @app.event("message")
-def handle_message(message, ack, say, client):
+def handle_message(message, say, ack, client):
     """Handle all messages in channels."""
     global last_message, latest_ts
     ack()  # Acknowledge ASAP

@@ -9,9 +9,9 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from py.backend.engine.config import Config
-from py.backend.engine.engine import Engine
-from py.frontend.common.engine_utils import create_from_config
+from backend.engine.config import Config
+from backend.engine.engine import Engine
+from frontend.common.engine_utils import create_from_config
 
 
 def create_channel_engine(
