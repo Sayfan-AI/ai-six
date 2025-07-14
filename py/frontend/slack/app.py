@@ -1,6 +1,5 @@
 import os
 from functools import partial
-from pathlib import Path
 
 import pathology.path
 from slack_bolt import App
@@ -9,7 +8,6 @@ from dotenv import load_dotenv
 
 from slack_sdk.errors import SlackApiError
 
-from ..common import engine_utils
 from . import utils
 
 script_dir = pathology.path.Path.script_dir()
