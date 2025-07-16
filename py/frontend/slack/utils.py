@@ -56,9 +56,6 @@ def create_channel_engine(
     with open(base_config_path, 'r') as f:
         config_content = f.read()
     
-    # Update the memory directory path in the config content
-    # NOTE: This is a simplistic approach; a more robust solution would
-    # load and modify the config data structure based on format
     config_content = config_content.replace(
         config.memory_dir, 
         str(channel_memory_dir)

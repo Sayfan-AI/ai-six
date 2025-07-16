@@ -25,9 +25,11 @@ bot_token = os.environ.get("AI6_BOT_TOKEN")
 
 # Initializes your AI-6 app with your bot token and socket mode handler
 app = App(token=bot_token)
+bot_user_id = app.client.auth_test()["user_id"]
 
 last_message = ""
 latest_ts = None
+ai6_channels = {}
 
 # Load configuration from TOML file
 config_path = str((script_dir / 'config.toml').resolve())
@@ -52,9 +54,9 @@ def handle_tool_call(client, channel, name, args, result):
     """Handle a tool call from the AI-6 engine."""
     # Post the tool call result as a message
     try:
-        global latest_ts
         client.chat_postMessage(
-            channel=channel, thread_ts=latest_ts,
+            channel=channel,
+            thread_ts=latest_ts,
             text=f"_Tool call: `{name}` {', '.join(args.values()) if args else ''}_\n{result}"
         )
     except SlackApiError as e:
@@ -71,12 +73,15 @@ def handle_message(message, say, ack, client):
     # Skip if the message is empty or from a bot
     if not text or message.get("bot_id"):
         return
-        
-    # Ignore messages with mention - they'll be handled by handle_app_mention
-    if "<@" in text:
-        return
-    
+
+    mention_bot = f"<@{bot_user_id}>" in text
     channel_id = message['channel']
+    ai6_channel = channel_id in ai6_channels
+
+    # Ignore messages that don't mention the bot and are not a special AI-6 channel
+    if not mention_bot and not ai6_channel:
+        return
+
     engine = get_or_create_engine(channel_id)
     
     # Create a tool call handler for this channel
@@ -117,89 +122,7 @@ def handle_message(message, say, ack, client):
         )
     
     except Exception as e:
-        say(f"I encountered an error: {str(e)}")
-
-@app.event("app_mention")
-def handle_app_mention(event, say, client):
-    """Handle when the app is mentioned in a channel."""
-    global last_message, latest_ts
-
-    # Extract the text without the mention
-    text = event["text"]
-    text = text.replace(f"<@{event['user']}>", "").strip()
-    print(f"Received message: {text}")
-
-    # Skip if the message is empty or just contains the mention
-    if not text:
-        say("How can I help you today?")
-        return
-
-    # Get or create an engine for this channel
-    channel_id = event["channel"]
-    engine = get_or_create_engine(channel_id)
-
-    # Create a tool call handler for this channel
-    channel_tool_call_handler = partial(handle_tool_call, client, channel_id)
-
-    # Process the message with the AI-6 engine
-    try:
-        # Send a typing indicator
-        client.chat_postEphemeral(
-            channel=channel_id,
-            user=event["user"],
-            text="AI-6 is thinking..."
-        )
-    
-        # Post an initial empty message that we'll update
-        result = client.chat_postMessage(
-            channel=channel_id,
-            text="..."
-        )
-    
-        latest_ts = result["ts"]
-        last_message = ""
-    
-        # Define a callback function to handle streaming chunks
-        def handle_chunk(chunk):
-            global last_message
-            last_message += chunk
-        
-            try:
-                # Update the message with the new content
-                client.chat_update(
-                    channel=channel_id,
-                    ts=latest_ts,
-                    text=last_message
-                )
-            except SlackApiError as e:
-                print(f"Error updating message: {e}")
-    
-        # Stream the message to the AI-6 engine
-        response = engine.stream_message(
-            text, 
-            engine.default_model_id, 
-            on_chunk_func=handle_chunk,
-            on_tool_call_func=channel_tool_call_handler
-        )
-    
-    except Exception as e:
-        say(f"I encountered an error: {str(e)}")
-
-@app.event("channel_created")
-def handle_channel_created(event, client, logger):
-    """Automatically join any new channel whose name starts with 'ai-'"""
-    channel = event['channel']
-    if not channel['name'].startswith('ai-'):
-        return
-
-    channel_id = channel['id']
-    logger.info(f"New channel created: {channel_id}")
-
-    try:
-        response = client.conversations_join(channel=channel_id)
-        logger.info(f"Joined channel {channel_id}: {response}")
-    except Exception as e:
-        logger.error(f"Error joining channel {channel_id}: {e}")
+        print(f"I encountered an error: {str(e)}")
 
 
 def join_channel(client):
@@ -209,13 +132,13 @@ def join_channel(client):
     
     If there are no AI-6 channel raise an exception
     """
-    channels = client.conversations_list()['channels']
-    channels = [c for c in channels if c['name'].startswith('ai-6-')]
-    if not channels:
-        raise RuntimeError('No AI-6 channels!')
+    all_channels = client.conversations_list()['channels']
+    ai6_channels.update({c['id']: c for c in all_channels if c['name'].startswith('ai-6-')})
+    if not ai6_channels:
+        return
 
-    channel = channels[0]
-    channel_id = channel['id']
+    channel_id = list(ai6_channels.keys())[0]
+    channel = ai6_channels[channel_id]
 
     # Join channel if not a member already
     if not channel['is_member']:
@@ -230,9 +153,7 @@ def join_channel(client):
 def leave_channels(client):
     """Leave all the channels
     """
-    channels = client.conversations_list()['channels']
-    channels = [c for c in channels if c['name'].startswith('ai-6-') and c['is_member']]
-
+    channels = (c for c in client.conversations_list()['channels'] if c['is_member'])
     for c in channels:
         client.chat_postMessage(
             channel=c['id'],
@@ -244,7 +165,8 @@ def leave_channels(client):
 def main():
     """Main entry point for the Slack app"""
     channel = join_channel(app.client)
-    print(f'Joined {channel["name"]}')
+    if channel is not None:
+        print(f'Joined {channel["name"]}')
 
     try:
         # Run the Slack app

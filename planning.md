@@ -42,6 +42,8 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] MCP support (engine is MCP client, local tools can run as MCP server)
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
 - [ ] Async tool use (continue interacting with the user while tools are running in the background)
+- [ ] REST API (for the engine)
+- [ ] GraphQL frontend with Apollo connectors talking to the engine's REST API
 - [ ] Graceful handling of rate-limiting
 - [ ] Dynamic model selection (e.g. use a different model for different tasks)
 - [ ] Computer use (browser and debugging in the IDE!)
