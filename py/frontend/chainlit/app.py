@@ -5,7 +5,7 @@ from chainlit.cli import run_chainlit
 
 import pathology.path
 
-from py.frontend.common import engine_utils
+from frontend.common import engine_utils
 
 script_dir = pathology.path.Path.script_dir()
 

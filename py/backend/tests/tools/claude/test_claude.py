@@ -25,7 +25,6 @@ class ClaudeToolTest(unittest.TestCase):
             
             self.claude_tool.configure(config)
             
-            self.assertEqual(self.claude_tool.api_key, 'test-api-key')
             mock_anthropic.Anthropic.assert_called_once_with(api_key='test-api-key')
             self.assertEqual(self.claude_tool.client, mock_client)
 
@@ -48,7 +47,7 @@ class ClaudeToolTest(unittest.TestCase):
         
         # Verify the API was called correctly
         mock_client.messages.create.assert_called_once_with(
-            model='claude-4-sonnet-20250115',
+            model='claude-sonnet-4-20250514',
             max_tokens=1000,
             temperature=0.7,
             messages=[{"role": "user", "content": "test prompt"}]

@@ -31,7 +31,6 @@ class Claude(Tool):
             ],
             required={'prompt'}
         )
-        self.api_key = None
         self.client = None
     
     def configure(self, config: dict) -> None:
@@ -48,13 +47,15 @@ class Claude(Tool):
         max_tokens = kwargs.get('max_tokens', 1000)
         temperature = kwargs.get('temperature', 0.7)
 
-        response = self.client.messages.create(
-            model=model,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-            
-        return response.content[0].text
+        try:
+            response = self.client.messages.create(
+                model=model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return response.content[0].text
+        except Exception as e:
+            return f"Error calling Claude API: {str(e)}"
