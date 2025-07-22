@@ -201,7 +201,7 @@ class OpenAIProvider(LLMProvider):
                                 id=tool_call_data["id"],
                                 name=function_name,
                                 arguments=tool_call_data["function"]["arguments"],
-                                required=tool_dict[function_name].required
+                                required=list(tool_dict[function_name].required)
                             )
                         )
 
@@ -225,7 +225,7 @@ class OpenAIProvider(LLMProvider):
                             id=tool_call_data["id"],
                             name=function_name,
                             arguments=tool_call_data["function"]["arguments"],
-                            required=tool_dict[function_name].required
+                            required=list(tool_dict[function_name].required)
                         )
                     )
 

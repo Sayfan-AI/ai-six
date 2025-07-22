@@ -53,11 +53,12 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 - [x] Kubectl
 - [x] Github / Github Actions
+- [x] AWS
 - [ ] AI-6 (recursive agent mesh)
 - [ ] Slack tool
 
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration (track and schedule music listening)
-- [ ] aws
+
 - [ ] Cloudflare
 
 
@@ -119,9 +120,12 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### Action Items
 
-- [ ] Gigi - fix unit tests (some failing)
+- [x] Gigi - fix unit tests (some failing)
+- [x] Gigi - run linters, formatters, etc on PRs
+- [ ] Gigi - Engine should reject command tool calls with pipes gracefully (later may be support pipes)  
 - [ ] Gigi - Finalize MCP integration
-- [ ] Gigi - Github actions to run linters, formatters, tests, etc on PRs
+- [ ] Gigi - Github actions workflo to run tests on PRs and direct push to main
+
 - [ ] Gigi - Look into migrating the engine to Async IO
 - [ ] Gigi - try [devestral](https://mistral.ai/news/devstral) on ollama
 - [ ] Saar - Use models from model_info.py
