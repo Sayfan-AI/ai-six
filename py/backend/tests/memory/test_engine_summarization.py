@@ -51,7 +51,7 @@ class TestEngineSummarization(unittest.TestCase):
         # Test with a different context window size 
         with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
              patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('backend.engine.engine.Engine.discover_mcp_tools', return_value=[]), \
+             patch('backend.mcp_discovery.discover_mcp_tools', return_value=[]), \
              patch('backend.engine.engine.get_context_window_size', return_value=2000):
              
             # Create the engine with our mocks

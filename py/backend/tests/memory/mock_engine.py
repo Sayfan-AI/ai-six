@@ -158,7 +158,7 @@ def create_mock_engine(
     tool_discover_patcher = patch('backend.engine.engine.Engine.discover_tools', return_value=[])
     tool_discover_patcher.start()
     
-    mcp_tool_discover_patcher = patch('backend.engine.engine.Engine.discover_mcp_tools', return_value=[])
+    mcp_tool_discover_patcher = patch('backend.mcp_discovery.discover_mcp_tools', return_value=[])
     mcp_tool_discover_patcher.start()
     
     # Mock get_context_window_size to return 1000 for mock-model in tests

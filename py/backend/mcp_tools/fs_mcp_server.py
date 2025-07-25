@@ -1,33 +1,39 @@
 import os
+import shlex
 from mcp.server.fastmcp import FastMCP
 import sh
 
 mcp = FastMCP("FileSystem Tools", "")
 
 @mcp.tool()
-def ls(path: str) -> str:
-    """Lists directory contents."""
-    return sh.ls(path)
+def ls(args: str) -> str:
+    """ls tool. See https://www.gnu.org/software/coreutils/manual/html_node/ls-invocation.html"""
+    parsed_args = shlex.split(args)
+    return sh.ls(*parsed_args)
 
 @mcp.tool()
-def cat(file: str) -> str:
-    """Concatenates and displays file contents."""
-    return sh.cat(file)
+def cat(args: str) -> str:
+    """cat tool. See https://www.gnu.org/software/coreutils/manual/html_node/cat-invocation.html"""
+    parsed_args = shlex.split(args)
+    return sh.cat(*parsed_args)
 
 @mcp.tool()
-def pwd() -> str:
-    """Prints the current working directory."""
-    return os.getcwd()
+def pwd(args: str) -> str:
+    """pwd tool. See https://www.gnu.org/software/coreutils/manual/html_node/pwd-invocation.html"""
+    parsed_args = shlex.split(args) if args.strip() else []
+    return sh.pwd(*parsed_args)
 
 @mcp.tool()
-def mkdir(directory: str) -> str:
-    """Creates a new directory."""
-    return sh.mkdir(directory)
+def mkdir(args: str) -> str:
+    """mkdir tool. See https://www.gnu.org/software/coreutils/manual/html_node/mkdir-invocation.html"""
+    parsed_args = shlex.split(args)
+    return sh.mkdir(*parsed_args)
 
 @mcp.tool()
-def cp(source: str, destination: str) -> str:
-    """Copies files or directories."""
-    return sh.cp(source, destination)
+def cp(args: str) -> str:
+    """cp tool. See https://www.gnu.org/software/coreutils/manual/html_node/cp-invocation.html"""
+    parsed_args = shlex.split(args)
+    return sh.cp(*parsed_args)
 
 
 if __name__ == "__main__":

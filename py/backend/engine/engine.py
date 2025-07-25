@@ -20,7 +20,6 @@ from backend.tools.memory.delete_session import DeleteSession
 from backend.engine.summarizer import Summarizer
 from backend.llm_providers.model_info import get_context_window_size
 
-from backend.mcp_client.client import Client
 
 
 def generate_tool_call_id(original_id: str = None) -> str:
@@ -69,9 +68,12 @@ class Engine:
 
         # Discover available tools
         tool_list = Engine.discover_tools(config.tools_dir, config.tool_config)
-
-        # Discover MCP tools
-        mcp_tool_list = Engine.discover_mcp_tools(config.mcp_tools_dir)
+        
+        # Discover MCP tools dynamically
+        if hasattr(config, 'mcp_tools_dir') and config.mcp_tools_dir:
+            from backend.mcp_discovery import discover_mcp_tools
+            mcp_tools = discover_mcp_tools(config.mcp_tools_dir)
+            tool_list.extend(mcp_tools)
 
         self.tool_dict = {t.name: t for t in tool_list}
 
@@ -241,22 +243,6 @@ class Engine:
 
         return providers
 
-    @staticmethod
-    def discover_mcp_tools(mcp_tools_dir):
-        """Discover MCP tools synchronously using asyncio.run."""
-        if not os.path.isdir(mcp_tools_dir):
-            raise ValueError(f"MCP tools directory not found: {mcp_tools_dir}")
-
-        async def _discover_and_cleanup():
-            client = Client(mcp_tools_dir)
-            try:
-                tools = await client.connect_to_servers()
-                return tools
-            finally:
-                await client.cleanup()
-
-        tools = asyncio.run(_discover_and_cleanup())
-        return tools
 
 
     def _register_memory_tools(self):
