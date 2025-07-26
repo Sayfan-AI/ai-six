@@ -1,5 +1,3 @@
-import asyncio
-import os
 from contextlib import AsyncExitStack
 
 from mcp import ClientSession, StdioServerParameters
@@ -20,8 +18,14 @@ class MCPClient:
             # Already connected, return cached tools
             return self._server_tools.get(server_id, [])
             
-        is_python = server_script_path.endswith('.py')
-        command = "python" if is_python else "node"
+        if server_script_path.endswith('.py'):
+            command = "python"
+        elif server_script_path.endswith('.sh'):
+            command = "bash"
+        elif server_script_path.endswith('.js'):
+            command = "node"
+        else:
+            raise ValueError(f"Unsupported server type: {server_script_path}")
         server_params = StdioServerParameters(
             command=command,
             args=[server_script_path],
