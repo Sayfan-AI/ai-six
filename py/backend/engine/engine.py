@@ -5,7 +5,6 @@ from typing import Callable
 import importlib.util
 import inspect
 import uuid
-import asyncio
 
 from backend.engine.config import Config
 from backend.object_model import LLMProvider, Tool, UserMessage, AssistantMessage, SystemMessage, ToolMessage, ToolCall
@@ -71,7 +70,7 @@ class Engine:
         
         # Discover MCP tools dynamically
         if hasattr(config, 'mcp_tools_dir') and config.mcp_tools_dir:
-            from backend.mcp_discovery import discover_mcp_tools
+            from backend.engine.mcp_discovery import discover_mcp_tools
             mcp_tools = discover_mcp_tools(config.mcp_tools_dir)
             tool_list.extend(mcp_tools)
 

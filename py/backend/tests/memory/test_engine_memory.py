@@ -5,7 +5,7 @@ import os
 from unittest.mock import MagicMock, patch
 
 from backend.engine.config import Config
-from backend.engine.engine import Engine, generate_tool_call_id
+from backend.engine.engine import Engine
 from backend.object_model import LLMProvider, ToolCall, AssistantMessage
 from backend.engine.session import Session
 from backend.engine.session_manager import SessionManager
@@ -83,7 +83,7 @@ class TestEngineMemory(unittest.TestCase):
         self.mock_tool_discover.return_value = []
         
         # Patch the MCP tool discovery method to avoid actual discovery
-        self.mcp_tool_patcher = patch('backend.mcp_discovery.discover_mcp_tools')
+        self.mcp_tool_patcher = patch('backend.engine.mcp_discovery.discover_mcp_tools')
         self.mock_mcp_tool_discover = self.mcp_tool_patcher.start()
         self.mock_mcp_tool_discover.return_value = []
         
@@ -161,7 +161,7 @@ class TestEngineMemory(unittest.TestCase):
         # Create a new engine with the config (using the same patchers as in setUp)
         with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
              patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('backend.mcp_discovery.discover_mcp_tools', return_value=[]):
+             patch('backend.engine.mcp_discovery.discover_mcp_tools', return_value=[]):
             new_engine = Engine(new_config)
         
         # Check that the session was loaded
@@ -205,7 +205,7 @@ class TestEngineMemory(unittest.TestCase):
         # Create another engine with a new session
         with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
              patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('backend.mcp_discovery.discover_mcp_tools', return_value=[]):
+             patch('backend.engine.mcp_discovery.discover_mcp_tools', return_value=[]):
             another_engine = Engine(another_config)
         
         # Get the new session ID and save it
