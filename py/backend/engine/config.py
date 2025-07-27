@@ -9,6 +9,32 @@ import yaml
 import toml
 
 @dataclass
+class ToolConfig:
+    """Configuration for tool discovery and management."""
+    
+    # Custom tools configuration
+    tools_dir: Optional[str] = None
+    tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
+    
+    # Local MCP tools configuration  
+    mcp_tools_dir: Optional[str] = None
+    
+    # Remote MCP servers configuration
+    remote_mcp_servers: list = field(default_factory=list)
+    
+    
+    @classmethod
+    def from_engine_config(cls, engine_config):
+        """Create ToolConfig from engine configuration."""
+        return cls(
+            tools_dir=getattr(engine_config, 'tools_dir', None),
+            tool_config=getattr(engine_config, 'tool_config', {}),
+            mcp_tools_dir=getattr(engine_config, 'mcp_tools_dir', None),
+            remote_mcp_servers=getattr(engine_config, 'remote_mcp_servers', [])
+        )
+
+
+@dataclass
 class Config:
     default_model_id: str
     tools_dir: str
@@ -19,6 +45,7 @@ class Config:
     summary_threshold_ratio: float = 0.8
     tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     provider_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
+    remote_mcp_servers: list = field(default_factory=list)
 
     def invariant(self):
         # Validate required directories
@@ -108,6 +135,7 @@ class Config:
         summary_threshold_ratio = config_data.get('summary_threshold_ratio', 0.8)
         tool_config = config_data.get('tool_config', {})
         provider_config = config_data.get('provider_config', {})
+        remote_mcp_servers = config_data.get('remote_mcp_servers', [])
 
         # Validate required fields
         if not tools_dir or not mcp_tools_dir or not memory_dir or not default_model_id:
@@ -125,7 +153,8 @@ class Config:
             checkpoint_interval=checkpoint_interval,
             summary_threshold_ratio=summary_threshold_ratio,
             tool_config=MappingProxyType(tool_config),
-            provider_config=MappingProxyType(provider_config)
+            provider_config=MappingProxyType(provider_config),
+            remote_mcp_servers=remote_mcp_servers
         )
 
         conf.invariant()

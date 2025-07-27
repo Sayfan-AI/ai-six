@@ -55,21 +55,18 @@ class MCPTool(Tool):
     def __init__(self, server_id: str, server_script_path: str, tool_info: dict):
         """Initialize from MCP tool information."""
         tool_name = tool_info['name']
-        description = tool_info.get('description', f'MCP tool: {tool_name}')
+        description = tool_info.get('description', f'{server_id} tool: {tool_name}')
         
         # Convert parameters from JSON schema
         parameters, required = _json_schema_to_parameters(
             tool_info.get('parameters', {})
         )
         
-        # Prefix tool name to avoid conflicts
-        prefixed_name = f"mcp_{tool_name}"
-        
-        super().__init__(name=prefixed_name, description=description, parameters=parameters, required=required)
+        super().__init__(name=tool_name, description=description, parameters=parameters, required=required)
         self.server_id = server_id
         self.server_script_path = server_script_path
         self.mcp_tool_name = tool_name
-        
+
     @classmethod
     def _get_client(cls) -> MCPClient:
         """Get or create the shared MCP client instance."""

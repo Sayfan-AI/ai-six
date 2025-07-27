@@ -1,7 +1,16 @@
+import asyncio
+import os
 from contextlib import AsyncExitStack
+from urllib.parse import urlparse
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+# Import HTTP client if available
+try:
+    from mcp.client.sse import sse_client
+    HTTP_SUPPORT = True
+except ImportError:
+    HTTP_SUPPORT = False
 
 
 class MCPClient:
@@ -12,33 +21,56 @@ class MCPClient:
         self.exit_stack = AsyncExitStack()
         self._server_tools: dict[str, list[dict]] = {}
 
-    async def connect_to_server(self, server_id: str, server_script_path: str) -> list[dict]:
+    async def connect_to_server(self, server_id: str, server_path_or_url: str) -> list[dict]:
         """Connect to a single MCP server and return its tools."""
         if server_id in self.sessions:
             # Already connected, return cached tools
             return self._server_tools.get(server_id, [])
+        
+        # Check if this is a URL (remote server) or file path (local server)
+        parsed = urlparse(server_path_or_url)
+        is_url = parsed.scheme in ('http', 'https')
+        
+        if is_url:
+            # Remote HTTP/HTTPS server
+            if not HTTP_SUPPORT:
+                raise RuntimeError("HTTP MCP client support not available. Install required dependencies.")
             
-        if server_script_path.endswith('.py'):
-            command = "python"
-        elif server_script_path.endswith('.sh'):
-            command = "bash"
-        elif server_script_path.endswith('.js'):
-            command = "node"
+            print(f"Connecting to remote MCP server: {server_path_or_url}")
+            try:
+                transport = await self.exit_stack.enter_async_context(sse_client(server_path_or_url))
+                read, write = transport
+                session = await self.exit_stack.enter_async_context(ClientSession(read, write))
+                print(f"Successfully connected to {server_path_or_url}")
+            except Exception as e:
+                print(f"Failed to connect to remote MCP server {server_path_or_url}: {e}")
+                raise
         else:
-            raise ValueError(f"Unsupported server type: {server_script_path}")
-        server_params = StdioServerParameters(
-            command=command,
-            args=[server_script_path],
-            env=None
-        )
+            # Local file-based server
+            if server_path_or_url.endswith('.py'):
+                command = "python"
+            elif server_path_or_url.endswith('.sh'):
+                command = "bash"
+            elif server_path_or_url.endswith('.js'):
+                command = "node"
+            else:
+                raise ValueError(f"Unsupported server type: {server_path_or_url}")
+            
+            server_params = StdioServerParameters(
+                command=command,
+                args=[server_path_or_url],
+                env=None
+            )
+            
+            stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
+            stdio, write = stdio_transport
+            session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
 
-        stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
-        stdio, write = stdio_transport
-        session = await self.exit_stack.enter_async_context(ClientSession(stdio, write))
+        # Initialize session with timeout
+        await asyncio.wait_for(session.initialize(), timeout=10.0)
 
-        await session.initialize()
-
-        response = await session.list_tools()
+        # List tools with timeout
+        response = await asyncio.wait_for(session.list_tools(), timeout=10.0)
         tools = [{
             "name": tool.name,
             "description": tool.description,
@@ -58,8 +90,21 @@ class MCPClient:
         if not session:
             raise RuntimeError(f"No active session for server '{server_id}'. Connect to server first.")
 
-        result = await session.call_tool(tool_name, tool_args)
-        return result.content[0].text if result.content else ""
+        try:
+            print(f"Invoking tool {tool_name} on server {server_id} with args: {tool_args}")
+            # Add timeout to prevent hanging on slow/unresponsive servers
+            result = await asyncio.wait_for(
+                session.call_tool(tool_name, tool_args),
+                timeout=30.0  # 30 second timeout
+            )
+            print(f"Tool {tool_name} completed successfully")
+            return result.content[0].text if result.content else ""
+        except asyncio.TimeoutError:
+            print(f"Tool invocation timed out for {server_id}:{tool_name} after 30 seconds")
+            raise RuntimeError(f"Tool invocation timed out for {server_id}:{tool_name} after 30 seconds")
+        except Exception as e:
+            print(f"Tool invocation failed for {server_id}:{tool_name}: {e}")
+            raise
 
     def get_server_tools(self, server_id: str) -> list[dict]:
         """Get cached tools for a server."""

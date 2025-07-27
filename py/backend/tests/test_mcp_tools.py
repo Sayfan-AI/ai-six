@@ -29,8 +29,8 @@ class TestMCPTools(unittest.TestCase):
         
         tool = MCPTool("test_server", "/path/to/server.py", tool_info)
         
-        # Verify tool properties
-        self.assertEqual(tool.name, "mcp_test_tool")
+        # Verify tool properties 
+        self.assertEqual(tool.name, "test_tool")
         self.assertEqual(tool.description, "A test tool")
         self.assertEqual(len(tool.parameters), 2)
         self.assertEqual(tool.required, {"arg1"})

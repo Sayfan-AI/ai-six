@@ -155,11 +155,8 @@ def create_mock_engine(
     llm_provider_patcher = patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[llm_provider])
     llm_provider_patcher.start()
     
-    tool_discover_patcher = patch('backend.engine.engine.Engine.discover_tools', return_value=[])
-    tool_discover_patcher.start()
-    
-    mcp_tool_discover_patcher = patch('backend.engine.mcp_discovery.discover_mcp_tools', return_value=[])
-    mcp_tool_discover_patcher.start()
+    tool_manager_patcher = patch('backend.engine.tool_manager.ToolManager.get_tool_dict', return_value={})
+    tool_manager_patcher.start()
     
     # Mock get_context_window_size to return 1000 for mock-model in tests
     model_info_patcher = patch('backend.engine.engine.get_context_window_size')
@@ -176,7 +173,7 @@ def create_mock_engine(
         "temp_dir": temp_dir,  # None if memory_dir was provided
         "id_generator_patcher": id_generator_patcher,  # None if not using deterministic IDs
         "llm_provider_patcher": llm_provider_patcher,
-        "tool_discover_patcher": tool_discover_patcher,
+        "tool_manager_patcher": tool_manager_patcher,
         "model_info_patcher": model_info_patcher  # None if mock-model already in model_info
     }
 

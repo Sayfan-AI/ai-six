@@ -77,15 +77,10 @@ class TestEngineMemory(unittest.TestCase):
         self.mock_discover = self.discover_patcher.start()
         self.mock_discover.return_value = [self.llm_provider]
         
-        # Patch the tool discovery method to avoid actual discovery
-        self.tool_patcher = patch('backend.engine.engine.Engine.discover_tools')
-        self.mock_tool_discover = self.tool_patcher.start()
-        self.mock_tool_discover.return_value = []
-        
-        # Patch the MCP tool discovery method to avoid actual discovery
-        self.mcp_tool_patcher = patch('backend.engine.mcp_discovery.discover_mcp_tools')
-        self.mock_mcp_tool_discover = self.mcp_tool_patcher.start()
-        self.mock_mcp_tool_discover.return_value = []
+        # Patch ToolManager to avoid actual discovery
+        self.tool_manager_patcher = patch('backend.engine.tool_manager.ToolManager.get_tool_dict')
+        self.mock_tool_manager = self.tool_manager_patcher.start()
+        self.mock_tool_manager.return_value = {}
         
         # Patch the get_context_window_size function to return a fixed value for testing
         self.window_size_patcher = patch('backend.engine.engine.get_context_window_size')
@@ -98,8 +93,7 @@ class TestEngineMemory(unittest.TestCase):
     def tearDown(self):
         # Stop the patchers
         self.discover_patcher.stop()
-        self.tool_patcher.stop()
-        self.mcp_tool_patcher.stop()
+        self.tool_manager_patcher.stop()
         self.window_size_patcher.stop()
         
         # Clean up the temporary directory
@@ -160,8 +154,7 @@ class TestEngineMemory(unittest.TestCase):
         
         # Create a new engine with the config (using the same patchers as in setUp)
         with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
-             patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('backend.engine.mcp_discovery.discover_mcp_tools', return_value=[]):
+             patch('backend.engine.tool_manager.ToolManager.get_tool_dict', return_value={}):
             new_engine = Engine(new_config)
         
         # Check that the session was loaded
@@ -204,8 +197,7 @@ class TestEngineMemory(unittest.TestCase):
         
         # Create another engine with a new session
         with patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[self.llm_provider]), \
-             patch('backend.engine.engine.Engine.discover_tools', return_value=[]), \
-             patch('backend.engine.mcp_discovery.discover_mcp_tools', return_value=[]):
+             patch('backend.engine.tool_manager.ToolManager.get_tool_dict', return_value={}):
             another_engine = Engine(another_config)
         
         # Get the new session ID and save it

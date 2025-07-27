@@ -65,16 +65,11 @@ class Engine:
             for model_id in llm_provider.models
         }
 
-        # Discover available tools
-        tool_list = Engine.discover_tools(config.tools_dir, config.tool_config)
-        
-        # Discover MCP tools dynamically
-        if hasattr(config, 'mcp_tools_dir') and config.mcp_tools_dir:
-            from backend.engine.mcp_discovery import discover_mcp_tools
-            mcp_tools = discover_mcp_tools(config.mcp_tools_dir)
-            tool_list.extend(mcp_tools)
-
-        self.tool_dict = {t.name: t for t in tool_list}
+        # Discover and initialize all tools using ToolManager
+        from backend.engine.tool_manager import ToolManager
+        from backend.engine.config import ToolConfig
+        tool_config = ToolConfig.from_engine_config(config)
+        self.tool_dict = ToolManager.get_tool_dict(tool_config)
 
         # Initialize session and session manager
         self.session_manager = SessionManager(config.memory_dir)
@@ -119,62 +114,6 @@ class Engine:
         config = Config.from_file(config_file)
         return cls(config)
 
-    @staticmethod
-    def discover_tools(tools_dir, tool_config):
-        tools = []
-        base_path = Path(tools_dir).resolve()  # e.g., /Users/gigi/git/ai-six/py/backend/tools
-        module_root_path = base_path.parents[2] # Three levels up
-        base_module = "py.backend.tools"  # Static base module for tools
-
-        # Walk through all .py files in the directory (recursive)
-        for file_path in base_path.rglob("*.py"):
-            if file_path.name == "__init__.py":
-                continue
-
-            try:
-                # Get the path relative to the Python root dir
-                relative_path = file_path.relative_to(module_root_path)
-
-                # Convert path parts to a valid Python module name
-                module_name = ".".join(relative_path.with_suffix("").parts)
-
-                # Validate it starts with the expected base_module
-                if not module_name.startswith(base_module):
-                    continue
-
-                # Load module from file
-                spec = importlib.util.spec_from_file_location(module_name, file_path)
-                if spec is None:
-                    continue
-
-                module = importlib.util.module_from_spec(spec)
-
-                try:
-                    spec.loader.exec_module(module)
-                except Exception as e:
-                    continue
-
-                # Inspect module for subclasses of Tool or CommandTool
-                for name, clazz in inspect.getmembers(module, inspect.isclass):
-                    if issubclass(clazz, Tool) and clazz.__module__ not in (
-                            Tool.__module__,
-                            CommandTool.__module__
-                    ):
-                        try:
-                            tool = clazz()
-                            conf = tool_config.get(tool.name, {})
-                            if conf:
-                                tool.configure(conf)
-                        except Exception as e:
-                            continue
-                        tools.append(tool)
-
-            except Exception as e:
-                # Handle any errors that occur during module loading
-                print(f"Error loading module {module_name}: {e}")
-                continue
-
-        return tools
 
     @staticmethod
     def discover_llm_providers(llm_providers_dir, provider_config):
