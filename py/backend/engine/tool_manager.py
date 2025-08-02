@@ -57,9 +57,12 @@ class ToolManager:
         
         # 4. Apply prefixes to all tools based on configuration
         ToolManager._apply_prefixes(tools, tool_config.tool_config)
-        
-        # Return as dictionary
-        return {tool.name: tool for tool in tools}
+        tool_dict = {tool.name: tool for tool in tools}
+        print('tools:\n-----')
+        for t in tool_dict:
+            print(t)
+
+        return tool_dict
     
     @staticmethod
     def _discover_custom_tools(tools_dir: str, tool_config: dict) -> List[Tool]:
