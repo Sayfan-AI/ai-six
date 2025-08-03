@@ -39,7 +39,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Long term memory (On startup AI-6 reads context from persistent storage like file or DB, periodically checkpoints)
 - [x] Expose usage information (tokens)
 - [x] Configuration
-- [ ] MCP support (engine is MCP client, local tools can run as MCP server)
+- [x] MCP support (engine is MCP client, local tools can run as MCP server)
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
 - [ ] Async tool use (continue interacting with the user while tools are running in the background)
 - [ ] REST API (for the engine)
@@ -56,9 +56,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] AWS
 - [ ] AI-6 (recursive agent mesh)
 - [ ] Slack tool
-
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration (track and schedule music listening)
-
 - [ ] Cloudflare
 
 
@@ -85,7 +83,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 # Meetings
 
-## Project Meeting 15-june-2025
+## Project Meeting 2-August-2025
 
 ### Agenda
 
@@ -95,6 +93,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### Action Items
 
+- [] Saar - generate docs for AI-6. See https://deepwiki.com/search/as-an-ai-system-developer-what_23e6420c-750a-4a5a-8ecb-98b6e8f0e946 
 ## Project Meeting 10-may-2025
 
 ### AI-6 Status

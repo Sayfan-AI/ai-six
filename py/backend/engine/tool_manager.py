@@ -1,21 +1,12 @@
-"""
-Tool Manager - centralized tool discovery and management.
-
-This module provides a unified interface for discovering and managing tools
-from various sources: custom tools, local MCP servers, and remote MCP servers.
-"""
-
-import os
 import asyncio
 from pathlib import Path
-from typing import Dict, List, Optional
 import importlib.util
 import inspect
 
 from backend.object_model.tool import Tool
 from backend.engine.mcp_discovery import discover_mcp_tools
 from backend.tools.base.mcp_tool import MCPTool
-from backend.mcp_client.client import MCPClient
+from backend.mcp_client.mcp_client import MCPClient
 from backend.engine.config import ToolConfig
 
 
@@ -23,7 +14,7 @@ class ToolManager:
     """Manages discovery and initialization of all tool types."""
     
     @staticmethod
-    def get_tool_dict(tool_config: ToolConfig) -> Dict[str, Tool]:
+    def get_tool_dict(tool_config: ToolConfig) -> dict[str, Tool]:
         """
         Get a dictionary of all available tools from various sources.
         
@@ -57,15 +48,10 @@ class ToolManager:
         
         # 4. Apply prefixes to all tools based on configuration
         ToolManager._apply_prefixes(tools, tool_config.tool_config)
-        tool_dict = {tool.name: tool for tool in tools}
-        print('tools:\n-----')
-        for t in tool_dict:
-            print(t)
+        return {tool.name: tool for tool in tools}
 
-        return tool_dict
-    
     @staticmethod
-    def _discover_custom_tools(tools_dir: str, tool_config: dict) -> List[Tool]:
+    def _discover_custom_tools(tools_dir: str, tool_config: dict) -> list[Tool]:
         """
         Discover custom tools from the tools directory.
         
@@ -119,7 +105,7 @@ class ToolManager:
         return tools
     
     @staticmethod
-    def _connect_remote_mcp_servers(remote_servers: List[dict]) -> List[Tool]:
+    def _connect_remote_mcp_servers(remote_servers: list[dict]) -> list[Tool]:
         """
         Connect to remote MCP servers and get their tools.
         
@@ -174,7 +160,7 @@ class ToolManager:
         return tools
     
     @staticmethod
-    def _apply_prefixes(tools: List[Tool], tool_config: dict):
+    def _apply_prefixes(tools: list[Tool], tool_config: dict):
         """
         Apply prefixes to tools based on individual tool configuration.
         

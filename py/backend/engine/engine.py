@@ -7,9 +7,8 @@ import inspect
 import uuid
 
 from backend.engine.config import Config
-from backend.object_model import LLMProvider, Tool, UserMessage, AssistantMessage, SystemMessage, ToolMessage, ToolCall
+from backend.object_model import LLMProvider, UserMessage, AssistantMessage, SystemMessage, ToolMessage, ToolCall
 from dataclasses import asdict
-from backend.tools.base.command_tool import CommandTool
 from backend.engine.session import Session
 from backend.engine.session_manager import SessionManager
 from backend.tools.memory.list_sessions import ListSessions
@@ -18,7 +17,6 @@ from backend.tools.memory.get_session_id import GetSessionId
 from backend.tools.memory.delete_session import DeleteSession
 from backend.engine.summarizer import Summarizer
 from backend.llm_providers.model_info import get_context_window_size
-
 
 
 def generate_tool_call_id(original_id: str = None) -> str:

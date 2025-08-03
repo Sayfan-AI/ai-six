@@ -1,25 +1,18 @@
 import asyncio
-import os
 from contextlib import AsyncExitStack
 from urllib.parse import urlparse
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-# Import HTTP client if available
-try:
-    from mcp.client.sse import sse_client
-    HTTP_SUPPORT = True
-except ImportError:
-    HTTP_SUPPORT = False
+from mcp.client.sse import sse_client
 
 
 class MCPClient:
     """Standalone MCP client for connecting to and interacting with MCP servers."""
-    
     def __init__(self):
         self.sessions: dict[str, ClientSession] = {}
-        self.exit_stack = AsyncExitStack()
         self._server_tools: dict[str, list[dict]] = {}
+        self.exit_stack = AsyncExitStack()
 
     async def connect_to_server(self, server_id: str, server_path_or_url: str) -> list[dict]:
         """Connect to a single MCP server and return its tools."""
@@ -32,10 +25,6 @@ class MCPClient:
         is_url = parsed.scheme in ('http', 'https')
         
         if is_url:
-            # Remote HTTP/HTTPS server
-            if not HTTP_SUPPORT:
-                raise RuntimeError("HTTP MCP client support not available. Install required dependencies.")
-            
             print(f"Connecting to remote MCP server: {server_path_or_url}")
             try:
                 transport = await self.exit_stack.enter_async_context(sse_client(server_path_or_url))

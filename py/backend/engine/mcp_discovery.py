@@ -5,7 +5,7 @@ import asyncio
 from pathlib import Path
 
 from backend.tools.base.mcp_tool import MCPTool
-from backend.mcp_client.client import MCPClient
+from backend.mcp_client.mcp_client import MCPClient
 
 
 def discover_mcp_tools(mcp_tools_dir: str) -> list[MCPTool]:
