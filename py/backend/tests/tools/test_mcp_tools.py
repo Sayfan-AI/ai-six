@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from backend.tools.base.mcp_tool import MCPTool
-from backend.engine.mcp_discovery import discover_mcp_tools
+from backend.engine.tool_manager import _discover_local_mcp_tools
 
 
 class TestMCPTools(unittest.TestCase):
@@ -87,7 +87,7 @@ class TestMCPTools(unittest.TestCase):
             self.assertIsNotNone(client1)
             self.assertIsNotNone(client2)
     
-    @patch('backend.engine.mcp_discovery.MCPClient')
+    @patch('backend.engine.tool_manager.MCPClient')
     @patch('asyncio.run')
     def test_discover_mcp_tools(self, mock_asyncio_run, mock_client_class):
         """Test dynamic MCP tool discovery."""
@@ -111,7 +111,7 @@ class TestMCPTools(unittest.TestCase):
                 mock_script.name = "test_server.py"
                 mock_glob.return_value = [mock_script]
                 
-                tools = discover_mcp_tools("/fake/mcp/dir")
+                tools = _discover_local_mcp_tools("/fake/mcp/dir")
                 
                 # Should return empty list due to mocking complexity
                 # This test mainly verifies the function doesn't crash

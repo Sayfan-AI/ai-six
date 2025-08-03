@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Iterator, Optional
 
 from backend.object_model.tool import Tool
 from backend.object_model.message import AssistantMessage, Message
@@ -7,7 +7,7 @@ from backend.object_model.message import AssistantMessage, Message
 
 class LLMProvider(ABC):
     @abstractmethod
-    def send(self, messages: list[Message], tool_dict: dict[str, Tool], model: str | None = None) -> AssistantMessage:
+    def send(self, messages: list[Message], tool_dict: dict[str, Tool], model: Optional[str] = None) -> AssistantMessage:
         """
         Send a message to the LLM and receive a response.
         :param messages: The list of messages to send.
@@ -17,7 +17,7 @@ class LLMProvider(ABC):
         """
         pass
 
-    def stream(self, messages: list[Message], tool_dict: dict[str, Tool], model: str | None = None) -> Iterator[AssistantMessage]:
+    def stream(self, messages: list[Message], tool_dict: dict[str, Tool], model: Optional[str] = None) -> Iterator[AssistantMessage]:
         """
         Stream a message to the LLM and receive responses as they are generated.
         :param messages: The list of messages to send.
@@ -33,4 +33,3 @@ class LLMProvider(ABC):
     def models(self) -> list[str]:
         """ Get the list of available models."""
         pass
-

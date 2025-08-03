@@ -155,7 +155,7 @@ def create_mock_engine(
     llm_provider_patcher = patch('backend.engine.engine.Engine.discover_llm_providers', return_value=[llm_provider])
     llm_provider_patcher.start()
     
-    tool_manager_patcher = patch('backend.engine.tool_manager.ToolManager.get_tool_dict', return_value={})
+    tool_manager_patcher = patch('backend.engine.tool_manager.get_tool_dict', return_value={})
     tool_manager_patcher.start()
     
     # Mock get_context_window_size to return 1000 for mock-model in tests

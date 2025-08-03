@@ -17,7 +17,7 @@ class TestDiscoverMCPTools(unittest.TestCase):
         
         # Mock ToolManager instead of Engine.discover_tools
         with patch('backend.engine.engine.Engine.discover_llm_providers') as mock_discover_llm_providers, \
-             patch('backend.engine.tool_manager.ToolManager.get_tool_dict', return_value={}) as mock_get_tool_dict, \
+             patch('backend.engine.tool_manager.get_tool_dict', return_value={}) as mock_get_tool_dict, \
              patch('backend.engine.engine.get_context_window_size', return_value=1000):
             
             # Setup mock LLM provider

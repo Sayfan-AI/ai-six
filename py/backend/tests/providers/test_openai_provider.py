@@ -1,7 +1,10 @@
 import unittest
+from dataclasses import dataclass
 from unittest.mock import patch, MagicMock
 import sys
 import os
+
+from backend.object_model import Message
 
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')))
@@ -25,11 +28,13 @@ class TestOpenAIProvider(unittest.TestCase):
         mock_response.choices[0].message.role = "assistant"
         mock_response.choices[0].message.tool_calls = []
         mock_response.usage = MagicMock(prompt_tokens=12, completion_tokens=8)
-        
+
+        mock_message = Message('some message', 'user')
+
         self.provider.client.chat.completions.create.return_value = mock_response
 
         # Test sending messages
-        response = self.provider.send(messages=[], tool_dict={})
+        response = self.provider.send(messages=[mock_message], tool_dict={})
 
         # Check the usage was set correctly
         self.assertEqual(response.usage.input_tokens, 12)

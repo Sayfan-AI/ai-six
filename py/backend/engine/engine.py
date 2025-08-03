@@ -11,6 +11,8 @@ from backend.object_model import LLMProvider, UserMessage, AssistantMessage, Sys
 from dataclasses import asdict
 from backend.engine.session import Session
 from backend.engine.session_manager import SessionManager
+from backend.engine import tool_manager
+from backend.engine.config import ToolConfig
 from backend.tools.memory.list_sessions import ListSessions
 from backend.tools.memory.load_session import LoadSession
 from backend.tools.memory.get_session_id import GetSessionId
@@ -64,10 +66,8 @@ class Engine:
         }
 
         # Discover and initialize all tools using ToolManager
-        from backend.engine.tool_manager import ToolManager
-        from backend.engine.config import ToolConfig
         tool_config = ToolConfig.from_engine_config(config)
-        self.tool_dict = ToolManager.get_tool_dict(tool_config)
+        self.tool_dict = tool_manager.get_tool_dict(tool_config)
 
         # Initialize session and session manager
         self.session_manager = SessionManager(config.memory_dir)
@@ -90,9 +90,6 @@ class Engine:
                 self.session = Session(config.memory_dir)  # Create a new session object
                 self.session.load(config.session_id)  # Load from disk
 
-                # Load summary if available
-                # TODO: Implement loading summaries
-
     @classmethod
     def from_config_file(cls, config_file: str) -> "Engine":
         """Create an Engine instance from a configuration file.
@@ -111,7 +108,6 @@ class Engine:
 
         config = Config.from_file(config_file)
         return cls(config)
-
 
     @staticmethod
     def discover_llm_providers(llm_providers_dir, provider_config):
@@ -179,8 +175,6 @@ class Engine:
 
         return providers
 
-
-
     def _register_memory_tools(self):
         """Register memory management tools with the engine."""
         # Create tool instances with a reference to the engine
@@ -208,52 +202,52 @@ class Engine:
         """
         # Create a mapping of original IDs to new UUIDs if needed
         id_mapping = {}
-        
+
         for tool_call in tool_calls:
             # Check if we need to replace the ID with a UUID
             if not tool_call.id or len(tool_call.id) < 32:  # Simple check for non-UUID
                 new_id = generate_tool_call_id(tool_call.id)
                 id_mapping[tool_call.id] = new_id
-        
+
         # Update tool call IDs if needed
         updated_tool_calls = []
         for tool_call in tool_calls:
             updated_id = tool_call.id
             if tool_call.id in id_mapping:
                 updated_id = id_mapping[tool_call.id]
-            
+
             updated_tool_calls.append(ToolCall(
                 id=updated_id,
                 name=tool_call.name,
                 arguments=tool_call.arguments,
                 required=tool_call.required
             ))
-        
+
         # Execute tools and create tool messages
         tool_messages = []
         for tool_call in tool_calls:
             tool = self.tool_dict.get(tool_call.name)
             if tool is None:
                 raise RuntimeError(f"Unknown tool: {tool_call.name}")
-            
+
             try:
                 kwargs = json.loads(tool_call.arguments)
             except json.JSONDecodeError as e:
                 raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
-            
+
             # Get the potentially updated tool call ID
             tool_call_id = tool_call.id
             if tool_call.id in id_mapping:
                 tool_call_id = id_mapping[tool_call.id]
-            
+
             try:
                 # Execute the tool
                 tool_result = tool.run(**kwargs)
-                
+
                 # Call the callback if provided
                 if on_tool_call_func is not None:
                     on_tool_call_func(tool_call.name, kwargs, str(tool_result))
-                    
+
                 # Create the tool message
                 tool_message = ToolMessage(
                     content=str(tool_result),
@@ -266,9 +260,9 @@ class Engine:
                     name=tool_call.name,
                     tool_call_id=tool_call_id,
                 )
-            
+
             tool_messages.append(tool_message)
-        
+
         return updated_tool_calls, tool_messages
 
     def _checkpoint_if_needed(self):
@@ -356,7 +350,7 @@ class Engine:
 
         # Convert Message objects to dictionaries for JSON serialization
         message_dicts = [asdict(msg) for msg in self.session.messages]
-        
+
         # Include more metadata to make the logs more useful
         detailed_log = dict(
             session_id=session_id,
@@ -508,7 +502,7 @@ class Engine:
                         tool_calls=updated_tool_calls
                     )
                     self.session.add_message(tool_calls_message)
-                    
+
                     # Add tool result messages
                     for tool_msg in tool_messages:
                         self.session.add_message(tool_msg)

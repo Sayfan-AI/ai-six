@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from dataclasses import dataclass
 from abc import ABC
 
@@ -41,7 +41,7 @@ class SystemMessage(Message):
 class AssistantMessage(Message):
     """Assistant message containing model response."""
     role: str = "assistant"
-    tool_calls: Optional[List[ToolCall]] = None
+    tool_calls: Optional[list[ToolCall]] = None
     usage: Optional[Usage] = None
 
 
