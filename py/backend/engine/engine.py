@@ -5,10 +5,11 @@ from typing import Callable
 import importlib.util
 import inspect
 import uuid
+from dataclasses import asdict
 
 from backend.engine.config import Config
 from backend.object_model import LLMProvider, UserMessage, AssistantMessage, SystemMessage, ToolMessage, ToolCall
-from dataclasses import asdict
+from backend.object_model import Usage
 from backend.engine.session import Session
 from backend.engine.session_manager import SessionManager
 from backend.engine import tool_manager
@@ -104,8 +105,6 @@ class Engine:
         Engine
             A configured Engine instance
         """
-        from backend.engine.config import Config
-
         config = Config.from_file(config_file)
         return cls(config)
 
@@ -318,8 +317,6 @@ class Engine:
         new_session.add_message(summary_message)
 
         # Create a new Usage object with the estimated summary tokens (Usage is immutable)
-        from backend.object_model import Usage
-
         new_session.usage = Usage(
             input_tokens=int(estimated_summary_tokens), output_tokens=0
         )
