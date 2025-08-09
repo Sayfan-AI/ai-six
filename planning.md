@@ -14,6 +14,9 @@ Look into the Google eco-system for LLMs and tools.
 - Look into their OpenAI compatibility layer
 - If it doesn't work then build a native Gemini LLM provider
 - Look into their [A2A](https://github.com/google/A2A) (agent to agent) protocol
+- Look into context optimization (codebooks, deltas ofr editing operations, smart per request context management, sub-agents, etc)
+   - [Context Engineering](https://www.philschmid.de/context-engineering) by Phil Schmid
+   - [Implementing 9 techniques to optimize AI agent memory](https://levelup.gitconnected.com/implementing-9-techniques-to-optimize-ai-agent-memory-67d813e3d796)
 
 On the OpenAI side, look into the following:
 
@@ -30,7 +33,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 ## Software Development Life Cycle
 
 - Saar and Gigi will create PRs and merge them at will. Review is optional.
-- We will use Github Actions for CI/CD
+- Use Github Actions for CI/CD
 
 ## Capabilities
 
@@ -40,8 +43,11 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Expose usage information (tokens)
 - [x] Configuration
 - [x] MCP support (engine is MCP client, local tools can run as MCP server)
+- [ ] Switch to uv
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
 - [ ] Async tool use (continue interacting with the user while tools are running in the background)
+- [ ] Add pipe support (e.g. `ls | grep foo`) to CommandTool
+- [ ] Add extensible ContextManager responsible for compacting the session history using different strategies
 - [ ] REST API (for the engine)
 - [ ] GraphQL frontend with Apollo connectors talking to the engine's REST API
 - [ ] Graceful handling of rate-limiting
@@ -82,6 +88,19 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Rollback if something goes wrong
 
 # Meetings
+
+## Project Meeting 9-August-2025
+
+### Agenda
+
+- AI-6 status
+- Discuss AI-6 agents
+- Check out https://models.dev
+
+### Actions items
+- [ ] Gigi - implement agent concept
+- [ ] Gigi - switch to [uv](https://docs.astral.sh/uv/)
+
 
 ## Project Meeting 2-August-2025
 
