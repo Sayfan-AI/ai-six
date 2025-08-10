@@ -17,10 +17,15 @@ https://docs.anthropic.com/en/docs/about-claude/models
 # Currently focused on context window sizes
 model_info = {
     # OpenAI models
+    "gpt-5": {
+        "context_window_size": 400000,
+        "provider": "openai",
+        "description": "GPT-5 with 400K context (128k max output tokens)"
+    },
     "gpt-4o": {
         "context_window_size": 128000,
         "provider": "openai",
-        "description": "GPT-4o with 128K context"
+        "description": "GPT-4o with 128K context (16k max output tokens)"
     },
     
     # Qwen models
@@ -33,6 +38,27 @@ model_info = {
         "context_window_size": 128000,
         "provider": "ollama",
         "description": "Qwen 3 32B"
+    },
+    
+    # OpenAI OSS models
+    "gpt-oss:120b": {
+        "context_window_size": 128000,
+        "provider": "ollama", 
+        "description": "GPT-OSS 120B - Open source GPT model"
+    },
+    
+    # DeepSeek models
+    "deepseek-r1:70b": {
+        "context_window_size": 128000,
+        "provider": "ollama",
+        "description": "DeepSeek-R1 70B - Reasoning-focused model"
+    },
+    
+    # Mistral models
+    "devstral:24b": {
+        "context_window_size": 128000,
+        "provider": "ollama",
+        "description": "Devstral 24B - Code-focused model"
     }
 }
 

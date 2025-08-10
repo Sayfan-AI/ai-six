@@ -67,8 +67,8 @@ class TestEngineMemory(unittest.TestCase):
         # Create a config with the mock provider
         self.config = Config(
             default_model_id="mock-model",
-            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
-            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
+            tools_dirs=["/Users/gigi/git/ai-six/py/backend/tools"],
+            mcp_tools_dirs=["/Users/gigi/git/ai-six/py/backend/mcp_tools"],
             memory_dir=self.test_dir
         )
         
@@ -146,8 +146,8 @@ class TestEngineMemory(unittest.TestCase):
         # Create a new config with the session ID
         new_config = Config(
             default_model_id="mock-model",
-            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
-            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
+            tools_dirs=["/Users/gigi/git/ai-six/py/backend/tools"],
+            mcp_tools_dirs=["/Users/gigi/git/ai-six/py/backend/mcp_tools"],
             memory_dir=self.test_dir,
             session_id=session_id
         )
@@ -190,8 +190,8 @@ class TestEngineMemory(unittest.TestCase):
         # Create a config for another engine
         another_config = Config(
             default_model_id="mock-model",
-            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
-            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
+            tools_dirs=["/Users/gigi/git/ai-six/py/backend/tools"],
+            mcp_tools_dirs=["/Users/gigi/git/ai-six/py/backend/mcp_tools"],
             memory_dir=self.test_dir
         )
         

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import importlib.util
 import inspect
+from typing import Optional
 
 from backend.object_model.tool import Tool
 from backend.tools.base.mcp_tool import MCPTool
@@ -21,17 +22,17 @@ def get_tool_dict(tool_config: ToolConfig) -> dict[str, Tool]:
     """
     tools: list[Tool] = []
 
-    # 1. Discover AI-6 native tools
-    if tool_config.tools_dir:
+    # 1. Discover AI-6 native tools from all directories
+    for tools_dir in tool_config.tools_dirs:
         native_tools = _discover_native_tools(
-            tool_config.tools_dir,
+            tools_dir,
             tool_config.tool_config
         )
         tools.extend(native_tools)
 
-    # 2. Discover local MCP tools
-    if tool_config.mcp_tools_dir:
-        local_mcp_tools = _discover_local_mcp_tools(tool_config.mcp_tools_dir)
+    # 2. Discover local MCP tools from all directories  
+    for mcp_tools_dir in tool_config.mcp_tools_dirs:
+        local_mcp_tools = _discover_local_mcp_tools(mcp_tools_dir)
         tools.extend(local_mcp_tools)
 
     # 3. Get tools of remote MCP servers
@@ -41,7 +42,44 @@ def get_tool_dict(tool_config: ToolConfig) -> dict[str, Tool]:
         )
         tools.extend(remote_mcp_tools)
 
+    # 4. Filter tools based on enabled/disabled configuration
+    tools = _filter_tools(tools, tool_config.enabled_tools, tool_config.disabled_tools)
+
     return {tool.name: tool for tool in tools}
+
+
+def _filter_tools(tools: list[Tool], enabled_tools: Optional[list[str]], disabled_tools: Optional[list[str]]) -> list[Tool]:
+    """Filter tools based on enabled/disabled configuration.
+    
+    Args:
+        tools: List of tools to filter
+        enabled_tools: If not None, only include tools with names in this list
+        disabled_tools: If not None, exclude tools with names in this list
+        
+    Returns:
+        Filtered list of tools
+    """
+    if enabled_tools is None and disabled_tools is None:
+        # No filtering - return all tools
+        return tools
+        
+    filtered_tools = []
+    
+    for tool in tools:
+        tool_name = tool.name
+        
+        # If enabled_tools is specified, only include tools in that list
+        if enabled_tools is not None:
+            if tool_name in enabled_tools:
+                filtered_tools.append(tool)
+        
+        # If disabled_tools is specified, exclude tools in that list
+        elif disabled_tools is not None:
+            if tool_name not in disabled_tools:
+                filtered_tools.append(tool)
+                
+    return filtered_tools
+
 
 def _discover_native_tools(tools_dir: str, tool_config: dict) -> list[Tool]:
     """Discover custom tools from the tools directory.
@@ -81,14 +119,23 @@ def _discover_native_tools(tools_dir: str, tool_config: dict) -> list[Tool]:
                             and obj != Tool
                             and obj.__module__ == module_name
                     ):
+                        # Skip base classes that require constructor arguments
+                        if obj.__name__ in ['MCPTool', 'CommandTool']:
+                            continue
+                            
                         # Check if tool is enabled in config
                         tool_name = obj.__name__
                         if tool_name in tool_config and not tool_config[tool_name].get('enabled', True):
                             continue
 
-                        # Instantiate the tool
-                        tool_instance = obj()
-                        tools.append(tool_instance)
+                        try:
+                            # Instantiate the tool
+                            tool_instance = obj()
+                            tools.append(tool_instance)
+                        except TypeError as e:
+                            # Skip tools that can't be instantiated without arguments
+                            print(f"Warning: Skipping {obj.__name__} - requires constructor arguments: {e}")
+                            continue
 
         except Exception as e:
             print(f"Warning: Failed to load tool from {file_path}: {e}")

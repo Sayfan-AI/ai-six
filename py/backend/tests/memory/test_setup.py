@@ -31,8 +31,8 @@ class TestSetup(unittest.TestCase):
         # Create the config
         config = Config(
             default_model_id="mock-model",
-            tools_dir="/Users/gigi/git/ai-six/py/backend/tools",
-            mcp_tools_dir="/Users/gigi/git/ai-six/py/backend/mcp_tools",
+            tools_dirs=["/Users/gigi/git/ai-six/py/backend/tools"],
+            mcp_tools_dirs=["/Users/gigi/git/ai-six/py/backend/mcp_tools"],
             memory_dir=self.test_dir
         )
         

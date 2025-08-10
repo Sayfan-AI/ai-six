@@ -44,9 +44,11 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Configuration
 - [x] MCP support (engine is MCP client, local tools can run as MCP server)
 - [ ] Switch to uv
+- [ ] Tool dependency injection (support tools that require constructor arguments like engine, config, etc.)
+- [ ] Add pipe support (e.g. `ls | grep foo`) to CommandTool
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
 - [ ] Async tool use (continue interacting with the user while tools are running in the background)
-- [ ] Add pipe support (e.g. `ls | grep foo`) to CommandTool
+
 - [ ] Add extensible ContextManager responsible for compacting the session history using different strategies
 - [ ] REST API (for the engine)
 - [ ] GraphQL frontend with Apollo connectors talking to the engine's REST API
@@ -54,6 +56,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Dynamic model selection (e.g. use a different model for different tasks)
 - [ ] Computer use (browser and debugging in the IDE!)
 - [ ] Voice UI
+
 
 ## Tools
 
@@ -64,6 +67,26 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Slack tool
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration (track and schedule music listening)
 - [ ] Cloudflare
+
+### Tool Discovery System
+
+**Current Implementation:**
+- Auto-discovery scans tool directories for Tool subclasses
+- Assumes all discoverable tools have no-argument constructors (`tool = ToolClass()`)
+- Memory tools (ListSessions, etc.) are discovered with `engine=None` but manually overridden with proper engine reference
+- Base classes (MCPTool, CommandTool) are explicitly skipped to avoid instantiation errors
+
+**Limitations:**
+- Tools requiring constructor arguments (dependencies) cannot be auto-discovered
+- Circular dependency: engine needs tools, but tools need engine reference
+- Memory tools are discovered twice (broken + working versions)
+- No support for tools requiring configuration, user parameters, etc.
+
+**Future Enhancement - Dependency Injection:**
+- Two-phase initialization: create engine core → discover tools with DI
+- Use inspection to detect constructor dependencies (engine, config, user, etc.)
+- Factory pattern with dependency providers
+- Would enable proper support for tools requiring arguments while maintaining auto-discovery
 
 
 ## Permission model
@@ -98,7 +121,9 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - Check out https://models.dev
 
 ### Actions items
+
 - [ ] Gigi - implement agent concept
+- [ ] Gigi - add strong local models - DeepSeek R1 and OpenAI OSS models
 - [ ] Gigi - switch to [uv](https://docs.astral.sh/uv/)
 
 

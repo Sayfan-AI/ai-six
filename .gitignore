@@ -6,3 +6,5 @@ chainlit.md
 memory
 .files
 **/.claude/settings.local.json
+.python-version
+

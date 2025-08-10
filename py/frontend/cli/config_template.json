@@ -1,7 +1,7 @@
 {
-  "default_model_id": "gpt-4o",
-  "tools_dir": "${HOME}/git/ai-six/py/backend/tools",
-  "mcp_tools_dir": "${HOME}/git/ai-six/py/backend/mcp_tools",
+  "default_model_id": "gpt-5",
+  "tools_dirs": ["${HOME}/git/ai-six/py/backend/tools"],
+  "mcp_tools_dirs": ["${HOME}/git/ai-six/py/backend/mcp_tools"],
   "memory_dir": "${HOME}/git/ai-six/memory/cli",
   "checkpoint_interval": 3,
   "provider_config": {
@@ -18,4 +18,8 @@
       "api_key": "${ANTHROPIC_API_KEY}"
     }
   }
+  
+  // Tool filtering (at most one can be specified):
+  // "enabled_tools": ["git", "ls", "cat"],  // Only allow these tools
+  // "disabled_tools": ["rm", "mv"]         // Disable these tools
 }

@@ -25,12 +25,10 @@ class MCPClient:
         is_url = parsed.scheme in ('http', 'https')
         
         if is_url:
-            print(f"Connecting to remote MCP server: {server_path_or_url}")
             try:
                 transport = await self.exit_stack.enter_async_context(sse_client(server_path_or_url))
                 read, write = transport
                 session = await self.exit_stack.enter_async_context(ClientSession(read, write))
-                print(f"Successfully connected to {server_path_or_url}")
             except Exception as e:
                 print(f"Failed to connect to remote MCP server {server_path_or_url}: {e}")
                 raise

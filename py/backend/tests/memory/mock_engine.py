@@ -132,8 +132,8 @@ def create_mock_engine(
 
     config = Config(
         default_model_id="mock-model",
-        tools_dir=tools_dir,
-        mcp_tools_dir=mcp_tools_dir,
+        tools_dirs=[tools_dir] if tools_dir else [],
+        mcp_tools_dirs=[mcp_tools_dir] if mcp_tools_dir else [],
         memory_dir=memory_dir,
         checkpoint_interval=checkpoint_interval
     )

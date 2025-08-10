@@ -1,4 +1,6 @@
+import argparse
 import os
+import sys
 from functools import partial
 
 import pathology.path
@@ -9,6 +11,36 @@ from dotenv import load_dotenv
 from slack_sdk.errors import SlackApiError
 
 from . import utils
+
+# Parse command-line arguments
+def parse_args():
+    parser = argparse.ArgumentParser(description='AI-6 Slack Frontend')
+    parser.add_argument('--streaming-mode', type=str, choices=['true', 'false'], default='true',
+                       help='Enable/disable streaming responses (default: true)')
+    # Only parse known args to avoid conflicts with other arguments
+    args, unknown = parser.parse_known_args()
+    
+    # Convert string to boolean
+    args.streaming_mode = args.streaming_mode.lower() == 'true'
+    
+    # Preserve our arguments for potential module reloads
+    preserved_args = []
+    if any('--streaming-mode' in arg for arg in sys.argv):
+        # Find the original streaming-mode argument and preserve it
+        for i, arg in enumerate(sys.argv):
+            if arg.startswith('--streaming-mode'):
+                if '=' in arg:
+                    preserved_args.append(arg)
+                elif i + 1 < len(sys.argv):
+                    preserved_args.extend([arg, sys.argv[i + 1]])
+                break
+    
+    # Put back both unknown args and our preserved args
+    sys.argv[1:] = unknown + preserved_args
+    return args
+
+# Parse arguments before setting up the app
+cli_args = parse_args()
 
 script_dir = pathology.path.Path.script_dir()
 
@@ -89,37 +121,52 @@ def handle_message(message, say, ack, client):
     
     # Process the message with the AI-6 engine
     try:
-        # Post an initial empty message that we'll update
-        result = client.chat_postMessage(
-            channel=channel_id,
-            text="..."
-        )
-    
-        latest_ts = result["ts"]
-        last_message = ""
-    
-        # Define a callback function to handle streaming chunks
-        def handle_chunk(chunk):
-            global last_message
-            last_message += chunk
+        if cli_args.streaming_mode:
+            # Streaming mode
+            # Post an initial empty message that we'll update
+            result = client.chat_postMessage(
+                channel=channel_id,
+                text="..."
+            )
         
-            try:
-                # Update the message with the new content
-                client.chat_update(
-                    channel=channel_id,
-                    ts=latest_ts,
-                    text=last_message
-                )
-            except SlackApiError as e:
-                print(f"Error updating message: {e}")
-    
-        # Stream the message to the AI-6 engine
-        response = engine.stream_message(
-            text, 
-            engine.default_model_id, 
-            on_chunk_func=handle_chunk,
-            on_tool_call_func=channel_tool_call_handler
-        )
+            latest_ts = result["ts"]
+            last_message = ""
+        
+            # Define a callback function to handle streaming chunks
+            def handle_chunk(chunk):
+                global last_message
+                last_message += chunk
+            
+                try:
+                    # Update the message with the new content
+                    client.chat_update(
+                        channel=channel_id,
+                        ts=latest_ts,
+                        text=last_message
+                    )
+                except SlackApiError as e:
+                    print(f"Error updating message: {e}")
+        
+            # Stream the message to the AI-6 engine
+            response = engine.stream_message(
+                text, 
+                engine.default_model_id, 
+                on_chunk_func=handle_chunk,
+                on_tool_call_func=channel_tool_call_handler
+            )
+        else:
+            # Non-streaming mode
+            response = engine.send_message(
+                text,
+                engine.default_model_id, 
+                channel_tool_call_handler
+            )
+            
+            # Post the complete response
+            client.chat_postMessage(
+                channel=channel_id,
+                text=response
+            )
     
     except Exception as e:
         print(f"I encountered an error: {str(e)}")
@@ -164,6 +211,9 @@ def leave_channels(client):
 
 def main():
     """Main entry point for the Slack app"""
+    streaming_status = "streaming" if cli_args.streaming_mode else "non-streaming"
+    print(f"AI-6 Slack app starting in {streaming_status} mode")
+    
     channel = join_channel(app.client)
     if channel is not None:
         print(f'Joined {channel["name"]}')

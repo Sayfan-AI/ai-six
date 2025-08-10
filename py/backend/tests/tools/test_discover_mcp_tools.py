@@ -25,11 +25,11 @@ class TestDiscoverMCPTools(unittest.TestCase):
             mock_llm_provider.models = ['gpt-4o']
             mock_discover_llm_providers.return_value = [mock_llm_provider]
             
-            # Create a config
+            # Create a config  
             config = Config(
                 default_model_id='gpt-4o',
-                tools_dir=tools_dir,
-                mcp_tools_dir=mcp_tools_dir,
+                tools_dirs=[tools_dir],
+                mcp_tools_dirs=[mcp_tools_dir],
                 memory_dir=memory_dir
             )
 
