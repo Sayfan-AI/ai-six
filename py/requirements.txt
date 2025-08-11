@@ -10,3 +10,4 @@ pyyaml
 toml
 debugpy
 anthropic
+requests

@@ -62,3 +62,6 @@ shelf/
 
 # Frontend config files
 frontend/**/config.*
+
+downloads
+

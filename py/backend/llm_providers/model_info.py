@@ -2,7 +2,7 @@
 Model information for AI-6.
 
 This module provides metadata about various AI models that can be used with AI-6,
-such as their context window sizes. This information is used by the engine to
+such as their context window sizes. This information is used by the agent to
 properly manage conversations, including when to summarize them to fit within
 a model's context window.
 

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 
-from backend.engine.summarizer import Summarizer
+from backend.agent.summarizer import Summarizer
 from backend.object_model import AssistantMessage, UserMessage, ToolMessage, ToolCall
 
 

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from backend.tools.base.mcp_tool import MCPTool
-from backend.engine.tool_manager import _discover_local_mcp_tools
+from backend.agent.tool_manager import _discover_local_mcp_tools
 
 
 class TestMCPTools(unittest.TestCase):
@@ -87,7 +87,7 @@ class TestMCPTools(unittest.TestCase):
             self.assertIsNotNone(client1)
             self.assertIsNotNone(client2)
     
-    @patch('backend.engine.tool_manager.MCPClient')
+    @patch('backend.agent.tool_manager.MCPClient')
     @patch('asyncio.run')
     def test_discover_mcp_tools(self, mock_asyncio_run, mock_client_class):
         """Test dynamic MCP tool discovery."""

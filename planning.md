@@ -112,7 +112,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 # Meetings
 
-## Project Meeting 9-August-2025
+## Project Meeting 10-August-2025
 
 ### Agenda
 
@@ -122,10 +122,10 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### Actions items
 
-- [ ] Gigi - implement agent concept
-- [ ] Gigi - add strong local models - DeepSeek R1 and OpenAI OSS models
+- [ ] Gigi - implement agent concept, move AgentTool instantiation to the ToolManager
+- [ ] Gigi - Fix ollama local models - DeepSeek R1 and OpenAI OSS models
 - [ ] Gigi - switch to [uv](https://docs.astral.sh/uv/)
-
+- [ ] Saar - generate docs for AI-6. See https://deepwiki.com/search/as-an-ai-system-developer-what_23e6420c-750a-4a5a-8ecb-98b6e8f0e946
 
 ## Project Meeting 2-August-2025
 

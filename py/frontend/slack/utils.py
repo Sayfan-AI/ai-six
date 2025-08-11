@@ -2,19 +2,19 @@
 Slack-specific utilities for AI-6.
 
 This module provides helpers specifically for the Slack frontend,
-including channel-specific engine creation and management.
+including channel-specific agent creation and management.
 """
 
 import os
 from pathlib import Path
 from typing import Optional
 
-from backend.engine.config import Config
-from backend.engine.engine import Engine
-from frontend.common.engine_utils import create_from_config
+from backend.agent.config import Config
+from backend.agent.agent import Agent
+from frontend.common.agent_utils import create_from_config
 
 
-def create_channel_engine(
+def create_channel_agent(
     base_config_path: str,
     channel_id: str,
     base_memory_dir: Optional[str] = None,
@@ -65,10 +65,10 @@ def create_channel_engine(
     with open(channel_config_path, 'w') as f:
         f.write(config_content)
     
-    # Create the engine using our helper which loads environment variables
-    engine, _ = create_from_config(
+    # Create the agent using our helper which loads environment variables
+    agent, _ = create_from_config(
         config_path=channel_config_path,
         env_file_path=env_file_path
     )
     
-    return engine
+    return agent

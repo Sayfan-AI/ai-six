@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, call
-from backend.engine.engine import Engine
-from backend.engine.config import Config
+from backend.agent.agent import Agent
+from backend.agent.config import Config
 
 from pathology.path import Path
 
@@ -12,13 +12,13 @@ memory_dir = str(backend_dir.parent.parent / "memory")
 
 class TestDiscoverMCPTools(unittest.TestCase):
     def test_discover_mcp_tools(self):
-        # Test that the Engine can be initialized and MCP discovery works
+        # Test that the Agent can be initialized and MCP discovery works
         from unittest.mock import patch, MagicMock
         
-        # Mock ToolManager instead of Engine.discover_tools
-        with patch('backend.engine.engine.Engine.discover_llm_providers') as mock_discover_llm_providers, \
-             patch('backend.engine.tool_manager.get_tool_dict', return_value={}) as mock_get_tool_dict, \
-             patch('backend.engine.engine.get_context_window_size', return_value=1000):
+        # Mock ToolManager instead of Agent.discover_tools
+        with patch('backend.agent.agent.Agent.discover_llm_providers') as mock_discover_llm_providers, \
+             patch('backend.agent.tool_manager.get_tool_dict', return_value={}) as mock_get_tool_dict, \
+             patch('backend.agent.agent.get_context_window_size', return_value=1000):
             
             # Setup mock LLM provider
             mock_llm_provider = MagicMock()
@@ -33,8 +33,8 @@ class TestDiscoverMCPTools(unittest.TestCase):
                 memory_dir=memory_dir
             )
 
-            # Create engine - this should work without issues
-            engine = Engine(config)
+            # Create agent - this should work without issues
+            agent = Agent(config)
             
             # Verify that discovery methods were called
             self.assertTrue(mock_discover_llm_providers.called)

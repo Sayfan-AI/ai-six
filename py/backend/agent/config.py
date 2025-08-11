@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
-from typing import Optional, Mapping, Any
+from typing import Optional, Mapping, Any, List, Dict
 from backend.object_model import LLMProvider
 import yaml
 import toml
@@ -13,43 +13,43 @@ class ToolConfig:
     """Configuration for tool discovery and management."""
     
     # Custom tools configuration
-    tools_dirs: list[str] = field(default_factory=list)
+    tools_dirs: List[str] = field(default_factory=list)
     tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     
     # Local MCP tools configuration  
-    mcp_tools_dirs: list[str] = field(default_factory=list)
+    mcp_tools_dirs: List[str] = field(default_factory=list)
     
     # Remote MCP servers configuration
     remote_mcp_servers: list = field(default_factory=list)
     
     # Tool filtering configuration
-    enabled_tools: Optional[list[str]] = None
-    disabled_tools: Optional[list[str]] = None
+    enabled_tools: Optional[List[str]] = None
+    disabled_tools: Optional[List[str]] = None
     
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate tool configuration after initialization."""
         if self.enabled_tools is not None and self.disabled_tools is not None:
-            raise ValueError("At least one of enabled_tools or disabled_tools must be None")
+            raise ValueError("You can only have one of enabled_tools or disabled_tools")
     
     @classmethod
-    def from_engine_config(cls, engine_config):
-        """Create ToolConfig from engine configuration."""
+    def from_agent_config(cls, agent_config: 'Config') -> 'ToolConfig':
+        """Create ToolConfig from agent configuration."""
         return cls(
-            tools_dirs=getattr(engine_config, 'tools_dirs', []),
-            tool_config=getattr(engine_config, 'tool_config', {}),
-            mcp_tools_dirs=getattr(engine_config, 'mcp_tools_dirs', []),
-            remote_mcp_servers=getattr(engine_config, 'remote_mcp_servers', []),
-            enabled_tools=getattr(engine_config, 'enabled_tools', None),
-            disabled_tools=getattr(engine_config, 'disabled_tools', None)
+            tools_dirs=getattr(agent_config, 'tools_dirs', []),
+            tool_config=getattr(agent_config, 'tool_config', {}),
+            mcp_tools_dirs=getattr(agent_config, 'mcp_tools_dirs', []),
+            remote_mcp_servers=getattr(agent_config, 'remote_mcp_servers', []),
+            enabled_tools=getattr(agent_config, 'enabled_tools', None),
+            disabled_tools=getattr(agent_config, 'disabled_tools', None)
         )
 
 
 @dataclass
 class Config:
     default_model_id: str
-    tools_dirs: list[str] = field(default_factory=list)
-    mcp_tools_dirs: list[str] = field(default_factory=list)
+    tools_dirs: List[str] = field(default_factory=list)
+    mcp_tools_dirs: List[str] = field(default_factory=list)
     memory_dir: str = ""
     session_id: Optional[str] = None
     checkpoint_interval: int = 3
@@ -57,11 +57,15 @@ class Config:
     tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     provider_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     remote_mcp_servers: list = field(default_factory=list)
-    enabled_tools: Optional[list[str]] = None
-    disabled_tools: Optional[list[str]] = None
+    enabled_tools: Optional[List[str]] = None
+    disabled_tools: Optional[List[str]] = None
+    system_prompt: Optional[str] = None
+    agents: Optional[list] = field(default_factory=list)
+    name: str = ""
+    description: str = ""
     
 
-    def invariant(self):
+    def invariant(self) -> None:
         # Validate required directories
         assert self.default_model_id, "default_model_id must be set"
         assert self.memory_dir and os.path.isdir(self.memory_dir), f"Memory directory not found: {self.memory_dir}"
@@ -76,7 +80,7 @@ class Config:
             
         # Validate tool filtering configuration
         if self.enabled_tools is not None and self.disabled_tools is not None:
-            raise ValueError("At least one of enabled_tools or disabled_tools must be None")
+            raise ValueError("You can only have one of enabled_tools or disabled_tools")
 
     @staticmethod
     def _interpolate_env_vars(value: Any) -> Any:
@@ -132,7 +136,7 @@ class Config:
             raise FileNotFoundError(f"Configuration file not found: {filename}")
             
         file_ext = path.suffix.lower()
-        config_data: dict[str, Any] = {}
+        config_data: Dict[str, Any] = {}
         
         # Load file content based on extension
         with open(filename, 'r') as f:
@@ -163,6 +167,65 @@ class Config:
         remote_mcp_servers = config_data.get('remote_mcp_servers', [])
         enabled_tools = config_data.get('enabled_tools')
         disabled_tools = config_data.get('disabled_tools')
+        system_prompt = config_data.get('system_prompt')
+        agents_data = config_data.get('agents', [])
+        name = config_data.get('name', '')
+        description = config_data.get('description', '')
+        
+        # Parse agents data into Config objects (recursive for nested agents)
+        def parse_agents_recursive(agents_data: list, parent_config: dict) -> List['Config']:
+            agents = []
+            for agent_data in agents_data:
+                # Create Config with parent config as base, overridden by agent-specific values
+                agent_config = Config(
+                    name=agent_data.get('name', ''),
+                    description=agent_data.get('description', ''),
+                    default_model_id=agent_data.get('default_model_id', parent_config['default_model_id']),
+                    tools_dirs=agent_data.get('tools_dirs', parent_config['tools_dirs']),
+                    mcp_tools_dirs=agent_data.get('mcp_tools_dirs', parent_config['mcp_tools_dirs']),
+                    memory_dir=agent_data.get('memory_dir', parent_config['memory_dir']),
+                    system_prompt=agent_data.get('system_prompt', parent_config['system_prompt']),
+                    checkpoint_interval=agent_data.get('checkpoint_interval', parent_config['checkpoint_interval']),
+                    summary_threshold_ratio=agent_data.get('summary_threshold_ratio', parent_config['summary_threshold_ratio']),
+                    tool_config=MappingProxyType(agent_data.get('tool_config', parent_config['tool_config'])),
+                    provider_config=MappingProxyType(agent_data.get('provider_config', parent_config['provider_config'])),
+                    remote_mcp_servers=agent_data.get('remote_mcp_servers', parent_config['remote_mcp_servers']),
+                    enabled_tools=agent_data.get('enabled_tools', parent_config['enabled_tools']),
+                    disabled_tools=agent_data.get('disabled_tools', parent_config['disabled_tools']),
+                    agents=parse_agents_recursive(agent_data.get('agents', []), {
+                        'default_model_id': agent_data.get('default_model_id', parent_config['default_model_id']),
+                        'tools_dirs': agent_data.get('tools_dirs', parent_config['tools_dirs']),
+                        'mcp_tools_dirs': agent_data.get('mcp_tools_dirs', parent_config['mcp_tools_dirs']),
+                        'memory_dir': agent_data.get('memory_dir', parent_config['memory_dir']),
+                        'system_prompt': agent_data.get('system_prompt', parent_config['system_prompt']),
+                        'checkpoint_interval': agent_data.get('checkpoint_interval', parent_config['checkpoint_interval']),
+                        'summary_threshold_ratio': agent_data.get('summary_threshold_ratio', parent_config['summary_threshold_ratio']),
+                        'tool_config': agent_data.get('tool_config', parent_config['tool_config']),
+                        'provider_config': agent_data.get('provider_config', parent_config['provider_config']),
+                        'remote_mcp_servers': agent_data.get('remote_mcp_servers', parent_config['remote_mcp_servers']),
+                        'enabled_tools': agent_data.get('enabled_tools', parent_config['enabled_tools']),
+                        'disabled_tools': agent_data.get('disabled_tools', parent_config['disabled_tools'])
+                    })
+                )
+                agents.append(agent_config)
+            return agents
+        
+        # Parse top-level agents
+        parent_config = {
+            'default_model_id': default_model_id,
+            'tools_dirs': tools_dirs,
+            'mcp_tools_dirs': mcp_tools_dirs,
+            'memory_dir': memory_dir,
+            'system_prompt': system_prompt,
+            'checkpoint_interval': checkpoint_interval,
+            'summary_threshold_ratio': summary_threshold_ratio,
+            'tool_config': tool_config,
+            'provider_config': provider_config,
+            'remote_mcp_servers': remote_mcp_servers,
+            'enabled_tools': enabled_tools,
+            'disabled_tools': disabled_tools
+        }
+        agents = parse_agents_recursive(agents_data, parent_config)
 
         # Validate required fields
         if not tools_dirs or not mcp_tools_dirs or not memory_dir or not default_model_id:
@@ -170,7 +233,7 @@ class Config:
                            "and 'default_model_id' fields")
             
         # For now, return a Config without llm_providers, which should be initialized
-        # by the Engine class after loading providers using the provider_config
+        # by the Agent class after loading providers using the provider_config
         conf = Config(
             default_model_id=default_model_id,
             tools_dirs=tools_dirs,
@@ -183,8 +246,14 @@ class Config:
             provider_config=MappingProxyType(provider_config),
             remote_mcp_servers=remote_mcp_servers,
             enabled_tools=enabled_tools,
-            disabled_tools=disabled_tools
+            disabled_tools=disabled_tools,
+            system_prompt=system_prompt,
+            agents=agents,
+            name=name,
+            description=description
         )
 
         conf.invariant()
         return conf
+
+

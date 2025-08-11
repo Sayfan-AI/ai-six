@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from backend.engine.config import ToolConfig, Config
-from backend.engine.tool_manager import _filter_tools, get_tool_dict
+from backend.agent.config import ToolConfig, Config
+from backend.agent.tool_manager import _filter_tools, get_tool_dict
 from backend.object_model.tool import Tool
 
 
@@ -137,7 +137,7 @@ class TestToolConfigValidation(unittest.TestCase):
                 enabled_tools=["tool_a"],
                 disabled_tools=["tool_b"]
             )
-        self.assertIn("At least one of enabled_tools or disabled_tools must be None", str(context.exception))
+        self.assertIn("You can only have one of enabled_tools or disabled_tools", str(context.exception))
 
 
 class TestConfigValidation(unittest.TestCase):
@@ -207,7 +207,7 @@ class TestConfigValidation(unittest.TestCase):
         with unittest.mock.patch('os.path.isdir', return_value=True):
             with self.assertRaises(ValueError) as context:
                 config.invariant()
-            self.assertIn("At least one of enabled_tools or disabled_tools must be None", str(context.exception))
+            self.assertIn("You can only have one of enabled_tools or disabled_tools", str(context.exception))
 
 
 if __name__ == '__main__':

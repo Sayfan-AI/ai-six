@@ -5,19 +5,19 @@ from unittest.mock import MagicMock, patch
 from dataclasses import asdict
 
 from backend.object_model import Usage, UserMessage, AssistantMessage
-from backend.tests.memory.mock_engine import create_mock_engine, cleanup_mock_engine
+from backend.tests.memory.mock_agent import create_mock_agent, cleanup_mock_agent
 
 
 class TestSummarizationIntegration(unittest.TestCase):
     def setUp(self):
-        # Create a mock engine setup with a small context window for testing
-        self.mock_data = create_mock_engine(checkpoint_interval=2)
-        self.engine = self.mock_data["engine"]
+        # Create a mock agent setup with a small context window for testing
+        self.mock_data = create_mock_agent(checkpoint_interval=2)
+        self.agent = self.mock_data["agent"]
         self.llm_provider = self.mock_data["provider"]
         self.test_dir = self.mock_data["config"].memory_dir
         
         # Patch the _append_to_detailed_log method to avoid JSON serialization issues
-        self.append_patcher = patch.object(self.engine, '_append_to_detailed_log')
+        self.append_patcher = patch.object(self.agent, '_append_to_detailed_log')
         self.mock_append = self.append_patcher.start()
         self.mock_append.return_value = None
         
@@ -25,8 +25,8 @@ class TestSummarizationIntegration(unittest.TestCase):
         # Stop the append patcher
         self.append_patcher.stop()
         
-        # Clean up the mock engine resources
-        cleanup_mock_engine(self.mock_data)
+        # Clean up the mock agent resources
+        cleanup_mock_agent(self.mock_data)
         
     def test_direct_summarization(self):
         """Test direct summarization without relying on send_message."""
@@ -39,33 +39,33 @@ class TestSummarizationIntegration(unittest.TestCase):
         )
         
         # Add messages directly to the session
-        self.engine.session.add_message(UserMessage(content="Hello!"))
+        self.agent.session.add_message(UserMessage(content="Hello!"))
         
-        self.engine.session.add_message(AssistantMessage(
+        self.agent.session.add_message(AssistantMessage(
             content="Hi there!",
             usage=Usage(input_tokens=200, output_tokens=200)
         ))
         
-        self.engine.session.add_message(UserMessage(content="How are you?"))
+        self.agent.session.add_message(UserMessage(content="How are you?"))
         
-        self.engine.session.add_message(AssistantMessage(
+        self.agent.session.add_message(AssistantMessage(
             content="I'm doing well, thanks for asking!",
             usage=Usage(input_tokens=0, output_tokens=200)
         ))
         
         # Save the original session ID for verification
-        original_session_id = self.engine.session.session_id
+        original_session_id = self.agent.session.session_id
         
         # Now directly call the summarize method
-        old_messages = list(self.engine.session.messages)  # Save for verification
-        self.engine._summarize_and_reset_session()
+        old_messages = list(self.agent.session.messages)  # Save for verification
+        self.agent._summarize_and_reset_session()
         
         # After summarization, we should have a new session with a system message containing the summary
-        self.assertGreaterEqual(len(self.engine.session.messages), 1)
+        self.assertGreaterEqual(len(self.agent.session.messages), 1)
         
         # Verify that the summary message has been created
-        self.assertEqual(self.engine.session.messages[0].role, "system")
-        self.assertIn("summary", self.engine.session.messages[0].content.lower())
+        self.assertEqual(self.agent.session.messages[0].role, "system")
+        self.assertIn("summary", self.agent.session.messages[0].content.lower())
         
         # Verify _append_to_detailed_log was called with the right session ID and summary
         self.mock_append.assert_called_once()
@@ -83,30 +83,30 @@ class TestSummarizationIntegration(unittest.TestCase):
         )
         
         # Add messages directly to the session to simulate streaming
-        self.engine.session.add_message(UserMessage(content="Let's stream some data!"))
+        self.agent.session.add_message(UserMessage(content="Let's stream some data!"))
         
-        self.engine.session.add_message(AssistantMessage(
+        self.agent.session.add_message(AssistantMessage(
             content="I'm streaming a response to you.",
             usage=Usage(input_tokens=200, output_tokens=200)
         ))
         
-        self.engine.session.add_message(UserMessage(content="This is a large message that should trigger summarization."))
+        self.agent.session.add_message(UserMessage(content="This is a large message that should trigger summarization."))
         
-        self.engine.session.add_message(AssistantMessage(
+        self.agent.session.add_message(AssistantMessage(
             content="Here's a streamed response with lots of tokens to trigger summarization.",
             usage=Usage(input_tokens=0, output_tokens=200)
         ))
         
         # Save the session ID and messages before summarization
-        old_session_id = self.engine.session.session_id
-        old_messages = list(self.engine.session.messages)
+        old_session_id = self.agent.session.session_id
+        old_messages = list(self.agent.session.messages)
         
         # Directly call the summarize method
-        self.engine._summarize_and_reset_session()
+        self.agent._summarize_and_reset_session()
         
         # Verify that the summary message has been created and is the first message
-        self.assertEqual(self.engine.session.messages[0].role, "system")
-        self.assertIn("summary", self.engine.session.messages[0].content.lower())
+        self.assertEqual(self.agent.session.messages[0].role, "system")
+        self.assertIn("summary", self.agent.session.messages[0].content.lower())
         
         # Verify _append_to_detailed_log was called with the right session ID and summary
         self.mock_append.assert_called_once()
@@ -116,23 +116,23 @@ class TestSummarizationIntegration(unittest.TestCase):
     def test_detailed_log_contents(self):
         """Test that the detailed log contains the expected information."""
         # Set up initial messages
-        self.engine.session.add_message(UserMessage(content="Hello"))
+        self.agent.session.add_message(UserMessage(content="Hello"))
         
-        self.engine.session.add_message(AssistantMessage(
+        self.agent.session.add_message(AssistantMessage(
             content="Hi there",
             usage=Usage(input_tokens=100, output_tokens=100)
         ))
         
-        self.engine.session.add_message(UserMessage(content="How does AI-6 work?"))
+        self.agent.session.add_message(UserMessage(content="How does AI-6 work?"))
         
-        self.engine.session.add_message(AssistantMessage(
+        self.agent.session.add_message(AssistantMessage(
             content="AI-6 is an agentic assistant...",
             usage=Usage(input_tokens=0, output_tokens=300)
         ))
         
         # Save the session to ensure it exists
-        original_session_id = self.engine.session.session_id
-        self.engine.session.save()
+        original_session_id = self.agent.session.session_id
+        self.agent.session.save()
         
         # Set up the mock response for summarization
         summary_text = "This conversation was about AI-6 and how it works."
@@ -144,25 +144,25 @@ class TestSummarizationIntegration(unittest.TestCase):
         def capture_log_data(session_id, summary):
             # Convert Message objects to dictionaries like the real implementation
             message_dicts = []
-            for msg in self.engine.session.messages:
+            for msg in self.agent.session.messages:
                 if isinstance(msg, dict):
                     message_dicts.append(msg)
                 else:
                     message_dicts.append(asdict(msg))
             
-            # Use the mocked context window size (1000) from the mock engine setup
+            # Use the mocked context window size (1000) from the mock agent setup
             self.detailed_log_data = dict(
                 session_id=session_id,
                 summary=summary,
                 messages=message_dicts,
-                token_count=self.engine.session.usage.input_tokens + self.engine.session.usage.output_tokens,
-                context_window_size=1000  # This matches the mocked value in create_mock_engine
+                token_count=self.agent.session.usage.input_tokens + self.agent.session.usage.output_tokens,
+                context_window_size=1000  # This matches the mocked value in create_mock_agent
             )
         
         self.mock_append.side_effect = capture_log_data
         
         # Perform summarization
-        self.engine._summarize_and_reset_session()
+        self.agent._summarize_and_reset_session()
         
         # Verify that our mock captured the detailed log data
         self.assertIsNotNone(self.detailed_log_data)

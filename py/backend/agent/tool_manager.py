@@ -8,14 +8,15 @@ from typing import Optional
 from backend.object_model.tool import Tool
 from backend.tools.base.mcp_tool import MCPTool
 from backend.mcp_client.mcp_client import MCPClient
-from backend.engine.config import ToolConfig
+from backend.agent.config import ToolConfig, Config
 
 
-def get_tool_dict(tool_config: ToolConfig) -> dict[str, Tool]:
+def get_tool_dict(tool_config: ToolConfig, agent_configs: list[Config] = None) -> dict[str, Tool]:
     """Get a dictionary of all available tools from various sources.
 
     Args:
         tool_config: ToolConfig object containing tool configuration
+        agent_configs: Optional list of agent configs to create agent tools
 
     Returns:
         Dict mapping tool names to Tool instances
@@ -42,7 +43,12 @@ def get_tool_dict(tool_config: ToolConfig) -> dict[str, Tool]:
         )
         tools.extend(remote_mcp_tools)
 
-    # 4. Filter tools based on enabled/disabled configuration
+    # 4. Create agent tools if agent configs provided
+    if agent_configs:
+        agent_tools = _create_agent_tools(agent_configs)
+        tools.extend(agent_tools)
+
+    # 5. Filter tools based on enabled/disabled configuration
     tools = _filter_tools(tools, tool_config.enabled_tools, tool_config.disabled_tools)
 
     return {tool.name: tool for tool in tools}
@@ -191,6 +197,32 @@ def _discover_local_mcp_tools(mcp_servers_dir: str) -> list[MCPTool]:
     except Exception as e:
         print(f"Warning: MCP tool discovery failed: {e}")
         return []
+
+
+def _create_agent_tools(agent_configs: list[Config]) -> list[Tool]:
+    """Create agent tools from agent configurations.
+    
+    Args:
+        agent_configs: List of agent configurations
+        
+    Returns:
+        List of AgentTool instances
+    """
+    tools: list[Tool] = []
+    
+    # Import here to avoid circular imports
+    from backend.object_model.agent_tool import AgentTool
+    
+    for agent_config in agent_configs:
+        try:
+            if agent_config.name:  # Only create tools for named agents
+                agent_tool = AgentTool(agent_config)
+                tools.append(agent_tool)
+        except Exception as e:
+            print(f"Warning: Failed to create agent tool for {agent_config.name}: {e}")
+            continue
+    
+    return tools
 
 
 def _get_remote_mcp_tools(remote_servers: list[dict]) -> list[Tool]:

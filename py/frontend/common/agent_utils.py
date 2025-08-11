@@ -1,7 +1,7 @@
 """
-Common utilities for frontend Engine initialization and management.
+Common utilities for frontend Agent initialization and management.
 
-This module provides helpers for creating and managing Engine instances
+This module provides helpers for creating and managing Agent instances
 across different frontends (CLI, Chainlit, Slack, etc.).
 """
 
@@ -10,16 +10,16 @@ from pathlib import Path
 from typing import Optional, Tuple
 from dotenv import load_dotenv
 
-from backend.engine.config import Config
-from backend.engine.engine import Engine
+from backend.agent.config import Config
+from backend.agent.agent import Agent
 
 
 def create_from_config(
     config_path: str, 
     session_id: Optional[str] = None,
     env_file_path: Optional[str] = None
-) -> Tuple[Engine, Config]:
-    """Create an Engine instance from a configuration file.
+) -> Tuple[Agent, Config]:
+    """Create an Agent instance from a configuration file.
     
     Args:
         config_path: Path to the configuration file (JSON, YAML, or TOML)
@@ -28,7 +28,7 @@ def create_from_config(
         
     Returns:
         A tuple containing (engine, config) where engine is the initialized
-        Engine instance and config is the loaded Config object.
+        Agent instance and config is the loaded Config object.
     """
     # Load environment variables from .env file if provided
     if env_file_path and os.path.exists(env_file_path):
@@ -44,7 +44,7 @@ def create_from_config(
     memory_dir.mkdir(parents=True, exist_ok=True)
     
     # Create the engine from the configuration
-    engine = Engine.from_config_file(config_path)
+    engine = Agent.from_config_file(config_path)
     
     # Load session if provided
     if session_id:
