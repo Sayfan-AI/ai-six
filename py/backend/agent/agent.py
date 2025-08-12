@@ -124,7 +124,7 @@ class Agent:
         return cls(config)
 
     @staticmethod
-    def discover_llm_providers(llm_providers_dir: str, provider_config: Dict[str, Any]) -> List[LLMProvider]:
+    def discover_llm_providers(llm_providers_dir: str, provider_config: Dict[str, dict[str, dict]]) -> List[LLMProvider]:
         providers = []
 
         base_path = Path(
@@ -173,8 +173,6 @@ class Agent:
                             # Get configuration for this provider type
                             provider_type = name.lower().replace("provider", "")
                             conf = provider_config.get(provider_type, {})
-                            if not conf:
-                                continue
 
                             # Instantiate provider with configuration
                             provider = clazz(**conf)

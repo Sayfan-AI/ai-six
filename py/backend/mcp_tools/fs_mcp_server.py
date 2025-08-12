@@ -17,7 +17,7 @@ def cat(args: str) -> str:
     return sh.cat(*parsed_args)
 
 @mcp.tool()
-def pwd(args: str) -> str:
+def pwd(args: str = "") -> str:
     """pwd tool. See https://www.gnu.org/software/coreutils/manual/html_node/pwd-invocation.html"""
     parsed_args = shlex.split(args) if args.strip() else []
     return sh.pwd(*parsed_args)

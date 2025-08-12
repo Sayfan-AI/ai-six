@@ -1,5 +1,6 @@
 import json
 from dataclasses import asdict
+from typing import Iterator
 
 from backend.object_model import LLMProvider, ToolCall, Usage, Tool, AssistantMessage, Message
 import ollama
@@ -7,6 +8,7 @@ import ollama
 class OllamaProvider(LLMProvider):
     def __init__(self, model: str):
         self.model = model
+
 
     @staticmethod
     def _tool2dict(tool: Tool) -> dict:
@@ -30,6 +32,18 @@ class OllamaProvider(LLMProvider):
         }
 
     @staticmethod
+    def _tool_call2dict(tool_call: ToolCall) -> dict:
+        """Convert a ToolCall to Ollama API format."""
+        return {
+            "id": tool_call.id,
+            "type": "function",
+            "function": {
+                "name": tool_call.name,
+                "arguments": json.loads(tool_call.arguments) if isinstance(tool_call.arguments, str) else tool_call.arguments
+            }
+        }
+
+    @staticmethod
     def _fix_tool_call_arguments(messages):
         for message in messages:
             tool_calls = message.get("tool_calls")
@@ -49,17 +63,26 @@ class OllamaProvider(LLMProvider):
         if model is None:
             model = self.model
 
-        tool_data = [tool.run for tool in tool_dict.values()] + [self._tool2dict(tool) for tool in tool_dict.values()]
+        tool_data = [self._tool2dict(tool) for tool in tool_dict.values()]
 
         # Convert Message objects to dictionaries for Ollama API
-        message_dicts = [asdict(msg) for msg in messages]
+        message_dicts = []
+        for msg in messages:
+            msg_dict = asdict(msg)
+            # Convert tool_calls to Ollama format if present
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                msg_dict['tool_calls'] = [self._tool_call2dict(tc) for tc in msg.tool_calls]
+            message_dicts.append(msg_dict)
         
         OllamaProvider._fix_tool_call_arguments(message_dicts)
-        response: ollama.ChatResponse = ollama.chat(
-            model,
-            messages=message_dicts,
-            tools=tool_data
-        )
+        try:
+            response: ollama.ChatResponse = ollama.chat(
+                model,
+                messages=message_dicts,
+                tools=tool_data
+            )
+        except Exception as e:
+            raise
 
         tool_calls = response.message.tool_calls or []
 
@@ -74,9 +97,9 @@ class OllamaProvider(LLMProvider):
                 ToolCall(
                     id=tool_call.function.name,
                     name=tool_call.function.name,
-                    arguments=json.dumps(tool_call.function.arguments),
+                    arguments=json.dumps(tool_call.function.arguments or {}),
                     required=list(tool_dict[tool_call.function.name].required)
-                ) for tool_call in tool_calls if tool_call
+                ) for tool_call in tool_calls if tool_call and tool_call.function
             ] if tool_calls else None,
             usage=Usage(
                 input_tokens=input_tokens,
@@ -87,4 +110,4 @@ class OllamaProvider(LLMProvider):
 
     def models(self) -> list[str]:
         """Get the list of available models."""
-        return [self.model]
+        return [m.model for m in ollama.list().models]

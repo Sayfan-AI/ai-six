@@ -2,7 +2,7 @@ import os
 import argparse
 import pathology.path
 
-from ..common import engine_utils
+from frontend.common import agent_utils
 
 script_dir = pathology.path.Path.script_dir()
 stream_mode = True
@@ -53,8 +53,8 @@ def main():
             print(f"Using .env file from {env_file_path}")
 
     try:
-        # Create engine from configuration, optionally loading a session
-        engine, config = engine_utils.create_from_config(
+        # Create agent from configuration, optionally loading a session
+        agent, config = agent_utils.create_from_config(
             config_path,
             session_id=args.session,
             env_file_path=env_file_path
@@ -64,7 +64,7 @@ def main():
 
     # Handle --list argument
     if args.list:
-        sessions = engine.list_sessions()
+        sessions = agent.list_sessions()
         if sessions:
             for session_id in sessions:
                 print(f"Session ID: {session_id}, Title: {sessions[session_id]['title']}")
@@ -78,19 +78,19 @@ def main():
     try:
         while user_input := get_user_input():
             print("🤖 [AI-6]:", end=' ', flush=True)
-            method  = engine.stream_message
+            method  = agent.stream_message
 
             if stream_mode:
                 method(
                     user_input,
-                    engine.default_model_id,
+                    agent.default_model_id,
                     on_chunk_func=handle_chunk,
                     on_tool_call_func=handle_tool_call
                 )
             else:
-                response = engine.send_message(
+                response = agent.send_message(
                     user_input,
-                    engine.default_model_id,
+                    agent.default_model_id,
                     on_tool_call_func=handle_tool_call
                 )
                 print(f"{response}")
@@ -99,7 +99,7 @@ def main():
 
     finally:
         # Save the session when we're done
-        print(f"Session saved with ID: {engine.get_session_id()}")
+        print(f"Session saved with ID: {agent.get_session_id()}")
 
 if __name__ == '__main__':
     main()

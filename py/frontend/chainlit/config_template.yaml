@@ -1,5 +1,5 @@
 # AI-6 Chainlit Configuration File
-default_model_id: "gpt-5"
+default_model_id: "gpt-oss:20b"
 tools_dirs: ["${HOME}/git/ai-six/py/backend/tools"]
 mcp_tools_dirs: ["${HOME}/git/ai-six/py/backend/mcp_tools"]
 memory_dir: "${HOME}/git/ai-six/memory/chainlit"

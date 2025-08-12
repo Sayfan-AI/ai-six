@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import importlib.util
 import inspect
-from typing import Optional
+from typing import Optional, Mapping
 
 from backend.object_model.tool import Tool
 from backend.tools.base.mcp_tool import MCPTool
@@ -87,7 +87,7 @@ def _filter_tools(tools: list[Tool], enabled_tools: Optional[list[str]], disable
     return filtered_tools
 
 
-def _discover_native_tools(tools_dir: str, tool_config: dict) -> list[Tool]:
+def _discover_native_tools(tools_dir: str, tool_config: Mapping[str, dict]) -> list[Tool]:
     """Discover custom tools from the tools directory.
 
     Args:

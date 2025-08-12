@@ -66,24 +66,24 @@ ai6_channels = {}
 # Load configuration from TOML file
 config_path = str((script_dir / 'config.toml').resolve())
 
-# Initialize engines with separate session storage per channel
-engines = {}
+# Initialize agents with separate session storage per channel
+agents = {}
 
-def get_or_create_engine(channel_id):
-    """Get an existing engine for a channel or create a new one."""
-    if channel_id not in engines:
-        # Create a channel-specific engine using the Slack utility function
-        engines[channel_id] = utils.create_channel_engine(
+def get_or_create_agent(channel_id):
+    """Get an existing agent for a channel or create a new one."""
+    if channel_id not in agents:
+        # Create a channel-specific agent using the Slack utility function
+        agents[channel_id] = utils.create_channel_agent(
             base_config_path=config_path,
             channel_id=channel_id,
             env_file_path=env_file_path
         )
 
-    return engines[channel_id]
+    return agents[channel_id]
 
 
 def handle_tool_call(client, channel, name, args, result):
-    """Handle a tool call from the AI-6 engine."""
+    """Handle a tool call from the AI-6 agent."""
     # Post the tool call result as a message
     try:
         client.chat_postMessage(
@@ -114,12 +114,12 @@ def handle_message(message, say, ack, client):
     if not mention_bot and not ai6_channel:
         return
 
-    engine = get_or_create_engine(channel_id)
+    agent = get_or_create_agent(channel_id)
     
     # Create a tool call handler for this channel
     channel_tool_call_handler = partial(handle_tool_call, client, channel_id)
     
-    # Process the message with the AI-6 engine
+    # Process the message with the AI-6 agent
     try:
         if cli_args.streaming_mode:
             # Streaming mode
@@ -147,18 +147,18 @@ def handle_message(message, say, ack, client):
                 except SlackApiError as e:
                     print(f"Error updating message: {e}")
         
-            # Stream the message to the AI-6 engine
-            response = engine.stream_message(
+            # Stream the message to the AI-6 agent
+            response = agent.stream_message(
                 text, 
-                engine.default_model_id, 
+                agent.default_model_id, 
                 on_chunk_func=handle_chunk,
                 on_tool_call_func=channel_tool_call_handler
             )
         else:
             # Non-streaming mode
-            response = engine.send_message(
+            response = agent.send_message(
                 text,
-                engine.default_model_id, 
+                agent.default_model_id, 
                 channel_tool_call_handler
             )
             

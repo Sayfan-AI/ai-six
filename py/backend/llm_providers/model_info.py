@@ -41,6 +41,11 @@ model_info = {
     },
     
     # OpenAI OSS models
+    "gpt-oss:20b": {
+        "context_window_size": 128000,
+        "provider": "ollama", 
+        "description": "GPT-OSS 20B - Open source GPT model"
+    },
     "gpt-oss:120b": {
         "context_window_size": 128000,
         "provider": "ollama", 

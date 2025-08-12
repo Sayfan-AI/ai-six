@@ -27,7 +27,7 @@ def create_from_config(
         env_file_path: Optional path to a .env file to load environment variables from
         
     Returns:
-        A tuple containing (engine, config) where engine is the initialized
+        A tuple containing (agent, config) where agent is the initialized
         Agent instance and config is the loaded Config object.
     """
     # Load environment variables from .env file if provided
@@ -43,12 +43,12 @@ def create_from_config(
     memory_dir = Path(config.memory_dir)
     memory_dir.mkdir(parents=True, exist_ok=True)
     
-    # Create the engine from the configuration
-    engine = Agent.from_config_file(config_path)
+    # Create the agent from the configuration
+    agent = Agent.from_config_file(config_path)
     
     # Load session if provided
     if session_id:
-        if not engine.load_session(session_id):
+        if not agent.load_session(session_id):
             raise ValueError(f"Session ID not found: {session_id}")
     
-    return engine, config
+    return agent, config

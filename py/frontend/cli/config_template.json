@@ -7,7 +7,6 @@
   "provider_config": {
     "openai": {
       "api_key": "${OPENAI_API_KEY}",
-      "default_model": "gpt-4o"
     },
     "ollama": {
       "model": "qwen2.5-coder:32b"

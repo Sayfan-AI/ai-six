@@ -19,7 +19,7 @@ def create_channel_agent(
     channel_id: str,
     base_memory_dir: Optional[str] = None,
     env_file_path: Optional[str] = None
-) -> Engine:
+) -> Agent:
     """Create an Engine instance for a specific Slack channel.
     
     Args:

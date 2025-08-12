@@ -2,12 +2,16 @@ import argparse
 import sys
 from types import SimpleNamespace
 
+# Fix engineio packet limit before importing chainlit
+from engineio.payload import Payload
+Payload.max_decode_packets = 500
+
 import chainlit as cl
 from chainlit.cli import run_chainlit
 
 import pathology.path
 
-from frontend.common import engine_utils
+from frontend.common import agent_utils
 
 # Parse command-line arguments
 def parse_args():
@@ -41,17 +45,17 @@ cli_args = parse_args()
 
 script_dir = pathology.path.Path.script_dir()
 
-# Load the engine from YAML configuration
+# Load the agent from YAML configuration
 config_path = str((script_dir / "config.yaml").resolve())
 
-# Create engine from configuration file
+# Create agent from configuration file
 # Environment variables will be automatically interpolated by Config.from_file
-engine, engine_config = engine_utils.create_from_config(config_path)
+agent, agent_config = agent_utils.create_from_config(config_path)
 
 app_config = SimpleNamespace(
-    selected_model=engine.default_model_id,
-    available_models=list(engine.model_provider_map.keys()),
-    enabled_tools={tool: True for tool in engine.tool_dict},
+    selected_model=agent.default_model_id,
+    available_models=list(agent.model_provider_map.keys()),
+    enabled_tools={tool: True for tool in agent.tool_dict},
     use_streaming=cli_args.streaming_mode,
 )
 
@@ -112,7 +116,7 @@ async def on_message(message: cl.Message):
 
         # Stream the response
         try:
-            engine.stream_message(
+            agent.stream_message(
                 message.content,
                 app_config.selected_model,
                 on_chunk_func=lambda chunk: cl.run_sync(on_chunk(chunk)),
@@ -125,14 +129,14 @@ async def on_message(message: cl.Message):
     else:
         # Non-streaming mode
         try:
-            # Temporarily filter tools in the engine for non-streaming
-            original_tool_dict = engine.tool_dict
+            # Temporarily filter tools in the agent for non-streaming
+            original_tool_dict = agent.tool_dict
             if enabled_tool_ids:
-                engine.tool_dict = {
-                    k: v for k, v in engine.tool_dict.items() if k in enabled_tool_ids
+                agent.tool_dict = {
+                    k: v for k, v in agent.tool_dict.items() if k in enabled_tool_ids
                 }
             
-            response = engine.send_message(
+            response = agent.send_message(
                 message.content,
                 app_config.selected_model,
                 None,  # on_tool_call_func
@@ -143,7 +147,7 @@ async def on_message(message: cl.Message):
             await cl.Message(content=f"Error: {str(e)}").send()
         finally:
             # Restore original tool dict
-            engine.tool_dict = original_tool_dict
+            agent.tool_dict = original_tool_dict
 
 
 if __name__ == "__main__":
