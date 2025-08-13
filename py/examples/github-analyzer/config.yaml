@@ -9,10 +9,7 @@ provider_config:
   openai:
     api_key: ${OPENAI_API_KEY}
   ollama:
-    model: qwen2.5-coder:32b
-tool_config:
-  claude:
-    api_key: ${ANTHROPIC_API_KEY}
+      model: qwen2.5-coder:32b
 enabled_tools:
   - gh
 system_prompt: |

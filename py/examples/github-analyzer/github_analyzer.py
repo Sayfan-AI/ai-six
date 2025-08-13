@@ -12,6 +12,9 @@ import json
 from pathlib import Path
 
 # Add the backend modules to the path
+# Go up two directories from examples/github-analyzer to reach the 'py' directory  
+py_directory = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(py_directory))
 
 from backend.agent.agent import Agent
 
@@ -28,8 +31,9 @@ def main():
     agent = Agent.from_config_file(config_path)
     
     # Start the analysis
-    print(f"🔍 Starting GitHub analysis for user: {username}")
-    print("=" * 60)
+    title = f"🔍 Starting GitHub analysis for user: {username}"
+    print(title)
+    print("=" * len(title))
     
     # Send the initial analysis request
     response = agent.send_message(f"Analyze the GitHub user '{username}' and provide a comprehensive activity report.")
