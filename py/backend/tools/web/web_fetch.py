@@ -18,10 +18,14 @@ class CacheManager:
         self.content_dir = self.downloads_dir / "content"
         self.metadata_dir = self.downloads_dir / "metadata"
         self.url_index_file = self.downloads_dir / "url_index.json"
-        
-        # Create directories
-        self.content_dir.mkdir(parents=True, exist_ok=True)
-        self.metadata_dir.mkdir(parents=True, exist_ok=True)
+        self._directories_created = False
+    
+    def _ensure_directories(self):
+        """Create directories if they don't exist yet."""
+        if not self._directories_created:
+            self.content_dir.mkdir(parents=True, exist_ok=True)
+            self.metadata_dir.mkdir(parents=True, exist_ok=True)
+            self._directories_created = True
     
     def get_url_hash(self, url: str) -> str:
         """Generate a hash for the URL to use as filename."""
@@ -43,6 +47,7 @@ class CacheManager:
     
     def save_url_index(self, index: Dict[str, str]):
         """Save the URL to file hash mapping."""
+        self._ensure_directories()
         with open(self.url_index_file, 'w') as f:
             json.dump(index, f, indent=2)
     
@@ -70,6 +75,7 @@ class CacheManager:
     
     def save_content(self, url: str, content: bytes, metadata: Dict[str, Any]) -> str:
         """Save content and metadata, return file path."""
+        self._ensure_directories()
         content_hash = self.get_content_hash(content)
         
         # Determine file extension

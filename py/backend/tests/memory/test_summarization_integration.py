@@ -5,7 +5,10 @@ from unittest.mock import MagicMock, patch
 from dataclasses import asdict
 
 from backend.object_model import Usage, UserMessage, AssistantMessage
-from backend.tests.memory.mock_agent import create_mock_agent, cleanup_mock_agent
+try:
+    from backend.tests.memory.mock_agent import create_mock_agent, cleanup_mock_agent
+except ImportError:
+    from .mock_agent import create_mock_agent, cleanup_mock_agent
 
 
 class TestSummarizationIntegration(unittest.TestCase):

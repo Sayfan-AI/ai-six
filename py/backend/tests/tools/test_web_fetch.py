@@ -20,9 +20,32 @@ class TestCacheManager(unittest.TestCase):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
     def test_initialization(self):
-        """Test cache manager initializes directories correctly."""
+        """Test cache manager initializes paths correctly but doesn't create directories until needed."""
+        # Directories should not exist yet
+        assert not self.cache_manager.content_dir.exists()
+        assert not self.cache_manager.metadata_dir.exists()
+        
+        # But paths should be set correctly
+        assert self.cache_manager.content_dir == Path(self.temp_dir) / "content"
+        assert self.cache_manager.metadata_dir == Path(self.temp_dir) / "metadata"
+    
+    def test_lazy_directory_creation(self):
+        """Test that directories are created only when needed."""
+        # Initially directories don't exist
+        assert not self.cache_manager.content_dir.exists()
+        assert not self.cache_manager.metadata_dir.exists()
+        
+        # Save some content - this should trigger directory creation
+        url = "https://example.com/test.html"
+        content = b"<html><body>Test</body></html>"
+        metadata = {"content_type": "text/html"}
+        
+        file_path = self.cache_manager.save_content(url, content, metadata)
+        
+        # Now directories should exist
         assert self.cache_manager.content_dir.exists()
         assert self.cache_manager.metadata_dir.exists()
+        assert os.path.exists(file_path)
     
     def test_url_hashing(self):
         """Test URL hashing is consistent."""

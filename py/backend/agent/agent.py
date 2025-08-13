@@ -451,14 +451,14 @@ class Agent:
     def send_message(
             self,
             message: str,
-            model_id: str,
+            model_id: str | None = None,
             on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None,
     ) -> str:
         """Send a single message and get a response."""
         user_message = UserMessage(content=message)
         self.session.add_message(user_message)
         self._checkpoint_if_needed()
-
+        model_id = model_id or self.default_model_id
         response = self._send(model_id, on_tool_call_func)
         assistant_message = AssistantMessage(content=response)
         self.session.add_message(assistant_message)

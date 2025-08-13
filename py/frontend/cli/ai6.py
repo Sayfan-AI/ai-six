@@ -34,8 +34,8 @@ def main():
     parser.add_argument('--session', '-s', type=str, help='Session ID to load')
     parser.add_argument('--list', '-l', action='store_true', help='List available sessions')
     parser.add_argument('--config', '-c', type=str,
-                        default=str((script_dir / 'config.json').resolve()),
-                        help='Path to config file (default: config.json)')
+                        default=str((script_dir / 'config.yaml').resolve()),
+                        help='Path to config file (default: config.yaml)')
     parser.add_argument('--env', '-e', type=str,
                         help='Path to .env file for environment variables')
     args = parser.parse_args()

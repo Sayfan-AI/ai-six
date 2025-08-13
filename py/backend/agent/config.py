@@ -68,6 +68,7 @@ class Config:
     def invariant(self) -> None:
         # Validate required directories
         assert self.default_model_id, "default_model_id must be set"
+
         assert self.memory_dir and os.path.isdir(self.memory_dir), f"Memory directory not found: {self.memory_dir}"
         
         # Validate all tools directories exist
@@ -253,6 +254,7 @@ class Config:
             description=description
         )
 
+        os.makedirs(conf.memory_dir, exist_ok=True)# Validate the configuration
         conf.invariant()
         return conf
 
