@@ -11,3 +11,4 @@ toml
 debugpy
 anthropic
 requests
+a2a-sdk[http-server]

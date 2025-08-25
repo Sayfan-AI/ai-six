@@ -1,0 +1,27 @@
+default_model_id: gpt-4o
+tools_dirs:
+  - ${HOME}/git/ai-six/py/backend/tools
+mcp_tools_dirs:
+  - ${HOME}/git/ai-six/py/backend/mcp_tools
+memory_dir: ${HOME}/git/ai-six/memory/a2a-test
+checkpoint_interval: 3
+provider_config:
+  openai:
+    api_key: ${OPENAI_API_KEY}
+  ollama:
+      model: qwen2.5-coder:32b
+a2a_servers:
+  - name: kind-k8s-ai
+    url: http://localhost:9999
+    timeout: 30.0
+enabled_tools:
+  - kind-k8s-ai_kubectl_operations
+system_prompt: |
+  You are an AI assistant with access to Kubernetes operations through A2A agents.
+  
+  You can help with:
+  1. Listing pods in the cluster
+  2. Describing specific pods
+  3. General Kubernetes cluster information
+  
+  Use the available A2A tools to interact with the Kubernetes cluster and provide helpful information.

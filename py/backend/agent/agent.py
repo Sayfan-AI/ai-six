@@ -20,6 +20,12 @@ from backend.tools.memory.get_session_id import GetSessionId
 from backend.tools.memory.delete_session import DeleteSession
 from backend.agent.summarizer import Summarizer
 from backend.llm_providers.model_info import get_context_window_size
+from backend.a2a_client.a2a_message_pump import A2AMessagePump
+from backend.a2a_client.a2a_client import A2AClient
+from backend.tools.base.a2a_tool import A2ATool
+from backend.tools.base.a2a_task_tools import (
+    A2ATaskListTool, A2ATaskCancelTool, A2ATaskMessageTool, A2ATaskStatusTool
+)
 
 
 def generate_tool_call_id(original_id: Optional[str] = None) -> str:
@@ -85,9 +91,14 @@ class Agent:
         tool_config = ToolConfig.from_agent_config(config)
         self.tool_dict = tool_manager.get_tool_dict(tool_config, self._agent_configs)
 
-        # Initialize session and session manager
+        # Initialize session and session manager first
         self.session_manager = SessionManager(config.memory_dir)
         self.session = self._create_new_session(config.memory_dir)
+        
+        # Initialize A2A message pump if A2A servers are configured (after session)
+        self.a2a_message_pump = None
+        if tool_config.a2a_servers:
+            self._initialize_a2a_pump(config)
 
         # Session-related attributes
         self.checkpoint_interval = config.checkpoint_interval
@@ -208,6 +219,45 @@ class Agent:
         self.tool_dict[load_session_tool.name] = load_session_tool
         self.tool_dict[get_session_id_tool.name] = get_session_id_tool
         self.tool_dict[delete_session_tool.name] = delete_session_tool
+
+    def _initialize_a2a_pump(self, config: Config) -> None:
+        """Initialize the A2A message pump and integrate with session."""
+        # Create message pump
+        self.a2a_message_pump = A2AMessagePump(
+            memory_dir=config.memory_dir,
+            session_id=self.session.session_id
+        )
+
+        # Set up message injection callback
+        def inject_system_message(message: SystemMessage):
+            """Inject A2A interim messages into session."""
+            self.session.add_message(message)
+
+        self.a2a_message_pump.set_message_injector(inject_system_message)
+
+        # Set up A2A client and copy discovered agents from A2ATools
+        a2a_client = A2AClient()
+
+        # Transfer discovered agents from A2A tools
+        if hasattr(A2ATool, '_client') and A2ATool._client:
+            a2a_client._agent_cards = A2ATool._client._agent_cards.copy()
+            a2a_client._clients = A2ATool._client._clients.copy()
+
+        self.a2a_message_pump.set_a2a_client(a2a_client)
+
+        # Configure A2A tools to use the message pump
+        A2ATool.set_message_pump(self.a2a_message_pump)
+
+        # Add A2A task management tools
+        task_list_tool = A2ATaskListTool(self.a2a_message_pump)
+        task_cancel_tool = A2ATaskCancelTool(self.a2a_message_pump)
+        task_message_tool = A2ATaskMessageTool(self.a2a_message_pump)
+        task_status_tool = A2ATaskStatusTool(self.a2a_message_pump)
+
+        self.tool_dict[task_list_tool.name] = task_list_tool
+        self.tool_dict[task_cancel_tool.name] = task_cancel_tool
+        self.tool_dict[task_message_tool.name] = task_message_tool
+        self.tool_dict[task_status_tool.name] = task_status_tool
 
     def _execute_tools(self, tool_calls: List[ToolCall], on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None) -> Tuple[List[ToolCall], List[ToolMessage]]:
         """

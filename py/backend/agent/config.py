@@ -22,6 +22,9 @@ class ToolConfig:
     # Remote MCP servers configuration
     remote_mcp_servers: list = field(default_factory=list)
     
+    # A2A servers configuration
+    a2a_servers: list = field(default_factory=list)
+    
     # Tool filtering configuration
     enabled_tools: Optional[List[str]] = None
     disabled_tools: Optional[List[str]] = None
@@ -40,6 +43,7 @@ class ToolConfig:
             tool_config=getattr(agent_config, 'tool_config', {}),
             mcp_tools_dirs=getattr(agent_config, 'mcp_tools_dirs', []),
             remote_mcp_servers=getattr(agent_config, 'remote_mcp_servers', []),
+            a2a_servers=getattr(agent_config, 'a2a_servers', []),
             enabled_tools=getattr(agent_config, 'enabled_tools', None),
             disabled_tools=getattr(agent_config, 'disabled_tools', None)
         )
@@ -57,6 +61,7 @@ class Config:
     tool_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     provider_config: Mapping[str, dict] = field(default_factory=lambda: MappingProxyType({}))
     remote_mcp_servers: list = field(default_factory=list)
+    a2a_servers: list = field(default_factory=list)
     enabled_tools: Optional[List[str]] = None
     disabled_tools: Optional[List[str]] = None
     system_prompt: Optional[str] = None
@@ -166,6 +171,7 @@ class Config:
         tool_config = config_data.get('tool_config', {})
         provider_config = config_data.get('provider_config', {})
         remote_mcp_servers = config_data.get('remote_mcp_servers', [])
+        a2a_servers = config_data.get('a2a_servers', [])
         enabled_tools = config_data.get('enabled_tools')
         disabled_tools = config_data.get('disabled_tools')
         system_prompt = config_data.get('system_prompt')
@@ -191,6 +197,7 @@ class Config:
                     tool_config=MappingProxyType(agent_data.get('tool_config', parent_config['tool_config'])),
                     provider_config=MappingProxyType(agent_data.get('provider_config', parent_config['provider_config'])),
                     remote_mcp_servers=agent_data.get('remote_mcp_servers', parent_config['remote_mcp_servers']),
+                    a2a_servers=agent_data.get('a2a_servers', parent_config['a2a_servers']),
                     enabled_tools=agent_data.get('enabled_tools', parent_config['enabled_tools']),
                     disabled_tools=agent_data.get('disabled_tools', parent_config['disabled_tools']),
                     agents=parse_agents_recursive(agent_data.get('agents', []), {
@@ -204,6 +211,7 @@ class Config:
                         'tool_config': agent_data.get('tool_config', parent_config['tool_config']),
                         'provider_config': agent_data.get('provider_config', parent_config['provider_config']),
                         'remote_mcp_servers': agent_data.get('remote_mcp_servers', parent_config['remote_mcp_servers']),
+                        'a2a_servers': agent_data.get('a2a_servers', parent_config['a2a_servers']),
                         'enabled_tools': agent_data.get('enabled_tools', parent_config['enabled_tools']),
                         'disabled_tools': agent_data.get('disabled_tools', parent_config['disabled_tools'])
                     })
@@ -223,6 +231,7 @@ class Config:
             'tool_config': tool_config,
             'provider_config': provider_config,
             'remote_mcp_servers': remote_mcp_servers,
+            'a2a_servers': a2a_servers,
             'enabled_tools': enabled_tools,
             'disabled_tools': disabled_tools
         }
@@ -246,6 +255,7 @@ class Config:
             tool_config=MappingProxyType(tool_config),
             provider_config=MappingProxyType(provider_config),
             remote_mcp_servers=remote_mcp_servers,
+            a2a_servers=a2a_servers,
             enabled_tools=enabled_tools,
             disabled_tools=disabled_tools,
             system_prompt=system_prompt,

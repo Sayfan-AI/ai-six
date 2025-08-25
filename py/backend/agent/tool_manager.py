@@ -43,12 +43,17 @@ def get_tool_dict(tool_config: ToolConfig, agent_configs: list[Config] = None) -
         )
         tools.extend(remote_mcp_tools)
 
-    # 4. Create agent tools if agent configs provided
+    # 4. Get tools from A2A servers
+    if tool_config.a2a_servers:
+        a2a_tools = _get_a2a_tools(tool_config.a2a_servers)
+        tools.extend(a2a_tools)
+
+    # 5. Create agent tools if agent configs provided
     if agent_configs:
         agent_tools = _create_agent_tools(agent_configs)
         tools.extend(agent_tools)
 
-    # 5. Filter tools based on enabled/disabled configuration
+    # 6. Filter tools based on enabled/disabled configuration
     tools = _filter_tools(tools, tool_config.enabled_tools, tool_config.disabled_tools)
 
     return {tool.name: tool for tool in tools}
@@ -126,7 +131,9 @@ def _discover_native_tools(tools_dir: str, tool_config: Mapping[str, dict]) -> l
                             and obj.__module__ == module_name
                     ):
                         # Skip base classes that require constructor arguments
-                        if obj.__name__ in ['MCPTool', 'CommandTool']:
+                        if obj.__name__ in ['MCPTool', 'CommandTool', 'A2ATool', 
+                                          'A2ATaskListTool', 'A2ATaskCancelTool', 
+                                          'A2ATaskMessageTool', 'A2ATaskStatusTool']:
                             continue
                             
                         # Check if tool is enabled in config
@@ -277,3 +284,78 @@ def _get_remote_mcp_tools(remote_servers: list[dict]) -> list[Tool]:
         return []
 
     return tools
+
+
+def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
+    """Connect to A2A servers and get their tools.
+
+    Args:
+        a2a_servers: List of A2A server configurations
+        Each server config should have: {'name': 'server_name', 'url': 'http://...'}
+
+    Returns:
+        List of A2ATool instances for A2A operations
+    """
+    tools: list[Tool] = []
+
+    async def discover_async():
+        # Import here to avoid circular imports and allow graceful failure
+        try:
+            from backend.a2a_client.a2a_client import A2AClient, A2AServerConfig
+            from backend.tools.base.a2a_tool import A2ATool
+        except ImportError:
+            print("Warning: A2A dependencies not available. Skipping A2A tool discovery.")
+            return []
+
+        client = A2AClient()
+        discovered_tools = []
+
+        try:
+            for server_config_dict in a2a_servers:
+                try:
+                    server_name = server_config_dict.get('name')
+                    server_url = server_config_dict.get('url')
+
+                    if not server_name or not server_url:
+                        print(f"Warning: A2A server config missing 'name' or 'url': {server_config_dict}")
+                        continue
+
+                    # Create A2A server configuration
+                    server_config = A2AServerConfig(
+                        name=server_name,
+                        url=server_url,
+                        timeout=server_config_dict.get('timeout', 30.0)
+                    )
+
+                    # Discover the agent and get its operations
+                    agent_card = await asyncio.wait_for(
+                        client.discover_agent(server_config),
+                        timeout=server_config.timeout
+                    )
+
+                    operations = await client.get_agent_operations(server_name)
+
+                    # Create A2ATool instances for each operation
+                    for operation in operations:
+                        try:
+                            a2a_tool = A2ATool(server_config, operation)
+                            discovered_tools.append(a2a_tool)
+                        except Exception as e:
+                            print(f"Warning: Failed to create A2A tool for operation {operation.get('name', 'unknown')}: {e}")
+                            continue
+
+                except Exception as e:
+                    print(f"Warning: Failed to discover A2A server {server_config_dict}: {e}")
+                    continue
+
+        finally:
+            await client.cleanup()
+
+        return discovered_tools
+
+    # Run async discovery in sync context
+    try:
+        return asyncio.run(discover_async())
+    except Exception as e:
+        print(f"Warning: A2A tool discovery failed: {e}")
+        return []
