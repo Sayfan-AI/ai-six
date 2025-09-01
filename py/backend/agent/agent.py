@@ -94,7 +94,7 @@ class Agent:
             """Inject A2A interim messages into session."""
             self.session.add_message(message)
             
-        self.tool_dict, self.a2a_message_pump = tool_manager.configure_a2a_integration(
+        self.tool_dict = tool_manager.configure_a2a_integration(
             self.tool_dict, 
             config.memory_dir, 
             self.session.session_id, 

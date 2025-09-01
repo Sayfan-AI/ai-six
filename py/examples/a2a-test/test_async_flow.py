@@ -26,21 +26,13 @@ def test_async_a2a_flow():
         print(f"   - {server['name']}: {server['url']}")
     
     # Create agent
-    print("\\n🤖 Creating AI-6 agent with A2A async support...")
+    print("\n🤖 Creating AI-6 agent with A2A async support...")
     agent = Agent(config)
     
     print(f"✅ Agent created with {len(agent.tool_dict)} tools")
-    
-    # Check if A2A message pump is initialized
-    if not agent.a2a_message_pump:
-        print("❌ A2A message pump not initialized")
-        print("   Make sure a2a-sdk is installed and A2A servers are configured")
-        return
-    
-    print("✅ A2A message pump initialized")
-    
+
     # List all available tools
-    print("\\n🔧 Available Tools:")
+    print("\n🔧 Available Tools:")
     for tool_name in sorted(agent.tool_dict.keys()):
         tool = agent.tool_dict[tool_name]
         if tool_name.startswith('a2a_') or tool_name.startswith('kind-k8s-ai_'):
@@ -52,7 +44,7 @@ def test_async_a2a_flow():
     a2a_tools = [name for name in agent.tool_dict.keys() if name.startswith('kind-k8s-ai_')]
     task_tools = [name for name in agent.tool_dict.keys() if name.startswith('a2a_')]
     
-    print(f"\\n📋 A2A Analysis:")
+    print(f"\n📋 A2A Analysis:")
     print(f"   A2A operation tools: {len(a2a_tools)}")
     print(f"   A2A task management tools: {len(task_tools)}")
     
@@ -62,13 +54,13 @@ def test_async_a2a_flow():
         return
     
     # Test 1: List active tasks (should be empty initially)
-    print("\\n📝 Test 1: List Active Tasks")
+    print("\n📝 Test 1: List Active Tasks")
     if 'a2a_list_tasks' in agent.tool_dict:
         result = agent.tool_dict['a2a_list_tasks'].run()
         print(f"Result: {result}")
     
     # Test 2: Start an A2A task
-    print("\\n🚀 Test 2: Start A2A Task")
+    print("\n🚀 Test 2: Start A2A Task")
     a2a_tool_name = a2a_tools[0]
     print(f"Using tool: {a2a_tool_name}")
     
@@ -90,13 +82,13 @@ def test_async_a2a_flow():
         return
     
     # Test 3: List active tasks again (should show the new task)
-    print("\\n📝 Test 3: List Active Tasks (After Starting)")
+    print("\n📝 Test 3: List Active Tasks (After Starting)")
     if 'a2a_list_tasks' in agent.tool_dict:
         result = agent.tool_dict['a2a_list_tasks'].run()
         print(f"Result: {result}")
     
     # Test 4: Wait for interim messages (simulate background processing)
-    print("\\n⏳ Test 4: Waiting for Interim Messages")
+    print("\n⏳ Test 4: Waiting for Interim Messages")
     print("Simulating background A2A communication for 10 seconds...")
     
     # Check session messages periodically
@@ -117,7 +109,7 @@ def test_async_a2a_flow():
     
     # Test 5: Send message to task (if we have a task ID)
     if task_id and 'a2a_send_message' in agent.tool_dict:
-        print("\\n💬 Test 5: Send Message to Task")
+        print("\n💬 Test 5: Send Message to Task")
         try:
             result = agent.tool_dict['a2a_send_message'].run(
                 task_id=task_id,
@@ -129,7 +121,7 @@ def test_async_a2a_flow():
     
     # Test 6: Check task status
     if task_id and 'a2a_task_status' in agent.tool_dict:
-        print("\\n📊 Test 6: Check Task Status")
+        print("\n📊 Test 6: Check Task Status")
         try:
             result = agent.tool_dict['a2a_task_status'].run(task_id=task_id)
             print(f"Task status: {result}")
@@ -137,7 +129,7 @@ def test_async_a2a_flow():
             print(f"❌ Failed to check task status: {e}")
     
     # Test 7: Final message count
-    print("\\n📈 Test 7: Final Session Analysis")
+    print("\n📈 Test 7: Final Session Analysis")
     final_message_count = len(agent.session.messages)
     print(f"Final message count: {final_message_count}")
     print(f"Messages added during test: {final_message_count - initial_message_count}")
@@ -153,15 +145,15 @@ def test_async_a2a_flow():
     
     # Test 8: Cleanup (cancel task if created)
     if task_id and 'a2a_cancel_task' in agent.tool_dict:
-        print("\\n🧹 Test 8: Cleanup - Cancel Task")
+        print("\n🧹 Test 8: Cleanup - Cancel Task")
         try:
             result = agent.tool_dict['a2a_cancel_task'].run(task_id=task_id)
             print(f"Cancel result: {result}")
         except Exception as e:
             print(f"❌ Failed to cancel task: {e}")
     
-    print("\\n🎉 Async A2A Communication Flow Test Complete!")
-    print("\\n🔥 Key Features Tested:")
+    print("\n🎉 Async A2A Communication Flow Test Complete!")
+    print("\n🔥 Key Features Tested:")
     print("   ✅ A2A message pump initialization")
     print("   ✅ Task management tools availability") 
     print("   ✅ Async task creation with immediate response")

@@ -33,11 +33,11 @@ def test_a2a_execution():
     print(f"  Description: {tool.description}")
     
     # Test the tool execution
-    print(f"\\n🚀 Executing A2A tool with message: 'show me all pods'")
+    print(f"\n🚀 Executing A2A tool with message: 'show me all pods'")
     
     try:
         result = tool.run()
-        print(f"\\n✅ A2A Tool Execution Result:")
+        print(f"\n✅ A2A Tool Execution Result:")
         print("-" * 40)
         print(result)
         print("-" * 40)

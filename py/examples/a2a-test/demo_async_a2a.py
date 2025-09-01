@@ -66,21 +66,21 @@ def simulate_user_interaction():
     
     # Show that user can do other things immediately
     async_header = "⚡ ASYNC BENEFIT: User can multitask immediately!"
-    print("\\n" + "=" * len(async_header))
+    print("\n" + "=" * len(async_header))
     print(async_header)
     print("=" * len(async_header))
     
-    print("\\n👤 User: While that's running, let me check what tasks are active")
+    print("\n👤 User: While that's running, let me check what tasks are active")
     result = agent.tool_dict['a2a_list_tasks'].run()
     print(f"🤖 AI-6: {result}")
     
-    print("\\n👤 User: What's the detailed status of my security analysis?")
+    print("\n👤 User: What's the detailed status of my security analysis?")
     result = agent.tool_dict['a2a_task_status'].run(task_id=task_id)
     print(f"🤖 AI-6: {result}")
     
     # Simulate interim updates (in real usage these would come from A2A agent)
     updates_header = "📨 BACKGROUND UPDATES (via SystemMessages)"
-    print("\\n" + "=" * len(updates_header)) 
+    print("\n" + "=" * len(updates_header)) 
     print(updates_header)
     print("=" * len(updates_header))
     
@@ -101,7 +101,7 @@ def simulate_user_interaction():
         print(f"🤖 AI-6: [Background Update] {update}")
         
         if i == 1:  # User responds to an update
-            print("\\n👤 User: Focus the analysis on the pods without security contexts")
+            print("\n👤 User: Focus the analysis on the pods without security contexts")
             result = agent.tool_dict['a2a_send_message'].run(
                 task_id=task_id,
                 message="Please prioritize the analysis of pods without security contexts. Provide detailed recommendations for fixing these security issues."
@@ -109,7 +109,7 @@ def simulate_user_interaction():
             print(f"🤖 AI-6: {result}")
     
     # User can do other work
-    print("\\n👤 User: Let me start another task while the security analysis continues")
+    print("\n👤 User: Let me start another task while the security analysis continues")
     
     result = agent.tool_dict[kubectl_tool].run(
         message="Check the resource usage and performance metrics for all nodes in the cluster"
@@ -117,7 +117,7 @@ def simulate_user_interaction():
     print(f"🤖 AI-6: {result}")
     
     # Check multiple active tasks
-    print("\\n👤 User: Show me all my active tasks now")
+    print("\n👤 User: Show me all my active tasks now")
     result = agent.tool_dict['a2a_list_tasks'].run()
     print(f"🤖 AI-6: {result}")
     
@@ -125,7 +125,7 @@ def simulate_user_interaction():
     time.sleep(3)
     
     completion_header = "✅ TASK COMPLETION"
-    print("\\n" + "=" * len(completion_header))
+    print("\n" + "=" * len(completion_header))
     print(completion_header)
     print("=" * len(completion_header))
     
@@ -135,13 +135,13 @@ def simulate_user_interaction():
     print("🤖 AI-6: Security analysis complete! Found 5 critical issues, 8 warnings. Here are the key findings and remediation steps...")
     
     # Final status
-    print("\\n👤 User: Great! Let me clean up the completed tasks")
+    print("\n👤 User: Great! Let me clean up the completed tasks")
     result = agent.tool_dict['a2a_cancel_task'].run(task_id=task_id)
     print(f"🤖 AI-6: {result}")
     
     # Show session summary
     summary_header = "📈 SESSION SUMMARY"
-    print("\\n" + "=" * len(summary_header))
+    print("\n" + "=" * len(summary_header))
     print(summary_header)
     print("=" * len(summary_header))
     
@@ -153,8 +153,8 @@ def simulate_user_interaction():
     for role, count in message_types.items():
         print(f"  {role}: {count}")
     
-    print("\\n🎉 Demo Complete!")
-    print("\\n🔥 Key A2A Features Demonstrated:")
+    print("\n🎉 Demo Complete!")
+    print("\n🔥 Key A2A Features Demonstrated:")
     print("   ✅ Immediate task start with background execution")
     print("   ✅ Real-time interim updates via SystemMessages")  
     print("   ✅ Interactive communication with running tasks")
@@ -162,7 +162,7 @@ def simulate_user_interaction():
     print("   ✅ Complete task lifecycle management")
     print("   ✅ Session integration with message persistence")
     
-    print("\\n💡 User Benefits:")
+    print("\n💡 User Benefits:")
     print("   • Never blocked waiting for long-running operations")
     print("   • Real-time progress updates and notifications")
     print("   • Can respond to questions and provide clarifications")
@@ -173,8 +173,8 @@ if __name__ == "__main__":
     try:
         simulate_user_interaction()
     except KeyboardInterrupt:
-        print("\\n⏹️ Demo interrupted by user")
+        print("\n⏹️ Demo interrupted by user")
     except Exception as e:
-        print(f"\\n💥 Demo failed: {e}")
+        print(f"\n💥 Demo failed: {e}")
         import traceback
         traceback.print_exc()

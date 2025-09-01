@@ -10,6 +10,9 @@ from backend.tools.base.mcp_tool import MCPTool
 from backend.mcp_client.mcp_client import MCPClient
 from backend.agent.config import ToolConfig, Config
 
+from backend.a2a_client.a2a_client import A2AClient, A2AServerConfig
+from backend.tools.base.a2a_tool import A2ATool
+
 
 def get_tool_dict(tool_config: ToolConfig, agent_configs: list[Config] = None) -> dict[str, Tool]:
     """Get a dictionary of all available tools from various sources.
@@ -59,7 +62,7 @@ def get_tool_dict(tool_config: ToolConfig, agent_configs: list[Config] = None) -
     return {tool.name: tool for tool in tools}
 
 
-def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, session_id: str, message_injector) -> tuple[dict[str, Tool], object]:
+def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, session_id: str, message_injector) -> dict[str, Tool]:
     """Configure A2A integration if A2A tools are present.
     
     Args:
@@ -69,14 +72,14 @@ def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, sessi
         message_injector: Callback function for injecting SystemMessages
         
     Returns:
-        Tuple of (updated tool dictionary with A2A task management tools, message pump or None)
+        Updated tool dictionary with A2A task management tools
     """
     # Check if any A2A tools are present
     from backend.tools.base.a2a_tool import A2ATool
     has_a2a_tools = any(isinstance(tool, A2ATool) for tool in tool_dict.values())
     
     if not has_a2a_tools:
-        return tool_dict, None
+        return tool_dict
     
     # Import here to avoid circular imports
     from backend.a2a_client.a2a_integration import A2AIntegration
@@ -107,7 +110,7 @@ def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, sessi
     updated_tool_dict[task_message_tool.name] = task_message_tool
     updated_tool_dict[task_status_tool.name] = task_status_tool
     
-    return updated_tool_dict, message_pump
+    return updated_tool_dict
 
 
 def _filter_tools(tools: list[Tool], enabled_tools: Optional[list[str]], disabled_tools: Optional[list[str]]) -> list[Tool]:
@@ -350,14 +353,6 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
     tools: list[Tool] = []
 
     async def discover_async():
-        # Import here to avoid circular imports and allow graceful failure
-        try:
-            from backend.a2a_client.a2a_client import A2AClient, A2AServerConfig
-            from backend.tools.base.a2a_tool import A2ATool
-        except ImportError:
-            print("Warning: A2A dependencies not available. Skipping A2A tool discovery.")
-            return []
-
         client = A2AClient()
         discovered_tools = []
 

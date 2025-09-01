@@ -22,11 +22,7 @@ def test_immediate_response():
     config_file = os.path.join(os.path.dirname(__file__), 'config_async.yaml')
     config = Config.from_file(config_file)
     agent = Agent(config)
-    
-    if not agent.a2a_message_pump:
-        print("❌ A2A not available")
-        return False
-    
+
     # Find A2A tool
     a2a_tools = [name for name in agent.tool_dict.keys() if name.startswith('kind-k8s-ai_')]
     if not a2a_tools:

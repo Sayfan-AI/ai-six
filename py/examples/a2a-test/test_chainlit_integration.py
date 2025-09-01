@@ -45,10 +45,7 @@ class ChainlitIntegrationTest:
         config_file = os.path.join(os.path.dirname(__file__), 'config_async.yaml')
         config = Config.from_file(config_file)
         self.agent = Agent(config)
-        
-        if not self.agent.a2a_message_pump:
-            raise Exception("A2A not available")
-        
+
         print(f"✅ Agent ready with {len(self.agent.tool_dict)} tools")
         return True
     

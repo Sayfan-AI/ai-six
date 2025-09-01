@@ -24,7 +24,7 @@ def test_a2a_final():
         print(f"   - {server['name']}: {server['url']}")
     
     # Create agent
-    print("\\n🤖 Creating AI-6 agent with A2A support...")
+    print("\n🤖 Creating AI-6 agent with A2A support...")
     agent = Agent(config)
     
     print(f"✅ Agent created with {len(agent.tool_dict)} tools")
@@ -37,25 +37,25 @@ def test_a2a_final():
         print("   Make sure the k8s-ai server is running on localhost:9999")
         return
     
-    print(f"\\n🔧 A2A Tools Discovered: {len(a2a_tools)}")
+    print(f"\n🔧 A2A Tools Discovered: {len(a2a_tools)}")
     for tool_name in a2a_tools:
         tool = agent.tool_dict[tool_name]
         print(f"   - {tool_name}: {tool.description}")
     
     # Test tool execution
     test_tool = a2a_tools[0]
-    print(f"\\n🚀 Testing {test_tool} execution...")
+    print(f"\n🚀 Testing {test_tool} execution...")
     
     try:
         result = agent.tool_dict[test_tool].run()
-        print("\\n✅ A2A Tool Execution Successful!")
+        print("\n✅ A2A Tool Execution Successful!")
         print("📄 Response:")
         print("-" * 50)
         print(result)
         print("-" * 50)
         
-        print("\\n🎉 A2A Integration Test PASSED!")
-        print("\\n🔥 Key Features Verified:")
+        print("\n🎉 A2A Integration Test PASSED!")
+        print("\n🔥 Key Features Verified:")
         print("   ✅ Agent card discovery from A2A servers")
         print("   ✅ Skills mapped to individual tools")
         print("   ✅ A2A protocol abstracted behind Tool interface")
