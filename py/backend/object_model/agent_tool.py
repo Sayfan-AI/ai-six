@@ -9,7 +9,6 @@ class AgentTool(Tool):
     
     def __init__(self, agent_config: Config):
         """Initialize the AgentTool with a Config."""
-        self.agent_config = agent_config
         self.agent = Agent(agent_config)
         self._on_tool_call_func: Optional[Callable[[str, dict, str], None]] = None
         
@@ -21,13 +20,12 @@ class AgentTool(Tool):
                 description='The message to send to the agent'
             )
         ]
-        required = {'message'}
-        
+
         super().__init__(
             name=f"agent_{agent_config.name}",
             description=f"Send a message to the {agent_config.name} agent. {agent_config.description}",
             parameters=parameters,
-            required=required
+            required={'message'}
         )
     
     def set_tool_call_callback(self, callback: Optional[Callable[[str, dict, str], None]]):

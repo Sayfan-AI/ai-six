@@ -117,6 +117,23 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 ### Agenda
 
 - AI-6 status
+- Book status
+- Chainlit UI inspiration
+    - https://github.com/OpenAgentPlatform/Dive
+- Check out:
+  - https://github.com/SuperClaude-Org/SuperClaude_Framework
+  - https://martinfowler.com/articles/build-own-coding-agent.html
+ 
+### Actions items
+
+- [ ] Gigi - Add auth support for A2A
+
+
+## Project Meeting 11-August-2025
+
+### Agenda
+
+- AI-6 status
 - Discuss AI-6 agents
 - Check out https://models.dev
 
