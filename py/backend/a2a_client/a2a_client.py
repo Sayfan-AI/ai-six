@@ -2,10 +2,14 @@
 
 import httpx
 import requests
-from typing import Dict, List, Optional, AsyncGenerator
+from typing import Optional, AsyncGenerator
 from dataclasses import dataclass
+import logging
 
 from a2a.client import ClientFactory, ClientConfig, create_text_message_object
+from a2a.client.auth.credentials import CredentialService
+from a2a.client.auth.interceptor import AuthInterceptor
+from a2a.client.middleware import ClientCallContext
 from a2a.types import AgentCard, Role
 
 
@@ -16,18 +20,40 @@ class A2AServerConfig:
     url: str
     agent_card_url: Optional[str] = None
     timeout: float = 30.0
+    api_key: Optional[str] = None
 
     def __post_init__(self):
         """Set default agent card URL if not provided."""
         if self.agent_card_url is None:
-            self.agent_card_url = f"{self.url.rstrip('/')}/.well-known/agent.json"
+            self.agent_card_url = f"{self.url.rstrip('/')}/.well-known/agent-card.json"
+
+
+class SimpleCredentialService(CredentialService):
+    """Simple credential service that stores a single credential per scheme."""
+    
+    def __init__(self):
+        self._credentials: dict[str, str] = {}
+    
+    def add_credential(self, scheme_name: str, credential: str):
+        """Add a credential for a security scheme."""
+        self._credentials[scheme_name] = credential
+    
+    async def get_credentials(
+        self,
+        security_scheme_name: str,
+        context: ClientCallContext | None,
+    ) -> str | None:
+        """Get credential for the given scheme."""
+        return self._credentials.get(security_scheme_name)
 
 
 class A2AClient:
     """Client for communicating with A2A agents."""
     def __init__(self):
-        self._agent_cards: Dict[str, AgentCard] = {}
-        self._clients: Dict[str, object] = {}
+        self._agent_cards: dict[str, AgentCard] = {}
+        self._clients: dict[str, object] = {}
+        self._server_configs: dict[str, A2AServerConfig] = {}
+        self.logger = logging.getLogger(__name__)
 
     async def discover_agent(self, server_config: A2AServerConfig) -> AgentCard:
         """Discover an A2A agent by fetching its agent card.
@@ -42,6 +68,9 @@ class A2AClient:
             Exception: If agent card cannot be fetched
         """
         try:
+            # Store server config for later use
+            self._server_configs[server_config.name] = server_config
+            
             # Fetch agent card
             response = requests.get(
                 server_config.agent_card_url,
@@ -59,7 +88,7 @@ class A2AClient:
         except Exception as e:
             raise Exception(f"Failed to discover agent {server_config.name}: {e}")
 
-    async def get_agent_operations(self, server_name: str) -> List[Dict]:
+    async def get_agent_operations(self, server_name: str) -> list[dict]:
         """Get available operations from an A2A agent.
         
         Args:
@@ -104,12 +133,27 @@ class A2AClient:
 
         # Create client if not exists - use a persistent HTTP client
         if server_name not in self._clients:
-            # Create a new HTTP client for each A2A client
+            # Get server config for authentication
+            server_config = self._server_configs.get(server_name)
+            
+            # Create HTTP client and credential service
             http_client = httpx.AsyncClient(timeout=30)
+            
+            # Set up authentication if API key is provided
+            interceptors = []
+            if server_config and server_config.api_key:
+                credential_service = SimpleCredentialService()
+                # Add credential for BearerAuth scheme (matching server security scheme)
+                credential_service.add_credential('BearerAuth', server_config.api_key)
+                auth_interceptor = AuthInterceptor(credential_service)
+                interceptors.append(auth_interceptor)
+            
             config = ClientConfig(httpx_client=http_client)
             factory = ClientFactory(config)
+            client = factory.create(agent_card, interceptors=interceptors)
+            
             self._clients[server_name] = {
-                'client': factory.create(agent_card),
+                'client': client,
                 'http_client': http_client
             }
 
@@ -127,7 +171,7 @@ class A2AClient:
                     elif hasattr(part, 'text'):
                         yield part.text
 
-    async def execute_operation(self, server_name: str, operation_name: str, parameters: Dict) -> str:
+    async def execute_operation(self, server_name: str, operation_name: str, parameters: dict) -> str:
         """Execute a specific operation on an A2A agent.
         
         Args:

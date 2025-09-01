@@ -10,6 +10,7 @@ import time
 import subprocess
 import requests
 import asyncio
+import logging
 from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -24,6 +25,21 @@ class A2AIntegrationTest:
         self.agent = None
         self.server_process = None
         self.test_results = []
+        
+        # Set up debug logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        
+        # Enable debug logging for A2A components only
+        logging.getLogger('backend.a2a_client.a2a_client').setLevel(logging.DEBUG)
+        logging.getLogger('backend.a2a_client.a2a_message_pump').setLevel(logging.DEBUG)
+        
+        # Disable noisy debug logs
+        logging.getLogger('a2a.utils.telemetry').setLevel(logging.WARNING)
+        logging.getLogger('httpcore').setLevel(logging.WARNING)
+        logging.getLogger('httpx').setLevel(logging.WARNING)
         
     def log_result(self, test_name: str, success: bool, details: str = ""):
         """Log a test result."""
@@ -82,7 +98,7 @@ class A2AIntegrationTest:
     def setup_agent(self) -> bool:
         """Set up AI-6 agent with A2A configuration."""
         try:
-            print("\\n🤖 Setting up AI-6 Agent with A2A...")
+            print("\n🤖 Setting up AI-6 Agent with A2A...")
             config_file = os.path.join(os.path.dirname(__file__), 'config_async.yaml')
             config = Config.from_file(config_file)
             
@@ -110,7 +126,7 @@ class A2AIntegrationTest:
     
     def test_basic_task_management(self) -> bool:
         """Test basic task management operations."""
-        print("\\n📋 Testing Basic Task Management...")
+        print("\n📋 Testing Basic Task Management...")
         
         try:
             # Test 1: List tasks (should be empty)
@@ -164,7 +180,7 @@ class A2AIntegrationTest:
     
     def test_interactive_communication(self) -> bool:
         """Test interactive communication with running tasks."""
-        print("\\n💬 Testing Interactive Communication...")
+        print("\n💬 Testing Interactive Communication...")
         
         if not hasattr(self, 'task_id'):
             self.log_result("Interactive Communication", False, "No task ID from previous test")
@@ -198,7 +214,7 @@ class A2AIntegrationTest:
     
     def test_session_integration(self) -> bool:
         """Test SystemMessage injection and session integration."""
-        print("\\n📨 Testing Session Integration...")
+        print("\n📨 Testing Session Integration...")
         
         try:
             # Count initial messages
@@ -233,7 +249,7 @@ class A2AIntegrationTest:
     
     def test_task_lifecycle(self) -> bool:
         """Test complete task lifecycle."""
-        print("\\n🔄 Testing Task Lifecycle...")
+        print("\n🔄 Testing Task Lifecycle...")
         
         if not hasattr(self, 'task_id'):
             self.log_result("Task Lifecycle", False, "No task ID from previous test")
@@ -262,7 +278,7 @@ class A2AIntegrationTest:
     
     def test_multiple_concurrent_tasks(self) -> bool:
         """Test multiple concurrent A2A tasks."""
-        print("\\n⚡ Testing Multiple Concurrent Tasks...")
+        print("\n⚡ Testing Multiple Concurrent Tasks...")
         
         try:
             a2a_tool_name = [name for name in self.agent.tool_dict.keys() if name.startswith('kind-k8s-ai_')][0]
@@ -336,7 +352,7 @@ class A2AIntegrationTest:
         
         # Summary
         results_header = "🏆 INTEGRATION TEST RESULTS"
-        print("\\n" + "=" * len(results_header))
+        print("\n" + "=" * len(results_header))
         print(results_header)
         print("=" * len(results_header))
         
@@ -349,11 +365,11 @@ class A2AIntegrationTest:
             if details and not success:
                 print(f"    {details}")
         
-        print(f"\\n📊 Summary: {passed}/{total} tests passed")
+        print(f"\n📊 Summary: {passed}/{total} tests passed")
         
         if all_passed:
-            print("\\n🎉 ALL INTEGRATION TESTS PASSED!")
-            print("\\n🔥 A2A Async-to-Sync Integration is fully working:")
+            print("\n🎉 ALL INTEGRATION TESTS PASSED!")
+            print("\n🔥 A2A Async-to-Sync Integration is fully working:")
             print("   ✅ Background task monitoring")
             print("   ✅ Interactive task communication") 
             print("   ✅ SystemMessage injection")
@@ -361,14 +377,14 @@ class A2AIntegrationTest:
             print("   ✅ Complete task lifecycle management")
             print("   ✅ Session persistence and state management")
         else:
-            print("\\n❌ Some integration tests failed - check implementation")
+            print("\n❌ Some integration tests failed - check implementation")
         
         return all_passed
     
     def cleanup(self):
         """Clean up test resources."""
         if self.server_process:
-            print("\\n🧹 Cleaning up A2A server...")
+            print("\n🧹 Cleaning up A2A server...")
             self.server_process.terminate()
             try:
                 self.server_process.wait(timeout=5)
@@ -383,10 +399,10 @@ def main():
         success = test.run_full_integration_test()
         return 0 if success else 1
     except KeyboardInterrupt:
-        print("\\n⏹️ Test interrupted by user")
+        print("\n⏹️ Test interrupted by user")
         return 1
     except Exception as e:
-        print(f"\\n💥 Test failed with exception: {e}")
+        print(f"\n💥 Test failed with exception: {e}")
         import traceback
         traceback.print_exc()
         return 1

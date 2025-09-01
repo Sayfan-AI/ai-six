@@ -76,6 +76,8 @@ class A2ATool(Tool):
     _loop_lock = threading.Lock()
     # Message pump for async communication
     _message_pump: Optional[A2AMessagePump] = None
+    # Collect server configs for registration with message pump
+    _server_configs_to_register: list[A2AServerConfig] = []
     
     def __init__(self, server_config: A2AServerConfig, operation: Dict[str, Any]):
         """Initialize from A2A operation information.
@@ -115,6 +117,11 @@ class A2ATool(Tool):
         self.server_config = server_config
         self.operation_name = operation_name
         self.operation = operation
+        
+        # Collect server configs for later registration with message pump
+        # Only add if not already present (avoid duplicates)
+        if server_config not in self._server_configs_to_register:
+            self._server_configs_to_register.append(server_config)
     
     @classmethod
     def _get_client(cls) -> A2AClient:
@@ -180,6 +187,13 @@ class A2ATool(Tool):
     def set_message_pump(cls, message_pump: A2AMessagePump):
         """Set the shared message pump instance."""
         cls._message_pump = message_pump
+        
+        # Register all server configs with the message pump's A2A client
+        # This ensures the message pump has access to authentication info
+        if hasattr(cls, '_server_configs_to_register'):
+            for server_config in cls._server_configs_to_register:
+                if message_pump.a2a_client and server_config.name not in message_pump.a2a_client._server_configs:
+                    message_pump.a2a_client._server_configs[server_config.name] = server_config
     
     @classmethod
     def cleanup_all(cls):

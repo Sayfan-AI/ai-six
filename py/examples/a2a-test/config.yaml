@@ -14,6 +14,7 @@ a2a_servers:
   - name: kind-k8s-ai
     url: http://localhost:9999
     timeout: 30.0
+    api_key: sk-k8sai-ai-six-test-CctbspaW-O4zPdF-5DSyqA
 enabled_tools:
   - kind-k8s-ai_kubectl_operations
 system_prompt: |

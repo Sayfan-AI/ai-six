@@ -59,6 +59,57 @@ def get_tool_dict(tool_config: ToolConfig, agent_configs: list[Config] = None) -
     return {tool.name: tool for tool in tools}
 
 
+def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, session_id: str, message_injector) -> tuple[dict[str, Tool], object]:
+    """Configure A2A integration if A2A tools are present.
+    
+    Args:
+        tool_dict: Dictionary of existing tools
+        memory_dir: Directory for A2A state persistence
+        session_id: Session ID for A2A integration
+        message_injector: Callback function for injecting SystemMessages
+        
+    Returns:
+        Tuple of (updated tool dictionary with A2A task management tools, message pump or None)
+    """
+    # Check if any A2A tools are present
+    from backend.tools.base.a2a_tool import A2ATool
+    has_a2a_tools = any(isinstance(tool, A2ATool) for tool in tool_dict.values())
+    
+    if not has_a2a_tools:
+        return tool_dict, None
+    
+    # Import here to avoid circular imports
+    from backend.a2a_client.a2a_integration import A2AIntegration
+    from backend.tools.base.a2a_task_tools import (
+        A2ATaskListTool, A2ATaskCancelTool, A2ATaskMessageTool, A2ATaskStatusTool
+    )
+    
+    # Create A2A integration
+    a2a_integration = A2AIntegration(memory_dir=memory_dir, session_id=session_id)
+    
+    # Set up message injection callback
+    a2a_integration.set_message_injector(message_injector)
+    
+    # Configure A2A integration from A2A tools
+    a2a_integration.configure_from_a2a_tools()
+    
+    # Add A2A task management tools
+    message_pump = a2a_integration.message_pump
+    task_list_tool = A2ATaskListTool(message_pump)
+    task_cancel_tool = A2ATaskCancelTool(message_pump)
+    task_message_tool = A2ATaskMessageTool(message_pump)
+    task_status_tool = A2ATaskStatusTool(message_pump)
+    
+    # Add task tools to tool dictionary
+    updated_tool_dict = tool_dict.copy()
+    updated_tool_dict[task_list_tool.name] = task_list_tool
+    updated_tool_dict[task_cancel_tool.name] = task_cancel_tool
+    updated_tool_dict[task_message_tool.name] = task_message_tool
+    updated_tool_dict[task_status_tool.name] = task_status_tool
+    
+    return updated_tool_dict, message_pump
+
+
 def _filter_tools(tools: list[Tool], enabled_tools: Optional[list[str]], disabled_tools: Optional[list[str]]) -> list[Tool]:
     """Filter tools based on enabled/disabled configuration.
     
@@ -324,7 +375,8 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
                     server_config = A2AServerConfig(
                         name=server_name,
                         url=server_url,
-                        timeout=server_config_dict.get('timeout', 30.0)
+                        timeout=server_config_dict.get('timeout', 30.0),
+                        api_key=server_config_dict.get('api_key')
                     )
 
                     # Discover the agent and get its operations

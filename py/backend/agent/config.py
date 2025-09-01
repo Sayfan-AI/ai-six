@@ -65,7 +65,7 @@ class Config:
     enabled_tools: Optional[List[str]] = None
     disabled_tools: Optional[List[str]] = None
     system_prompt: Optional[str] = None
-    agents: Optional[list] = field(default_factory=list)
+    agents: Optional[list["Config"]] = field(default_factory=list)
     name: str = ""
     description: str = ""
 

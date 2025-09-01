@@ -166,7 +166,6 @@ class A2AMessagePump:
     
     async def _start_and_monitor_task(self, task_id: str, server_name: str, message: str):
         """Start the actual A2A task and begin monitoring."""
-        logger.info(f"Starting A2A task and monitoring for task {task_id}")
         
         try:
             task_info = self.active_tasks.get(task_id)
@@ -177,11 +176,17 @@ class A2AMessagePump:
             # Ensure agent is discovered first (in background)
             try:
                 if server_name not in self.a2a_client._agent_cards:
-                    server_config = A2AServerConfig(
-                        name=server_name,
-                        url="http://localhost:9999"  # TODO: Make this configurable
-                    )
-                    await self.a2a_client.discover_agent(server_config)
+                    # Check if we have a stored config for this server
+                    if server_name in self.a2a_client._server_configs:
+                        server_config = self.a2a_client._server_configs[server_name]
+                        await self.a2a_client.discover_agent(server_config)
+                    else:
+                        # Fallback for unknown servers (shouldn't happen in normal flow)
+                        server_config = A2AServerConfig(
+                            name=server_name,
+                            url="http://localhost:9999"  # TODO: Make this configurable
+                        )
+                        await self.a2a_client.discover_agent(server_config)
             except Exception as e:
                 logger.error(f"Agent discovery failed for {server_name}: {e}")
                 task_info.status = "failed"
@@ -229,7 +234,6 @@ class A2AMessagePump:
     
     async def _monitor_task(self, task_id: str):
         """Background monitoring of an A2A task."""
-        logger.info(f"Starting monitoring for task {task_id}")
         
         try:
             while task_id in self.active_tasks:
@@ -253,7 +257,7 @@ class A2AMessagePump:
                 await asyncio.sleep(self.poll_interval)
                 
         except asyncio.CancelledError:
-            logger.info(f"Monitoring cancelled for task {task_id}")
+            pass
         except Exception as e:
             logger.error(f"Unexpected error monitoring task {task_id}: {e}")
         finally:
@@ -314,7 +318,6 @@ class A2AMessagePump:
         # Persist state
         self._save_state()
         
-        logger.info(f"Cancelled task {task_id}")
         return f"Cancelled task {task_id} ({task_info.skill_id})"
     
     def get_active_tasks(self) -> Dict[str, A2ATaskInfo]:
@@ -331,7 +334,6 @@ class A2AMessagePump:
                 tasks_to_remove.append(task_id)
         
         for task_id in tasks_to_remove:
-            logger.info(f"Cleaning up old task {task_id}")
             self.cancel_task(task_id)
     
     def _save_state(self):

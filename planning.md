@@ -8,7 +8,7 @@ It is focused on tool use and management.
 
 ## Research
 
-Look into the Google eco-system for LLMs and tools.
+Look into the Google ecosystem for LLMs and tools.
 
 - Gemini 2.5 is arguably the best LLM available today.
 - Look into their OpenAI compatibility layer
@@ -43,15 +43,17 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Expose usage information (tokens)
 - [x] Configuration
 - [x] MCP support (engine is MCP client, local tools can run as MCP server)
+- [ ] A2A support
+- [ ] Async tool use (continue interacting with the user while tools are running in the background)
+- [ ] Switch AI-6 core to async
+- [ ] Custom AI-6 frontend from scratch (web-based, mobile-friendly)
 - [ ] Switch to uv
 - [ ] Tool dependency injection (support tools that require constructor arguments like engine, config, etc.)
 - [ ] Add pipe support (e.g. `ls | grep foo`) to CommandTool
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
-- [ ] Async tool use (continue interacting with the user while tools are running in the background)
-
 - [ ] Add extensible ContextManager responsible for compacting the session history using different strategies
 - [ ] REST API (for the engine)
-- [ ] GraphQL frontend with Apollo connectors talking to the engine's REST API
+- [ ] GraphQL frontend with Apollo connectors talking to the engine's REST API using Apollo MCP server
 - [ ] Graceful handling of rate-limiting
 - [ ] Dynamic model selection (e.g. use a different model for different tasks)
 - [ ] Computer use (browser and debugging in the IDE!)
@@ -112,7 +114,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 # Meetings
 
-## Project Meeting 10-August-2025
+## Project Meeting 31-August-2025
 
 ### Agenda
 
@@ -126,7 +128,10 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
  
 ### Actions items
 
+- [ ] Gigi - extend Github analyzer example to use sub-agents
+- [ ] Gigi - get A2A into working shape
 - [ ] Gigi - Add auth support for A2A
+- [ ] Saar - Generate docs for AI-6. Continue with Sphinx / ReadTheDocs 
 
 
 ## Project Meeting 11-August-2025
