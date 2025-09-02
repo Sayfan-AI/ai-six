@@ -10,7 +10,8 @@ from backend.tools.base.mcp_tool import MCPTool
 from backend.mcp_client.mcp_client import MCPClient
 from backend.agent.config import ToolConfig, Config
 
-from backend.a2a_client.a2a_client import A2AClient, A2AServerConfig
+from backend.a2a_client.a2a_client import A2AServerConfig
+from backend.a2a_client.a2a_manager import A2AManager
 from backend.tools.base.a2a_tool import A2ATool
 
 
@@ -75,41 +76,27 @@ def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, sessi
         Updated tool dictionary with A2A task management tools
     """
     # Check if any A2A tools are present
-    from backend.tools.base.a2a_tool import A2ATool
     has_a2a_tools = any(isinstance(tool, A2ATool) for tool in tool_dict.values())
     
     if not has_a2a_tools:
         return tool_dict
     
     # Import here to avoid circular imports
-    from backend.a2a_client.a2a_integration import A2AIntegration
     from backend.tools.base.a2a_task_tools import (
         A2ATaskListTool, A2ATaskCancelTool, A2ATaskMessageTool, A2ATaskStatusTool
     )
     
-    # Create A2A integration
-    a2a_integration = A2AIntegration(memory_dir=memory_dir, session_id=session_id)
+    # Initialize A2A manager
+    A2AManager.initialize(memory_dir, session_id, message_injector)
     
-    # Set up message injection callback
-    a2a_integration.set_message_injector(message_injector)
-    
-    # Create and register A2A clients for each server
-    for tool in tool_dict.values():
-        if isinstance(tool, A2ATool):
-            # Get or create client for this server
-            client = a2a_integration.get_or_create_client(tool.server_config)
-            # Register the server config with the client
-            client._server_configs[tool.server_config.name] = tool.server_config
-    
-    # Configure A2A integration from A2A tools
-    a2a_integration.configure_from_a2a_tools()
+    # Configure the message pump with all registered clients
+    A2AManager.configure_message_pump()
     
     # Add A2A task management tools
-    message_pump = a2a_integration.message_pump
-    task_list_tool = A2ATaskListTool(message_pump)
-    task_cancel_tool = A2ATaskCancelTool(message_pump)
-    task_message_tool = A2ATaskMessageTool(message_pump)
-    task_status_tool = A2ATaskStatusTool(message_pump)
+    task_list_tool = A2ATaskListTool()
+    task_cancel_tool = A2ATaskCancelTool()
+    task_message_tool = A2ATaskMessageTool()
+    task_status_tool = A2ATaskStatusTool()
     
     # Add task tools to tool dictionary
     updated_tool_dict = tool_dict.copy()
@@ -381,7 +368,7 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
     tools: list[Tool] = []
 
     async def discover_async():
-        client = A2AClient()
+        from backend.a2a_client.a2a_client import A2AClient
         discovered_tools = []
 
         try:
@@ -401,6 +388,9 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
                         timeout=server_config_dict.get('timeout', 30.0),
                         api_key=server_config_dict.get('api_key')
                     )
+                    
+                    # Get or create client for this server (ensures it's registered)
+                    client = A2AManager.get_or_create_client(server_config)
 
                     # Discover the agent and get its operations
                     agent_card = await asyncio.wait_for(

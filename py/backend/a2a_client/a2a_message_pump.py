@@ -1,6 +1,7 @@
 """A2A Message Pump for async-to-sync communication bridge."""
 
 import asyncio
+import concurrent.futures
 import json
 import time
 import threading
@@ -279,6 +280,7 @@ class A2AMessagePump:
                 return
             
             # Start the A2A task and stream responses
+            response_generator = None
             try:
                 # Update status to running
                 task_info.status = "running"
@@ -288,7 +290,8 @@ class A2AMessagePump:
                 message_count = 0
                 buffer = []
                 
-                async for response_chunk in client.send_message(server_name, message):
+                response_generator = client.send_message(server_name, message)
+                async for response_chunk in response_generator:
                     if response_chunk:
                         message_count += 1
                         task_info.last_message_at = datetime.now()
@@ -329,6 +332,13 @@ class A2AMessagePump:
                     logger.warning(f"Task {task_id} completed with no response chunks")
                 self._save_state()
                 
+            except asyncio.CancelledError:
+                logger.info(f"Task {task_id} was cancelled")
+                task_info.status = "cancelled"
+                # Properly close the generator if it exists
+                if response_generator:
+                    await response_generator.aclose()
+                raise
             except Exception as e:
                 logger.error(f"Error in A2A task {task_id}: {e}")
                 task_info.status = "failed"
@@ -336,7 +346,17 @@ class A2AMessagePump:
                     task_id, 
                     f"Task failed: {e}"
                 )
+                # Properly close the generator if it exists
+                if response_generator:
+                    await response_generator.aclose()
                 return
+            finally:
+                # Ensure generator is closed
+                if response_generator:
+                    try:
+                        await response_generator.aclose()
+                    except Exception:
+                        pass
             
             # Now continue with regular monitoring
             await self._monitor_task(task_id)
@@ -477,15 +497,35 @@ class A2AMessagePump:
         """Shutdown the message pump and clean up resources."""
         logger.info("Shutting down A2A message pump")
         
-        # Cancel all monitoring tasks
-        for task_id, future in self.task_monitors.items():
-            future.cancel()
+        # Cancel all monitoring tasks gracefully
+        # These are concurrent.futures.Future objects from run_coroutine_threadsafe
+        for task_id, future in list(self.task_monitors.items()):
+            if not future.done():
+                future.cancel()
+                # For concurrent futures, we can't await them directly
+                # Just wait a bit for them to finish
+                try:
+                    future.result(timeout=0.1)
+                except (asyncio.CancelledError, concurrent.futures.CancelledError, TimeoutError):
+                    pass  # Expected
+                except Exception as e:
+                    logger.debug(f"Error cancelling task {task_id}: {e}")
         
-        # Stop the event loop
-        if self._loop and self._loop.is_running():
-            self._loop.call_soon_threadsafe(self._loop.stop)
-        
+        # Clear task monitors
         self.task_monitors.clear()
+        
+        # Stop the event loop gracefully
+        if self._loop and self._loop.is_running():
+            # Cancel all tasks in the loop first
+            pending = asyncio.all_tasks(self._loop)
+            for task in pending:
+                task.cancel()
+            
+            # Schedule loop stop
+            self._loop.call_soon_threadsafe(self._loop.stop)
+            # Give it a moment to finish
+            if self._loop_thread and self._loop_thread.is_alive():
+                self._loop_thread.join(timeout=1.0)
         
         # Save final state
         self._save_state()

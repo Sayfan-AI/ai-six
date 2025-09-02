@@ -2,5 +2,6 @@
 
 from .a2a_client import A2AClient, A2AServerConfig
 from .a2a_message_pump import A2AMessagePump, A2ATaskInfo
+from .a2a_manager import A2AManager
 
-__all__ = ['A2AClient', 'A2AServerConfig', 'A2AMessagePump', 'A2ATaskInfo']
+__all__ = ['A2AClient', 'A2AServerConfig', 'A2AMessagePump', 'A2ATaskInfo', 'A2AManager']
