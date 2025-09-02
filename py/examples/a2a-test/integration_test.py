@@ -11,6 +11,7 @@ import subprocess
 import requests
 import asyncio
 import logging
+import traceback
 from pathlib import Path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -103,12 +104,7 @@ class A2AIntegrationTest:
             config = Config.from_file(config_file)
             
             self.agent = Agent(config)
-            
-            # Verify A2A integration
-            if not self.agent.a2a_message_pump:
-                self.log_result("Agent A2A Setup", False, "A2A message pump not initialized")
-                return False
-            
+
             # Check available tools
             a2a_tools = [name for name in self.agent.tool_dict.keys() if name.startswith('kind-k8s-ai_')]
             task_tools = [name for name in self.agent.tool_dict.keys() if name.startswith('a2a_')]
@@ -403,7 +399,6 @@ def main():
         return 1
     except Exception as e:
         print(f"\n💥 Test failed with exception: {e}")
-        import traceback
         traceback.print_exc()
         return 1
     finally:

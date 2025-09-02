@@ -67,17 +67,14 @@ def _operation_to_parameters(operation: Dict[str, Any]) -> tuple[list[Parameter]
 class A2ATool(Tool):
     """Tool that communicates with A2A (Agent-to-Agent) servers using async-to-sync pattern."""
     
-    # Shared A2A client instance across all A2A tools
-    _client: A2AClient = None
-    _client_lock = threading.Lock()
     # Shared event loop for all A2A operations
     _event_loop = None
     _loop_thread = None
     _loop_lock = threading.Lock()
+    # A2A integration instance
+    _integration: Optional['A2AIntegration'] = None
     # Message pump for async communication
     _message_pump: Optional[A2AMessagePump] = None
-    # Collect server configs for registration with message pump
-    _server_configs_to_register: list[A2AServerConfig] = []
     
     def __init__(self, server_config: A2AServerConfig, operation: Dict[str, Any]):
         """Initialize from A2A operation information.
@@ -117,20 +114,7 @@ class A2ATool(Tool):
         self.server_config = server_config
         self.operation_name = operation_name
         self.operation = operation
-        
-        # Collect server configs for later registration with message pump
-        # Only add if not already present (avoid duplicates)
-        if server_config not in self._server_configs_to_register:
-            self._server_configs_to_register.append(server_config)
     
-    @classmethod
-    def _get_client(cls) -> A2AClient:
-        """Get or create the shared A2A client instance."""
-        if cls._client is None:
-            with cls._client_lock:
-                if cls._client is None:
-                    cls._client = A2AClient()
-        return cls._client
     
     @classmethod
     def _get_or_create_loop(cls):
@@ -183,17 +167,11 @@ class A2ATool(Tool):
         except Exception as e:
             return f"A2A operation failed: {e}"
     
-    @classmethod
-    def set_message_pump(cls, message_pump: A2AMessagePump):
-        """Set the shared message pump instance."""
-        cls._message_pump = message_pump
-        
-        # Register all server configs with the message pump's A2A client
-        # This ensures the message pump has access to authentication info
-        if hasattr(cls, '_server_configs_to_register'):
-            for server_config in cls._server_configs_to_register:
-                if message_pump.a2a_client and server_config.name not in message_pump.a2a_client._server_configs:
-                    message_pump.a2a_client._server_configs[server_config.name] = server_config
+    @classmethod  
+    def set_integration(cls, integration: 'A2AIntegration'):
+        """Set the A2A integration instance."""
+        cls._integration = integration
+        cls._message_pump = integration.message_pump
     
     @classmethod
     def cleanup_all(cls):
@@ -208,16 +186,12 @@ class A2ATool(Tool):
                 print(f"Warning: Error shutting down A2A message pump: {e}")
             cls._message_pump = None
         
-        # Cleanup client
-        if cls._client is not None:
-            # Use our managed loop for cleanup
-            loop = cls._get_or_create_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(cls._client.cleanup())
-            finally:
-                # Now we can close our managed loop
-                if cls._event_loop and not cls._event_loop.is_closed():
-                    cls._event_loop.close()
-                cls._event_loop = None
-            cls._client = None
+        # The integration handles client cleanup now
+        if cls._integration is not None:
+            cls._integration.cleanup()
+            cls._integration = None
+        
+        # Now we can close our managed loop
+        if cls._event_loop and not cls._event_loop.is_closed():
+            cls._event_loop.close()
+        cls._event_loop = None

@@ -7,7 +7,9 @@ import sys
 import os
 import asyncio
 import logging
+import traceback
 from pathlib import Path
+from datetime import datetime
 
 # Set up logging first
 logging.basicConfig(
@@ -19,6 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from backend.agent.agent import Agent
 from backend.agent.config import Config
+from backend.a2a_client.a2a_message_pump import A2ATaskInfo
 
 async def main():
     """Test just the send_message_to_task functionality."""
@@ -45,9 +48,6 @@ async def main():
         # First create a fake task manually for testing
         if agent.a2a_message_pump:
             # Add a fake task to test send_message
-            from backend.a2a_client.a2a_message_pump import A2ATaskInfo
-            from datetime import datetime
-            
             fake_task_id = "test-task-123"
             fake_task_info = A2ATaskInfo(
                 task_id=fake_task_id,
@@ -74,7 +74,6 @@ async def main():
         
     except Exception as e:
         print(f"❌ Error: {e}")
-        import traceback
         print(f"Full traceback: {traceback.format_exc()}")
 
 if __name__ == "__main__":

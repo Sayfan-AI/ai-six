@@ -3,6 +3,7 @@
 
 import sys
 import os
+import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from backend.agent.agent import Agent
@@ -62,7 +63,6 @@ def test_a2a_architecture():
         
     except Exception as e:
         print(f"✗ Error creating agent: {e}")
-        import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 
 import sys
 import os
+import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from backend.agent.agent import Agent
@@ -44,7 +45,6 @@ def test_a2a_execution():
         
     except Exception as e:
         print(f"❌ Error executing A2A tool: {e}")
-        import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":

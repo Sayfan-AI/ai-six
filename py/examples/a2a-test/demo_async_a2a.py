@@ -8,10 +8,12 @@ import sys
 import os
 import time
 import asyncio
+import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from backend.agent.agent import Agent
 from backend.agent.config import Config
+from backend.object_model import SystemMessage
 
 def simulate_user_interaction():
     """Simulate a realistic user interaction with A2A async capabilities."""
@@ -29,11 +31,6 @@ def simulate_user_interaction():
     # Create agent
     print("👤 User: Setting up AI-6 with A2A capabilities...")
     agent = Agent(config)
-    
-    if not agent.a2a_message_pump:
-        print("❌ A2A not available - please ensure a2a-sdk is installed and server is running")
-        return
-    
     print(f"✅ AI-6 Agent ready with {len(agent.tool_dict)} tools")
     
     # Find A2A tools
@@ -85,8 +82,6 @@ def simulate_user_interaction():
     print("=" * len(updates_header))
     
     # Simulate A2A interim messages
-    from backend.object_model import SystemMessage
-    
     interim_updates = [
         "Security scan 25% complete - analyzing pod security contexts...",
         "Found 3 pods without security contexts - continuing analysis...",
@@ -176,5 +171,4 @@ if __name__ == "__main__":
         print("\n⏹️ Demo interrupted by user")
     except Exception as e:
         print(f"\n💥 Demo failed: {e}")
-        import traceback
         traceback.print_exc()

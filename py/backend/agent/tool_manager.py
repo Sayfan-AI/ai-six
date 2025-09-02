@@ -93,6 +93,14 @@ def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, sessi
     # Set up message injection callback
     a2a_integration.set_message_injector(message_injector)
     
+    # Create and register A2A clients for each server
+    for tool in tool_dict.values():
+        if isinstance(tool, A2ATool):
+            # Get or create client for this server
+            client = a2a_integration.get_or_create_client(tool.server_config)
+            # Register the server config with the client
+            client._server_configs[tool.server_config.name] = tool.server_config
+    
     # Configure A2A integration from A2A tools
     a2a_integration.configure_from_a2a_tools()
     
@@ -252,9 +260,19 @@ def _discover_local_mcp_tools(mcp_servers_dir: str) -> list[MCPTool]:
 
         return tools
 
-    # Run async discovery in sync context
+    # Run async discovery - handle both sync and async contexts
     try:
-        return asyncio.run(discover_async())
+        # Check if we're already in an event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an async context, create a task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, discover_async())
+                return future.result()
+        except RuntimeError:
+            # No event loop, we can use asyncio.run
+            return asyncio.run(discover_async())
     except Exception as e:
         print(f"Warning: MCP tool discovery failed: {e}")
         return []
@@ -330,9 +348,19 @@ def _get_remote_mcp_tools(remote_servers: list[dict]) -> list[Tool]:
         finally:
             await client.cleanup()
 
-    # Run async connection in sync context
+    # Run async connection - handle both sync and async contexts
     try:
-        asyncio.run(connect_async())
+        # Check if we're already in an event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an async context, create a task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, connect_async())
+                future.result()
+        except RuntimeError:
+            # No event loop, we can use asyncio.run
+            asyncio.run(connect_async())
     except Exception as e:
         print(f"Warning: Remote MCP server connection failed: {e}")
         return []
@@ -400,9 +428,19 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
 
         return discovered_tools
 
-    # Run async discovery in sync context
+    # Run async discovery - handle both sync and async contexts
     try:
-        return asyncio.run(discover_async())
+        # Check if we're already in an event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an async context, create a task
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, discover_async())
+                return future.result()
+        except RuntimeError:
+            # No event loop, we can use asyncio.run
+            return asyncio.run(discover_async())
     except Exception as e:
         print(f"Warning: A2A tool discovery failed: {e}")
         return []

@@ -3,7 +3,12 @@
 
 import sys
 import os
+import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
+
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
 
 from backend.agent.agent import Agent
 from backend.agent.config import Config
@@ -64,7 +69,6 @@ def test_a2a_final():
         
     except Exception as e:
         print(f"❌ A2A tool execution failed: {e}")
-        import traceback
         traceback.print_exc()
 
 if __name__ == "__main__":

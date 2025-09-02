@@ -8,6 +8,7 @@ import sys
 import os
 import time
 import asyncio
+import traceback
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from backend.agent.agent import Agent
@@ -76,6 +77,5 @@ if __name__ == "__main__":
         sys.exit(1)
     except Exception as e:
         print(f"\n💥 Test failed: {e}")
-        import traceback
         traceback.print_exc()
         sys.exit(1)

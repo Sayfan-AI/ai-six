@@ -166,10 +166,24 @@ class A2AClient:
         async for event in client.send_message(message_obj):
             if hasattr(event, 'parts') and event.parts:
                 for part in event.parts:
-                    if hasattr(part, 'root') and hasattr(part.root, 'text'):
-                        yield part.root.text
+                    # Check for TextPart in root attribute
+                    if hasattr(part, 'root'):
+                        root = part.root
+                        if hasattr(root, 'text'):
+                            text = root.text
+                            # Yield the text in smaller chunks to simulate streaming
+                            # Split by sentences or newlines for more granular updates
+                            lines = text.split('\n')
+                            for line in lines:
+                                if line.strip():
+                                    yield line + '\n'
+                    # Direct text attribute
                     elif hasattr(part, 'text'):
-                        yield part.text
+                        text = part.text
+                        lines = text.split('\n')
+                        for line in lines:
+                            if line.strip():
+                                yield line + '\n'
 
     async def execute_operation(self, server_name: str, operation_name: str, parameters: dict) -> str:
         """Execute a specific operation on an A2A agent.

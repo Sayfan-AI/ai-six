@@ -7,6 +7,10 @@ import asyncio
 import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 from backend.agent.agent import Agent
 from backend.agent.config import Config
 
@@ -28,7 +32,6 @@ def test_async_a2a_flow():
     # Create agent
     print("\n🤖 Creating AI-6 agent with A2A async support...")
     agent = Agent(config)
-    
     print(f"✅ Agent created with {len(agent.tool_dict)} tools")
 
     # List all available tools
@@ -64,6 +67,7 @@ def test_async_a2a_flow():
     a2a_tool_name = a2a_tools[0]
     print(f"Using tool: {a2a_tool_name}")
     
+    task_id = None
     try:
         # Start a task
         result = agent.tool_dict[a2a_tool_name].run(
@@ -72,7 +76,6 @@ def test_async_a2a_flow():
         print(f"Start result: {result}")
         
         # Extract task ID from result (simple parsing)
-        task_id = None
         if "ID:" in result:
             task_id = result.split("ID:")[1].strip().split(")")[0]
             print(f"Extracted task ID: {task_id}")
