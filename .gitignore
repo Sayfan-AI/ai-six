@@ -7,4 +7,6 @@ memory
 .files
 **/.claude/settings.local.json
 .python-version
+docs/_build
+docs/api
 

@@ -8,7 +8,14 @@ import uuid
 from dataclasses import asdict
 
 from backend.agent.config import Config
-from backend.object_model import LLMProvider, UserMessage, AssistantMessage, SystemMessage, ToolMessage, ToolCall
+from backend.object_model import (
+    LLMProvider,
+    UserMessage,
+    AssistantMessage,
+    SystemMessage,
+    ToolMessage,
+    ToolCall,
+)
 from backend.object_model import Usage
 from backend.agent.session import Session
 from backend.agent.session_manager import SessionManager
@@ -30,36 +37,36 @@ def generate_tool_call_id(original_id: Optional[str] = None) -> str:
         original_id: Optional original ID to preserve for debugging
 
     Returns:
-        A string ID for the tool call, prefixed with "tool_"
+        A string ID for the tool call, prefixed with ``tool_``
     """
     return f"tool_{uuid.uuid4().hex}"
 
 
 class Agent:
     """Unified Agent class that handles LLM interactions, tool execution, and session management."""
-    
+
     # Class-level set to track all agent names for uniqueness
     _all_agent_names: Set[str] = set()
-    
+
     def __init__(self, config: Config) -> None:
         self.default_model_id = config.default_model_id
         self.system_prompt = config.system_prompt
         self.name = config.name
         self.description = config.description
         self._agent_configs = config.agents or []
-        
+
         # Check name uniqueness if name is provided
         if self.name:
             if self.name in Agent._all_agent_names:
-                raise ValueError(f"Agent name '{self.name}' is not unique. An agent with this name already exists.")
+                raise ValueError(
+                    f"Agent name '{self.name}' is not unique. An agent with this name already exists."
+                )
             Agent._all_agent_names.add(self.name)
 
         # Store threshold ratio and calculate token threshold based on default model
         self.summary_threshold_ratio = config.summary_threshold_ratio
         context_window_size = get_context_window_size(self.default_model_id)
-        self.token_threshold = int(
-            context_window_size * config.summary_threshold_ratio
-        )
+        self.token_threshold = int(context_window_size * config.summary_threshold_ratio)
 
         # Find LLM providers directory
         llm_providers_dir = os.path.join(
@@ -136,7 +143,9 @@ class Agent:
         return cls(config)
 
     @staticmethod
-    def discover_llm_providers(llm_providers_dir: str, provider_config: Dict[str, dict[str, dict]]) -> List[LLMProvider]:
+    def discover_llm_providers(
+        llm_providers_dir: str, provider_config: Dict[str, dict[str, dict]]
+    ) -> List[LLMProvider]:
         providers = []
 
         base_path = Path(
@@ -178,8 +187,8 @@ class Agent:
                 # Inspect module for subclasses of LLMProvider
                 for name, clazz in inspect.getmembers(module, inspect.isclass):
                     if (
-                            issubclass(clazz, LLMProvider)
-                            and clazz.__module__ != LLMProvider.__module__
+                        issubclass(clazz, LLMProvider)
+                        and clazz.__module__ != LLMProvider.__module__
                     ):
                         try:
                             # Get configuration for this provider type
@@ -222,14 +231,18 @@ class Agent:
         self.tool_dict[delete_session_tool.name] = delete_session_tool
 
 
-    def _execute_tools(self, tool_calls: List[ToolCall], on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None) -> Tuple[List[ToolCall], List[ToolMessage]]:
+    def _execute_tools(
+        self,
+        tool_calls: List[ToolCall],
+        on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None,
+    ) -> Tuple[List[ToolCall], List[ToolMessage]]:
         """
         Execute a list of tool calls and return the corresponding tool messages.
-        
+
         Args:
             tool_calls: List of tool calls to execute
             on_tool_call_func: Optional callback function for tool calls
-            
+
         Returns:
             Tuple of (updated_tool_calls, tool_messages)
         """
@@ -249,12 +262,14 @@ class Agent:
             if tool_call.id in id_mapping:
                 updated_id = id_mapping[tool_call.id]
 
-            updated_tool_calls.append(ToolCall(
-                id=updated_id,
-                name=tool_call.name,
-                arguments=tool_call.arguments,
-                required=tool_call.required
-            ))
+            updated_tool_calls.append(
+                ToolCall(
+                    id=updated_id,
+                    name=tool_call.name,
+                    arguments=tool_call.arguments,
+                    required=tool_call.required,
+                )
+            )
 
         # Execute tools and create tool messages
         tool_messages = []
@@ -266,7 +281,9 @@ class Agent:
             try:
                 kwargs = json.loads(tool_call.arguments)
             except json.JSONDecodeError as e:
-                raise RuntimeError(f"Invalid arguments JSON for tool '{tool_call.name}'")
+                raise RuntimeError(
+                    f"Invalid arguments JSON for tool '{tool_call.name}'"
+                )
 
             # Get the potentially updated tool call ID
             tool_call_id = tool_call.id
@@ -275,9 +292,12 @@ class Agent:
 
             try:
                 # Set callback for AgentTools if available
-                if hasattr(tool, 'set_tool_call_callback') and on_tool_call_func is not None:
+                if (
+                    hasattr(tool, "set_tool_call_callback")
+                    and on_tool_call_func is not None
+                ):
                     tool.set_tool_call_callback(on_tool_call_func)
-                
+
                 # Execute the tool
                 tool_result = tool.run(**kwargs)
 
@@ -313,7 +333,7 @@ class Agent:
 
             # Check and summarize if above token threshold (80% of context window)
             total_tokens = (
-                    self.session.usage.input_tokens + self.session.usage.output_tokens
+                self.session.usage.input_tokens + self.session.usage.output_tokens
             )
             if total_tokens >= self.token_threshold:
                 context_window_size = get_context_window_size(self.default_model_id)
@@ -392,7 +412,7 @@ class Agent:
             messages=message_dicts,  # All original messages as dictionaries
             summary=summary,
             token_count=self.session.usage.input_tokens
-                        + self.session.usage.output_tokens,
+            + self.session.usage.output_tokens,
             timestamp=str(uuid.uuid1().time),  # Using uuid1 time as a timestamp
             context_window_size=get_context_window_size(self.default_model_id),
         )
@@ -405,7 +425,9 @@ class Agent:
             json.dump(detailed_log, f, indent=4)
 
     def _send(
-            self, model_id: str, on_tool_call_func: Optional[Callable[[str, dict, str], None]]
+        self,
+        model_id: str,
+        on_tool_call_func: Optional[Callable[[str, dict, str], None]],
     ) -> str:
         llm_provider = self.model_provider_map.get(model_id)
         if llm_provider is None:
@@ -420,13 +442,15 @@ class Agent:
 
         if response.tool_calls:
             # Execute tools using the unified method
-            updated_tool_calls, tool_messages = self._execute_tools(response.tool_calls, on_tool_call_func)
+            updated_tool_calls, tool_messages = self._execute_tools(
+                response.tool_calls, on_tool_call_func
+            )
 
             # Create AssistantMessage object and add to session
             assistant_message = AssistantMessage(
                 content=response.content,
                 tool_calls=updated_tool_calls,
-                usage=response.usage
+                usage=response.usage,
             )
             self.session.add_message(assistant_message)
 
@@ -440,10 +464,10 @@ class Agent:
         return response.content.strip()
 
     def run(
-            self,
-            get_input_func: Callable[[], str],
-            on_tool_call_func: Optional[Callable[[str, dict, str], None]],
-            on_response_func: Callable[[str], None],
+        self,
+        get_input_func: Callable[[], str],
+        on_tool_call_func: Optional[Callable[[str, dict, str], None]],
+        on_response_func: Callable[[str], None],
     ) -> None:
         try:
             while user_input := get_input_func():
@@ -462,10 +486,10 @@ class Agent:
             self.session.save()
 
     def send_message(
-            self,
-            message: str,
-            model_id: str | None = None,
-            on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None,
+        self,
+        message: str,
+        model_id: str | None = None,
+        on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None,
     ) -> str:
         """Send a single message and get a response."""
         user_message = UserMessage(content=message)
@@ -480,12 +504,12 @@ class Agent:
         return response
 
     def stream_message(
-            self,
-            message: str,
-            model_id: str,
-            on_chunk_func: Callable[[str], None],
-            on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None,
-            available_tool_ids: Optional[List[str]] = None,
+        self,
+        message: str,
+        model_id: str,
+        on_chunk_func: Callable[[str], None],
+        on_tool_call_func: Optional[Callable[[str, Dict[str, Any], str], None]] = None,
+        available_tool_ids: Optional[List[str]] = None,
     ) -> str:
         """
         Send a single message and stream the response.
@@ -517,10 +541,10 @@ class Agent:
             }
         try:
             for response in llm_provider.stream(
-                    self.session.messages, available_tools, model_id
+                self.session.messages, available_tools, model_id
             ):
                 if response.content != final_content:
-                    new_content = response.content[len(final_content):]
+                    new_content = response.content[len(final_content) :]
                     final_content = response.content
                     if new_content and on_chunk_func:
                         on_chunk_func(new_content)
@@ -529,12 +553,13 @@ class Agent:
                     tool_calls_handled = True
 
                     # Execute tools using the unified method
-                    updated_tool_calls, tool_messages = self._execute_tools(response.tool_calls, on_tool_call_func)
+                    updated_tool_calls, tool_messages = self._execute_tools(
+                        response.tool_calls, on_tool_call_func
+                    )
 
                     # Create and add the assistant message with tool calls
                     tool_calls_message = AssistantMessage(
-                        content=final_content,
-                        tool_calls=updated_tool_calls
+                        content=final_content, tool_calls=updated_tool_calls
                     )
                     self.session.add_message(tool_calls_message)
 
