@@ -10,6 +10,4 @@ build:
 
 python:
   install:
-    - method: pip
-      path: py
-      requirements: docs/requirements-docs.txt
+    - requirements: docs/requirements-docs.txt
