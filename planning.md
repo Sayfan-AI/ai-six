@@ -139,7 +139,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 - [√] Gigi - extend Github analyzer example to use sub-agents
 - [√] Gigi - get A2A into working shape
-- [ ] Gigi - Add auth support for A2A
+- [√] Gigi - Add auth support for A2A
 - [ ] Saar - Generate docs for AI-6. Continue with Sphinx / ReadTheDocs 
 
 
