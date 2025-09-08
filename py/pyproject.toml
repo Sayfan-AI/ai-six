@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-six"
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+tag_regex = "v(?P<version>.*)"
