@@ -2,3 +2,4 @@ sphinx
 myst-parser
 sphinx-autodoc-typehints
 furo
+setuptools_scm
