@@ -11,5 +11,5 @@ build:
 python:
   install:
     - method: pip
-    - path: py
-    - requirements: docs/requirements-docs.txt
+      path: py
+      requirements: docs/requirements-docs.txt
