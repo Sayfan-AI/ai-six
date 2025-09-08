@@ -114,6 +114,15 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 # Meetings
 
+## Project Meeting 7-September-2025
+
+### Agenda
+
+- [ ] Read the docs integration
+ 
+### Actions items
+
+
 ## Project Meeting 31-August-2025
 
 ### Agenda
@@ -128,8 +137,8 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
  
 ### Actions items
 
-- [ ] Gigi - extend Github analyzer example to use sub-agents
-- [ ] Gigi - get A2A into working shape
+- [√] Gigi - extend Github analyzer example to use sub-agents
+- [√] Gigi - get A2A into working shape
 - [ ] Gigi - Add auth support for A2A
 - [ ] Saar - Generate docs for AI-6. Continue with Sphinx / ReadTheDocs 
 
