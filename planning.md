@@ -123,6 +123,16 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 ### Actions items
 
 
+
+## Project Meeting 7-September-2025
+
+### Agenda
+
+- [ ] Read the docs integration
+ 
+### Actions items
+
+
 ## Project Meeting 31-August-2025
 
 ### Agenda

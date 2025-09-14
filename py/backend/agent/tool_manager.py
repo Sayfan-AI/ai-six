@@ -82,7 +82,7 @@ def configure_a2a_integration(tool_dict: dict[str, Tool], memory_dir: str, sessi
         return tool_dict
     
     # Import here to avoid circular imports
-    from backend.tools.base.a2a_task_tools import (
+    from backend.tools.a2a_task_manager.a2a_task_manager import (
         A2ATaskListTool, A2ATaskCancelTool, A2ATaskMessageTool, A2ATaskStatusTool
     )
     
@@ -363,12 +363,11 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
         Each server config should have: {'name': 'server_name', 'url': 'http://...'}
 
     Returns:
-        List of A2ATool instances for A2A operations
+        List of A2ATool instances for A2A skills
     """
     tools: list[Tool] = []
 
     async def discover_async():
-        from backend.a2a_client.a2a_client import A2AClient
         discovered_tools = []
 
         try:
@@ -398,15 +397,16 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
                         timeout=server_config.timeout
                     )
 
-                    operations = await client.get_agent_operations(server_name)
+                    skills = await client.get_agent_skills(server_name)
 
-                    # Create A2ATool instances for each operation
-                    for operation in operations:
+                    # Create A2ATool instances for each skill
+                    for skill in skills:
                         try:
-                            a2a_tool = A2ATool(server_config, operation)
+                            a2a_tool = A2ATool(server_config, skill)
                             discovered_tools.append(a2a_tool)
                         except Exception as e:
-                            print(f"Warning: Failed to create A2A tool for operation {operation.get('name', 'unknown')}: {e}")
+                            skill_name = skill.id if hasattr(skill, 'id') else getattr(skill, 'name', 'unknown')
+                            print(f"Warning: Failed to create A2A tool for skill {skill_name}: {e}")
                             continue
 
                 except Exception as e:

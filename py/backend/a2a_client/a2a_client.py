@@ -88,33 +88,24 @@ class A2AClient:
         except Exception as e:
             raise Exception(f"Failed to discover agent {server_config.name}: {e}")
 
-    async def get_agent_operations(self, server_name: str) -> list[dict]:
-        """Get available operations from an A2A agent.
-        
+    async def get_agent_skills(self, server_name: str) -> list:
+        """Get available skills from an A2A agent.
+
         Args:
             server_name: Name of the A2A server
-            
+
         Returns:
-            List of operation definitions from the agent card
+            List of skills from the agent card
         """
         if server_name not in self._agent_cards:
             raise ValueError(f"Agent {server_name} not discovered yet")
 
         agent_card = self._agent_cards[server_name]
 
-        # Extract operations from agent card - A2A uses "skills" not operations
-        operations = []
+        # Return skills directly from agent card
         if hasattr(agent_card, 'skills') and agent_card.skills:
-            # Convert skills to operation-like format
-            for skill in agent_card.skills:
-                operation = {
-                    'name': skill.id if hasattr(skill, 'id') else skill.name,
-                    'description': skill.description if hasattr(skill, 'description') else '',
-                    'parameters': {}  # A2A skills don't define structured parameters
-                }
-                operations.append(operation)
-
-        return operations
+            return agent_card.skills
+        return []
 
     async def send_message(self, server_name: str, message: str) -> AsyncGenerator[str, None]:
         """Send a message to an A2A agent and stream responses.
@@ -185,23 +176,23 @@ class A2AClient:
                             if line.strip():
                                 yield line + '\n'
 
-    async def execute_operation(self, server_name: str, operation_name: str, parameters: dict) -> str:
-        """Execute a specific operation on an A2A agent.
-        
+    async def execute_skill(self, server_name: str, skill_name: str, parameters: dict) -> str:
+        """Execute a specific skill on an A2A agent.
+
         Args:
             server_name: Name of the A2A server
-            operation_name: Name of the operation to execute
-            parameters: Parameters for the operation
-            
+            skill_name: Name of the skill to execute
+            parameters: Parameters for the skill
+
         Returns:
-            Combined response text from the operation
+            Combined response text from the skill
         """
-        # Format operation message with parameters 
+        # Format skill message with parameters
         if parameters:
             # If we have specific parameters, use them to construct the message
             message = parameters.get('message', parameters.get('query', parameters.get('input', 'show me all pods')))
         else:
-            # Default message for the operation
+            # Default message for the skill
             message = "show me all pods"
 
         # Send message and collect all response text
