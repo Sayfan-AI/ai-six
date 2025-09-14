@@ -38,7 +38,7 @@ Comprehensive end-to-end test that validates the complete async-to-sync A2A brid
 
 ## Configuration
 
-See `config.yaml` for example A2A server configuration:
+See `config_async.yaml` for example A2A server configuration:
 
 ```yaml
 a2a_servers:

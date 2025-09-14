@@ -388,21 +388,19 @@ def _get_a2a_tools(a2a_servers: list[dict]) -> list[Tool]:
                         api_key=server_config_dict.get('api_key')
                     )
                     
-                    # Get or create client for this server (ensures it's registered)
-                    client = A2AManager.get_or_create_client(server_config)
+                    # Get a client for this server (ensures it's registered)
+                    client = A2AManager.ensure_client(server_config)
 
-                    # Discover the agent and get its operations
-                    agent_card = await asyncio.wait_for(
-                        client.discover_agent(server_config),
+                    # Get skills (discovers agent if needed)
+                    skills = await asyncio.wait_for(
+                        client.get_skills(server_name),
                         timeout=server_config.timeout
                     )
-
-                    skills = await client.get_agent_skills(server_name)
 
                     # Create A2ATool instances for each skill
                     for skill in skills:
                         try:
-                            a2a_tool = A2ATool(server_config, skill)
+                            a2a_tool = A2ATool(server_name, skill)
                             discovered_tools.append(a2a_tool)
                         except Exception as e:
                             skill_name = skill.id if hasattr(skill, 'id') else getattr(skill, 'name', 'unknown')

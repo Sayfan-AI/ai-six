@@ -112,6 +112,11 @@ class A2AMessagePump:
     def set_a2a_clients(self, clients: Dict[str, 'A2AClient']):
         """Set the A2A clients map."""
         self.a2a_clients = clients
+
+    @property
+    def event_loop(self) -> 'asyncio.AbstractEventLoop':
+        """Get the background event loop for this message pump."""
+        return self._loop
     
     async def start_task(self, server_name: str, skill_id: str, message: str) -> str:
         """Start a new A2A task and begin monitoring.
@@ -262,14 +267,14 @@ class A2AMessagePump:
                     # Check if we have a stored config for this server
                     if server_name in client._server_configs:
                         server_config = client._server_configs[server_name]
-                        await client.discover_agent(server_config)
+                        await client._discover_agent(server_config)
                     else:
                         # Fallback for unknown servers (shouldn't happen in normal flow)
                         server_config = A2AServerConfig(
                             name=server_name,
                             url="http://localhost:9999"  # TODO: Make this configurable
                         )
-                        await client.discover_agent(server_config)
+                        await client._discover_agent(server_config)
             except Exception as e:
                 logger.error(f"Agent discovery failed for {server_name}: {e}")
                 task_info.status = "failed"

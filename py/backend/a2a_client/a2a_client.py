@@ -6,7 +6,8 @@ from typing import Optional, AsyncGenerator
 from dataclasses import dataclass
 import logging
 
-from a2a.client import ClientFactory, ClientConfig, create_text_message_object
+from a2a.client import ClientFactory, ClientConfig
+from a2a.client.helpers import create_text_message_object
 from a2a.client.auth.credentials import CredentialService
 from a2a.client.auth.interceptor import AuthInterceptor
 from a2a.client.middleware import ClientCallContext
@@ -55,15 +56,33 @@ class A2AClient:
         self._server_configs: dict[str, A2AServerConfig] = {}
         self.logger = logging.getLogger(__name__)
 
-    async def discover_agent(self, server_config: A2AServerConfig) -> AgentCard:
+    async def get_skills(self, server_name: str) -> list:
+        """Get agent skills, discovering agent if needed.
+
+        Args:
+            server_name: Name of the A2A server
+
+        Returns:
+            List of AgentSkill objects from the agent card
+        """
+        # Discover agent if not already cached
+        if server_name not in self._agent_cards:
+            if server_name not in self._server_configs:
+                raise ValueError(f"No configuration found for server {server_name}")
+            server_config = self._server_configs[server_name]
+            await self._discover_agent(server_config)
+
+        return self._agent_cards[server_name].skills or []
+
+    async def _discover_agent(self, server_config: A2AServerConfig) -> AgentCard:
         """Discover an A2A agent by fetching its agent card.
-        
+
         Args:
             server_config: Configuration for the A2A server
-            
+
         Returns:
             AgentCard object containing agent metadata
-            
+
         Raises:
             Exception: If agent card cannot be fetched
         """
@@ -88,24 +107,6 @@ class A2AClient:
         except Exception as e:
             raise Exception(f"Failed to discover agent {server_config.name}: {e}")
 
-    async def get_agent_skills(self, server_name: str) -> list:
-        """Get available skills from an A2A agent.
-
-        Args:
-            server_name: Name of the A2A server
-
-        Returns:
-            List of skills from the agent card
-        """
-        if server_name not in self._agent_cards:
-            raise ValueError(f"Agent {server_name} not discovered yet")
-
-        agent_card = self._agent_cards[server_name]
-
-        # Return skills directly from agent card
-        if hasattr(agent_card, 'skills') and agent_card.skills:
-            return agent_card.skills
-        return []
 
     async def send_message(self, server_name: str, message: str) -> AsyncGenerator[str, None]:
         """Send a message to an A2A agent and stream responses.

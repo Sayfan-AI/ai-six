@@ -7,6 +7,7 @@ from typing import Optional, Dict
 
 from .a2a_client import A2AClient, A2AServerConfig
 from .a2a_message_pump import A2AMessagePump
+from .a2a_executor import A2AExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class A2AManager:
     
     # Singleton state (class-level)
     _message_pump: Optional[A2AMessagePump] = None
+    _executor: Optional[A2AExecutor] = None
     _a2a_clients: Dict[str, A2AClient] = {}  # Map of server_name -> A2AClient
     _cleanup_registered = False
     _lock = threading.Lock()
@@ -41,7 +43,10 @@ class A2AManager:
             
             # Create message pump
             cls._message_pump = A2AMessagePump(memory_dir, session_id)
-            
+
+            # Create executor
+            cls._executor = A2AExecutor(cls._message_pump)
+
             # Set message injector if provided
             if message_injector:
                 cls._message_pump.set_message_injector(message_injector)
@@ -55,12 +60,12 @@ class A2AManager:
             logger.debug("A2AManager initialized")
     
     @classmethod
-    def get_or_create_client(cls, server_config: A2AServerConfig) -> A2AClient:
-        """Get or create an A2A client for a specific server.
-        
+    def ensure_client(cls, server_config: A2AServerConfig) -> A2AClient:
+        """Ensure an A2A client exists for a specific server, creating if needed.
+
         Args:
             server_config: Configuration for the A2A server
-            
+
         Returns:
             A2AClient instance for the server
         """
@@ -80,11 +85,20 @@ class A2AManager:
     @classmethod
     def get_message_pump(cls) -> Optional[A2AMessagePump]:
         """Get the message pump instance.
-        
+
         Returns:
             A2AMessagePump instance or None if not initialized
         """
         return cls._message_pump
+
+    @classmethod
+    def get_executor(cls) -> Optional[A2AExecutor]:
+        """Get the A2A executor instance.
+
+        Returns:
+            A2AExecutor instance or None if not initialized
+        """
+        return cls._executor
     
     @classmethod
     def configure_message_pump(cls):
@@ -124,6 +138,9 @@ class A2AManager:
                 else:
                     close_loop = False
                 
+                # Cleanup executor
+                cls._executor = None
+
                 # Cleanup message pump
                 if cls._message_pump is not None:
                     try:
@@ -157,6 +174,7 @@ class A2AManager:
         with cls._lock:
             cls.cleanup()
             cls._message_pump = None
+            cls._executor = None
             cls._a2a_clients = {}
             cls._initialized = False
             cls._cleanup_registered = False

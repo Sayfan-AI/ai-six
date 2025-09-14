@@ -131,7 +131,7 @@ class A2AComprehensiveE2ETest:
 
         try:
             # Start server in background
-            cmd = ['python', '-m', 'k8s_ai.server.main', '--context', 'kind-kind',
+            cmd = ['python', '-m', 'k8s_ai.server.main', '--context', 'kind-k8s-ai',
                    '--host', '127.0.0.1', '--port', '9999']
             self.server_process = subprocess.Popen(
                 cmd,
