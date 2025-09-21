@@ -66,10 +66,13 @@ class A2AComprehensiveE2ETest:
 
     def check_service(self, name: str, url: str, expected_response: str = None) -> bool:
         """Check if a service is running."""
-        response = requests.get(url, timeout=5)
-        if expected_response and expected_response not in response.text:
+        try:
+            response = requests.get(url, timeout=5)
+            if expected_response and expected_response not in response.text:
+                return False
+            return response.status_code == 200
+        except Exception:
             return False
-        return response.status_code == 200
 
     def start_ollama(self) -> bool:
         """Start ollama service if not running."""
