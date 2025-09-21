@@ -11,15 +11,35 @@ See this [link](https://deepwiki.com/Sayfan-AI/ai-six) for a super-deep dive int
 
 # LLM Access
 
-Obviously, it delegates all the heavy lifting to an LLM provider. At the moment it is OpenAI.
+Obviously, it delegates all the heavy lifting to an LLM provider. At the moment it is OpenAI-compatible or Ollama local models.
 
-It expects an environment variable `OPENAI_API_KEY` to be set.
+For OpenAI-compatible LLM providers the environment variable `OPENAI_API_KEY` must be set.
 
-# Usage
+# Installation & Usage
 
-After you activate the virtualenv and install the dependencies,
+## Option 1: Install from PyPI (Easiest)
 
-you can run an AI-6 frontend using the startup script (`ai6.sh`).
+```bash
+pip install ai-six
+
+# Use in Python code
+from ai_six.agent import Agent
+```
+
+## Option 2: Development Setup
+
+Using uv (recommended for development):
+
+```bash
+cd py/
+uv sync --dev
+# Run CLI frontend
+uv run python -m frontend.cli.ai6 --help
+```
+
+## Option 3: Traditional Development Setup
+
+After you activate the virtualenv and install the dependencies, you can run an AI-6 frontend using the startup script (`ai6.sh`).
 
 **Example — Run the CLI frontend:**
 
@@ -27,50 +47,26 @@ you can run an AI-6 frontend using the startup script (`ai6.sh`).
 ./ai6.sh cli
 ```
 
-## Debugging with VS Code
+## Building and Publishing the Package
 
-If you are developing in VS Code, you can use one of the following debug configurations to:
+To build the Python package for distribution:
 
- - Launch the startup script directly with the debugger attached, or
-
- - Attach the debugger to a running process (by manually running the script with `--debug`)
-
-Add these debug configurations to your `.vscode/launch.json` file:
-
-```
-{
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        <... Other Configurations ...>,
-        {
-            "name": "AI6 Debugger: CLI",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/ai6.sh",
-            "args": [
-                "cli",
-                "--debug",
-            ],
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "AI6 Debugger: Attach",
-            "type": "debugpy",
-            "request": "attach",
-            "connect": {
-                "host": "localhost",
-                "port": 5678
-            },
-            "justMyCode": true
-        }
-    ]
-}
+```bash
+cd py/
+uv build
 ```
 
+This creates distribution files in `py/dist/`:
+- `ai_six-*.whl` (wheel distribution)
+- `ai_six-*.tar.gz` (source distribution)
 
+To publish to PyPI:
+1. Create account at [PyPI.org](https://pypi.org)
+2. Generate API token in PyPI account settings
+3. Configure authentication:
+   ```bash
+   uv publish --token <your-api-token>
+   ```
+   Or set environment variable: `export UV_PUBLISH_TOKEN=<your-token>`
 
-
-
+For detailed publishing guide, see: [uv Publishing Documentation](https://docs.astral.sh/uv/guides/publish/)

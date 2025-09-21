@@ -1,0 +1,72 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ai-six"
+description = "Agentic AI focused on ubiquitous tool using"
+readme = { text = "AI-6: Agentic AI focused on ubiquitous tool using. See https://deepwiki.com/Sayfan-AI/ai-six for more details.", content-type = "text/plain" }
+license = { text = "MIT" }
+authors = [
+    { name = "Gigi Sayfan" }
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "openai",
+    "sh",
+    "slack_bolt",
+    "python-dotenv",
+    "mcp[cli,sse]",
+    "pathology",
+    "chainlit",
+    "ollama",
+    "pyyaml",
+    "toml",
+    "anthropic",
+    "requests",
+    "a2a-sdk[http-server]",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "debugpy",
+    "pytest",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://deepwiki.com/Sayfan-AI/ai-six"
+Repository = "https://github.com/the-gigi/ai-six"
+Issues = "https://github.com/the-gigi/ai-six/issues"
+
+[tool.hatch.version]
+source = "vcs"
+raw-options = { local_scheme = "no-local-version", root = ".." }
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]
+
+[tool.hatch.build.targets.wheel.sources]
+"backend" = "ai_six"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "backend/",
+    "../README.md",
+    "../LICENSE",
+]
