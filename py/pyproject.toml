@@ -16,21 +16,19 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 dependencies = [
     "openai",
     "sh",
     "slack_bolt",
     "python-dotenv",
-    "mcp[cli,sse]",
+    "mcp>=1.14.1",
     "pathology",
     "chainlit",
     "ollama",
@@ -59,7 +57,7 @@ source = "vcs"
 raw-options = { local_scheme = "no-local-version", root = ".." }
 
 [tool.hatch.build.targets.wheel]
-packages = ["backend"]
+only-include = ["backend"]
 
 [tool.hatch.build.targets.wheel.sources]
 "backend" = "ai_six"
