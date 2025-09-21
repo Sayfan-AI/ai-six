@@ -1,8 +1,8 @@
 default_model_id: gpt-4o
 tools_dirs:
-  - ${HOME}/git/ai-six/py/backend/tools
+  - ${HOME}/git/ai-six/py/ai_six/tools
 mcp_tools_dirs:
-  - ${HOME}/git/ai-six/py/backend/mcp_tools
+  - ${HOME}/git/ai-six/py/ai_six/mcp_tools
 memory_dir: ${HOME}/git/ai-six/memory/a2a-async-test
 checkpoint_interval: 3
 provider_config:

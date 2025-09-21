@@ -57,14 +57,11 @@ source = "vcs"
 raw-options = { local_scheme = "no-local-version", root = ".." }
 
 [tool.hatch.build.targets.wheel]
-only-include = ["backend"]
-
-[tool.hatch.build.targets.wheel.sources]
-"backend" = "ai_six"
+packages = ["ai_six"]
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "backend/",
+    "ai_six/",
     "../README.md",
     "../LICENSE",
 ]

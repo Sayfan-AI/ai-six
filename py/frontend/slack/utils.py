@@ -9,8 +9,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from backend.agent.config import Config
-from backend.agent.agent import Agent
+from ai_six.agent.config import Config
+from ai_six.agent.agent import Agent
 from frontend.common.agent_utils import create_from_config
 
 

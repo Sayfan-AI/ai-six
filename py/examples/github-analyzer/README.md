@@ -49,23 +49,23 @@ $ uv run github_analyzer.py the-gigi
 🔍 Starting GitHub analysis for user: the-gigi
 ==============================================
 
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': "api graphql -f query='query ($login: String!) { user(login: $login) { login name bio company location websiteUrl createdAt twitterUsername avatarUrl followers { totalCount } following { totalCount } pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { nameWithOwner stargazerCount description primaryLanguage { name } } } } repositories(first: 100, ownerAffiliations: OWNER, orderBy: {field: UPDATED_AT, direction: DESC}, privacy: PUBLIC) { totalCount nodes { name nameWithOwner isArchived isFork stargazerCount forkCount updatedAt pushedAt createdAt diskUsage primaryLanguage { name } languages(first: 20, orderBy: {field: SIZE, direction: DESC}) { edges { size node { name } } } licenseInfo { key spdxId name } } } repositoriesContributedTo(first: 100, includeUserRepositories: false, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: STARGAZERS, direction: DESC}) { totalCount nodes { nameWithOwner stargazerCount primaryLanguage { name } isArchived } } starredRepositories(first: 20, orderBy: {field: STARRED_AT, direction: DESC}) { totalCount nodes { nameWithOwner stargazerCount primaryLanguage { name } description } } contributionsCollection { contributionCalendar { totalContributions } totalCommitContributions totalIssueContributions totalPullRequestContributions totalPullRequestReviewContributions restrictedContributionsCount } } }' -F login='the-gigi'"}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': "api graphql -f query='query ($login: String!) { user(login: $login) { login name bio company location websiteUrl createdAt twitterUsername avatarUrl followers { totalCount } following { totalCount } pinnedItems(first: 6, types: REPOSITORY) { nodes { ... on Repository { nameWithOwner stargazerCount description primaryLanguage { name } } } } repositories(first: 100, ownerAffiliations: OWNER, orderBy: {field: UPDATED_AT, direction: DESC}, privacy: PUBLIC) { totalCount nodes { name nameWithOwner isArchived isFork stargazerCount forkCount updatedAt pushedAt createdAt diskUsage primaryLanguage { name } languages(first: 20, orderBy: {field: SIZE, direction: DESC}) { edges { size node { name } } } licenseInfo { key spdxId name } } } repositoriesContributedTo(first: 100, includeUserRepositories: false, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: STARGAZERS, direction: DESC}) { totalCount nodes { nameWithOwner stargazerCount primaryLanguage { name } isArchived } } starredRepositories(first: 20, orderBy: {field: STARRED_AT, direction: DESC}) { totalCount nodes { nameWithOwner stargazerCount primaryLanguage { name } description } } contributionsCollection { contributionCalendar { totalContributions } totalCommitContributions totalIssueContributions totalPullRequestContributions totalPullRequestReviewContributions restrictedContributionsCount } } }' -F login='the-gigi'"}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/events/public?per_page=300'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/events/public?per_page=300'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/repos?per_page=100&type=owner&sort=updated'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/repos?per_page=100&type=owner&sort=updated'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/starred?per_page=100'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/starred?per_page=100'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/orgs'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/orgs'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/followers?per_page=1'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/followers?per_page=1'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/following?per_page=1'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/following?per_page=1'}
 Tool gh completed successfully
-Invoking tool gh on server /Users/gigi/git/ai-six/py/backend/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/events/public?per_page=300'}
+Invoking tool gh on server /Users/gigi/git/ai-six/py/ai_six/mcp_tools/github_mcp_server.sh with args: {'args': 'api users/the-gigi/events/public?per_page=300'}
 Tool gh completed successfully
 
 User Profile Summary
@@ -106,9 +106,9 @@ analyzing GitHub users. The configuration file is structured as follows:
 ```yaml
 default_model_id: gpt-5
 tools_dirs:
-  - ${HOME}/git/ai-six/py/backend/tools
+  - ${HOME}/git/ai-six/py/ai_six/tools
 mcp_tools_dirs:
-  - ${HOME}/git/ai-six/py/backend/mcp_tools
+  - ${HOME}/git/ai-six/py/ai_six/mcp_tools
 memory_dir: ${HOME}/git/ai-six/memory/github-analyzer
 checkpoint_interval: 3
 provider_config:

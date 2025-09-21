@@ -3,12 +3,12 @@ name: Run Tests on Backend Changes
 on:
   pull_request:
     paths:
-      - 'py/backend/**'
+      - 'py/ai_six/**'
   push:
     branches:
       - main
     paths:
-      - 'py/backend/**'
+      - 'py/ai_six/**'
 
 jobs:
   test:
@@ -32,4 +32,4 @@ jobs:
 
     - name: Run Tests
       working-directory: py
-      run: uv run python -m unittest discover -s backend/tests
+      run: uv run python -m unittest discover -s ai_six/tests

@@ -37,6 +37,8 @@ uv sync --dev
 uv run python -m frontend.cli.ai6 --help
 ```
 
+**Note**: Run `uv lock` after dependency changes to maintain reproducible builds.
+
 ## Option 3: Traditional Development Setup
 
 After you activate the virtualenv and install the dependencies, you can run an AI-6 frontend using the startup script (`ai6.sh`).

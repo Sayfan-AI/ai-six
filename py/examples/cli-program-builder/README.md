@@ -92,9 +92,9 @@ sub-agents. The configuration file is structured as follows:
 ```yaml
 default_model_id: gpt-5
 tools_dirs:
-  - ${HOME}/git/ai-six/py/backend/tools
+  - ${HOME}/git/ai-six/py/ai_six/tools
 mcp_tools_dirs:
-  - ${HOME}/git/ai-six/py/backend/mcp_tools
+  - ${HOME}/git/ai-six/py/ai_six/mcp_tools
 memory_dir: ${HOME}/git/ai-six/memory/cli-program-builder
 checkpoint_interval: 3
 provider_config:

@@ -33,6 +33,8 @@ uv sync --dev
 uv run python -m frontend.cli.ai6 --help
 ```
 
+**Important**: After making dependency changes, run `uv lock` to update the lock file for reproducible builds.
+
 ## Option 3: Traditional pip setup
 
 ```bash

@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Optional, Tuple
 from dotenv import load_dotenv
 
-from backend.agent.config import Config
-from backend.agent.agent import Agent
+from ai_six.agent.config import Config
+from ai_six.agent.agent import Agent
 
 
 def create_from_config(

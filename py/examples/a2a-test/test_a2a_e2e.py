@@ -23,9 +23,9 @@ from typing import Optional
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
-from backend.agent.agent import Agent
-from backend.agent.config import Config
-from backend.object_model import SystemMessage
+from ai_six.agent.agent import Agent
+from ai_six.agent.config import Config
+from ai_six.object_model import SystemMessage
 
 # Load environment variables from .env file FIRST
 from dotenv import load_dotenv

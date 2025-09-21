@@ -17,8 +17,8 @@ from pathlib import Path
 py_directory = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(py_directory))
 
-from backend.agent.agent import Agent
-from backend.agent.config import Config
+from ai_six.agent.agent import Agent
+from ai_six.agent.config import Config
 
 def main():
     # Parse command-line arguments
