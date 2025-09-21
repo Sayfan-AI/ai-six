@@ -1,12 +1,70 @@
+# IDEs
 .idea/
-.chainlit/
 .vscode/
+
+# Python
 __pycache__/
-chainlit.md
-memory
-.files
-**/.claude/settings.local.json
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+py/venv/
+py/.venv/
+
+# uv
+.uv/
+uv.lock
+
+# Package building
+py/dist/
+py/build/
+py/*.egg-info/
+
+# Testing
+.tox/
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
 .python-version
-docs/_build
-docs/api
+
+# App-specific
+.chainlit/
+chainlit.md
+memory/
+.files/
+**/.claude/settings.local.json
+
+# Documentation
+docs/_build/
+docs/api/
 

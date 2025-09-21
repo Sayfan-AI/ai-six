@@ -60,13 +60,15 @@ This creates distribution files in `py/dist/`:
 - `ai_six-*.whl` (wheel distribution)
 - `ai_six-*.tar.gz` (source distribution)
 
-To publish to PyPI:
-1. Create account at [PyPI.org](https://pypi.org)
-2. Generate API token in PyPI account settings
-3. Configure authentication:
-   ```bash
-   uv publish --token <your-api-token>
-   ```
-   Or set environment variable: `export UV_PUBLISH_TOKEN=<your-token>`
+## Publishing to PyPI
 
-For detailed publishing guide, see: [uv Publishing Documentation](https://docs.astral.sh/uv/guides/publish/)
+Publishing is handled automatically by GitHub Actions when you push a version tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers the workflow that builds and publishes the package to PyPI.
+
+**One-time setup**: Add `PYPI_API_TOKEN` to repository secrets in GitHub.
