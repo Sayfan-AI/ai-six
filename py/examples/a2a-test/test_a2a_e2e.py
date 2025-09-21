@@ -144,11 +144,12 @@ class A2AComprehensiveE2ETest:
                 text=True
             )
 
-            # Wait for server to start
-            for i in range(20):  # 20 second timeout
+            # Wait for server to start (check every 100ms for 10 seconds)
+            for i in range(100):  # 100 * 100ms = 10 second timeout
                 if self.check_service("k8s-ai", "http://localhost:9999/.well-known/agent.json"):
                     print("✅ k8s-ai server started successfully")
                     return True
+                time.sleep(0.1)  # 100ms interval
 
                 # Check if process died
                 if self.server_process.poll() is not None:
@@ -156,14 +157,69 @@ class A2AComprehensiveE2ETest:
                     self.log_error(f"k8s-ai server process died: {output}")
                     return False
 
-                time.sleep(1)
-                print(f"   Waiting for k8s-ai server... ({i+1}/20)")
+                # Show progress every second (every 10 iterations)
+                if (i + 1) % 10 == 0:
+                    print(f"   Waiting for k8s-ai server... ({(i+1)//10}/10)")
 
-            self.log_error("k8s-ai server failed to start within 20 seconds")
+            self.log_error("k8s-ai server failed to start within 10 seconds")
             return False
 
         except Exception as e:
             self.log_error(f"Failed to start k8s-ai server: {e}")
+            return False
+
+    def check_k8s_cluster_health(self) -> bool:
+        """Check that the target k8s cluster is healthy."""
+        print("🔧 Checking k8s cluster health...")
+
+        try:
+            # Check if kubectl is available
+            result = subprocess.run(['kubectl', 'version'],
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                self.log_error(f"kubectl command failed: {result.stderr}")
+                return False
+
+            # Check if context exists and is accessible
+            result = subprocess.run(['kubectl', '--context', 'kind-k8s-ai', 'cluster-info'],
+                                  capture_output=True, text=True, timeout=15)
+            if result.returncode != 0:
+                self.log_error(f"k8s cluster 'kind-k8s-ai' not accessible: {result.stderr}")
+                return False
+
+            # Check if nodes are ready
+            result = subprocess.run(['kubectl', '--context', 'kind-k8s-ai', 'get', 'nodes', '--no-headers'],
+                                  capture_output=True, text=True, timeout=10)
+            if result.returncode != 0:
+                self.log_error(f"Cannot get cluster nodes: {result.stderr}")
+                return False
+
+            # Parse node status
+            nodes = result.stdout.strip().split('\n')
+            if not nodes or nodes == ['']:
+                self.log_error("No nodes found in cluster")
+                return False
+
+            ready_nodes = 0
+            for node in nodes:
+                if 'Ready' in node:
+                    ready_nodes += 1
+
+            if ready_nodes == 0:
+                self.log_error(f"No nodes are ready. Node status:\n{result.stdout}")
+                return False
+
+            print(f"✅ k8s cluster healthy with {ready_nodes} ready node(s)")
+            return True
+
+        except subprocess.TimeoutExpired:
+            self.log_error("Timeout checking k8s cluster health")
+            return False
+        except FileNotFoundError:
+            self.log_error("kubectl command not found - please install kubectl")
+            return False
+        except Exception as e:
+            self.log_error(f"Error checking k8s cluster: {e}")
             return False
 
     def setup_agent(self) -> bool:
@@ -441,6 +497,10 @@ class A2AComprehensiveE2ETest:
         if not self.start_k8s_ai_server():
             return False
         self.assert_no_errors("k8s-ai server startup")
+
+        if not self.check_k8s_cluster_health():
+            return False
+        self.assert_no_errors("k8s cluster health")
 
         if not self.setup_agent():
             return False
