@@ -37,6 +37,7 @@ dependencies = [
     "anthropic",
     "requests",
     "a2a-sdk[http-server]",
+    "kubernetes",
 ]
 dynamic = ["version"]
 
