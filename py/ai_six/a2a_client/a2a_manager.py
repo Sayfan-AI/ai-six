@@ -3,7 +3,7 @@
 import atexit
 import logging
 import threading
-from typing import Optional, Dict
+from typing import Optional
 
 from .a2a_client import A2AClient, A2AServerConfig
 from .a2a_message_pump import A2AMessagePump
@@ -22,7 +22,7 @@ class A2AManager:
     # Singleton state (class-level)
     _message_pump: Optional[A2AMessagePump] = None
     _executor: Optional[A2AExecutor] = None
-    _a2a_clients: Dict[str, A2AClient] = {}  # Map of server_name -> A2AClient
+    _a2a_clients: dict[str, A2AClient] = {}  # Map of server_name -> A2AClient
     _cleanup_registered = False
     _lock = threading.Lock()
     _initialized = False
