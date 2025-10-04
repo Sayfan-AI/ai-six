@@ -68,3 +68,5 @@ memory/
 docs/_build/
 docs/api/
 
+# Claude Code task tracking
+CLAUDE*.md
