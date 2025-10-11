@@ -24,7 +24,7 @@ jobs:
         version: "latest"
 
     - name: Set up Python
-      run: uv python install
+      run: uv python install 3.13
 
     - name: Install dependencies
       working-directory: py
