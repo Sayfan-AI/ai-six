@@ -148,13 +148,30 @@ class Agent:
     ) -> List[LLMProvider]:
         providers = []
 
-        base_path = Path(
-            llm_providers_dir
-        ).resolve()  # e.g., /Users/gigi/git/ai-six/py/ai_six/llm_providers
-        module_root_path = base_path.parents[
-            2
-        ]  # Three levels up → /Users/gigi/git/ai-six
-        base_module = "py.ai_six.llm_providers"  # Base module for LLM providers
+        base_path = Path(llm_providers_dir).resolve()
+
+        # Determine if we're in development mode (py/ai_six) or installed package (ai_six)
+        # Check if path contains 'py/ai_six' or just 'ai_six'
+        path_parts = base_path.parts
+        is_development = 'py' in path_parts and path_parts[path_parts.index('py') + 1] == 'ai_six'
+
+        if is_development:
+            # Development structure: /path/to/ai-six/py/ai_six/llm_providers
+            # Find the 'py' directory
+            py_index = path_parts.index('py')
+            module_root_path = Path(*path_parts[:py_index + 1])
+            base_module = "py.ai_six.llm_providers"
+        else:
+            # Installed package structure: /path/to/site-packages/ai_six/llm_providers
+            # Find the 'ai_six' directory
+            try:
+                ai_six_index = path_parts.index('ai_six')
+                module_root_path = Path(*path_parts[:ai_six_index])
+                base_module = "ai_six.llm_providers"
+            except ValueError:
+                # Fallback: use parent of llm_providers as ai_six, and its parent as root
+                module_root_path = base_path.parent.parent
+                base_module = "ai_six.llm_providers"
 
         # Walk through all .py files in the directory (non-recursive)
         for file_path in base_path.glob("*.py"):
@@ -168,8 +185,9 @@ class Agent:
                 # Convert path parts to a valid Python module name
                 module_name = ".".join(relative_path.with_suffix("").parts)
 
-                # Validate it starts with the expected base_module
-                if not module_name.startswith(base_module):
+                # Validate it starts with the expected base_module prefix
+                expected_prefix = base_module.split('.')[0]  # 'py' or 'ai_six'
+                if not module_name.startswith(expected_prefix):
                     continue
 
                 # Load module from file

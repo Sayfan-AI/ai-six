@@ -32,8 +32,11 @@ class A2ATool(Tool):
 
         required = {'message'}
 
+        # Normalize skill name for OpenAI compatibility (no spaces, only alphanumeric and _-)
+        normalized_skill_name = skill.name.replace(" ", "_").replace("(", "").replace(")", "")
+
         super().__init__(
-            name=f"{server_name}_{skill.name}",
+            name=f"{server_name}_{normalized_skill_name}",
             description=skill.description,
             parameters=parameters,
             required=required
