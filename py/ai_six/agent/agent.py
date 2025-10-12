@@ -185,10 +185,9 @@ class Agent:
                 # Convert path parts to a valid Python module name
                 module_name = ".".join(relative_path.with_suffix("").parts)
 
-                # Validate it starts with the expected base_module prefix
-                expected_prefix = base_module.split('.')[0]  # 'py' or 'ai_six'
-                if not module_name.startswith(expected_prefix):
-                    continue
+                # For development mode, prepend the module root name if not already present
+                if is_development and not module_name.startswith('py.'):
+                    module_name = 'py.' + module_name
 
                 # Load module from file
                 spec = importlib.util.spec_from_file_location(module_name, file_path)
