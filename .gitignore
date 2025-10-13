@@ -60,7 +60,8 @@ htmlcov/
 # App-specific
 .chainlit/
 chainlit.md
-memory/
+/memory/
+data/memory/
 .files/
 **/.claude/settings.local.json
 
