@@ -1,4 +1,5 @@
 import asyncio
+import os
 from contextlib import AsyncExitStack
 from urllib.parse import urlparse
 
@@ -46,7 +47,7 @@ class MCPClient:
             server_params = StdioServerParameters(
                 command=command,
                 args=[server_path_or_url],
-                env=None
+                env=os.environ
             )
             
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
