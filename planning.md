@@ -10,11 +10,10 @@ It is focused on tool use and management.
 
 Look into the Google ecosystem for LLMs and tools.
 
-- Gemini 2.5 is arguably the best LLM available today.
+- Gemini 3 Pro is arguably the best LLM available today.
 - Look into their OpenAI compatibility layer
 - If it doesn't work then build a native Gemini LLM provider
-- Look into their [A2A](https://github.com/google/A2A) (agent to agent) protocol
-- Look into context optimization (codebooks, deltas ofr editing operations, smart per request context management, sub-agents, etc)
+- Look into context optimization (codebooks, deltas for editing operations, smart per request context management, sub-agents, etc)
    - [Context Engineering](https://www.philschmid.de/context-engineering) by Phil Schmid
    - [Implementing 9 techniques to optimize AI agent memory](https://levelup.gitconnected.com/implementing-9-techniques-to-optimize-ai-agent-memory-67d813e3d796)
 
@@ -43,11 +42,11 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Expose usage information (tokens)
 - [x] Configuration
 - [x] MCP support (engine is MCP client, local tools can run as MCP server)
-- [ ] A2A support
-- [ ] Async tool use (continue interacting with the user while tools are running in the background)
-- [ ] Switch AI-6 core to async
+- [x] A2A support
+- [x] Async tool use (continue interacting with the user while tools are running in the background)
+- [x] Switch to uv
+- - [ ] Switch AI-6 core to async
 - [ ] Custom AI-6 frontend from scratch (web-based, mobile-friendly)
-- [ ] Switch to uv
 - [ ] Tool dependency injection (support tools that require constructor arguments like engine, config, etc.)
 - [ ] Add pipe support (e.g. `ls | grep foo`) to CommandTool
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
@@ -65,7 +64,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] Kubectl
 - [x] Github / Github Actions
 - [x] AWS
-- [ ] AI-6 (recursive agent mesh)
+- [x] AI-6 (recursive agent mesh)
 - [ ] Slack tool
 - [ ] [dOpus](https://github.com/Bloblblobl/dopus) integration (track and schedule music listening)
 - [ ] Cloudflare
@@ -98,9 +97,18 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [] Dedicated tool support for defining OS model and permissions for AI-6 and specific tools
 - [] Run in a container (mounting directories and config files like .kube/config and .aws/config)
 
-## Fully-autonomous AI software engineer
 
-- [ ] Watch Github issues
+## Demo projects
+
+### Auto Web Login
+
+- Update https://github.com/the-gigi/auto-web-login
+- Use AI-6 agent to click, close tab and return to previous window
+
+### Fully-autonomous AI software engineer
+
+- [ ] Watch GitHub issues
+- [ ] Watch Slack channel
 - [ ] Respond to new issues assigned to it
 - [ ] Create local branch
 - [x] Make changes + tests
