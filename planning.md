@@ -13,9 +13,10 @@ Look into the Google ecosystem for LLMs and tools.
 - Gemini 3 Pro is arguably the best LLM available today.
 - Look into their OpenAI compatibility layer
 - If it doesn't work then build a native Gemini LLM provider
-- Look into context optimization (codebooks, deltas for editing operations, smart per request context management, sub-agents, etc)
-   - [Context Engineering](https://www.philschmid.de/context-engineering) by Phil Schmid
-   - [Implementing 9 techniques to optimize AI agent memory](https://levelup.gitconnected.com/implementing-9-techniques-to-optimize-ai-agent-memory-67d813e3d796)
+- Look into context optimization (codebooks, deltas for editing operations, smart per request context management,
+  sub-agents, etc)
+    - [Context Engineering](https://www.philschmid.de/context-engineering) by Phil Schmid
+    - [Implementing 9 techniques to optimize AI agent memory](https://levelup.gitconnected.com/implementing-9-techniques-to-optimize-ai-agent-memory-67d813e3d796)
 
 On the OpenAI side, look into the following:
 
@@ -45,8 +46,10 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [x] A2A support
 - [x] Async tool use (continue interacting with the user while tools are running in the background)
 - [x] Switch to uv
-- - [ ] Switch AI-6 core to async
+- [ ] Switch AI-6 core to async
 - [ ] Custom AI-6 frontend from scratch (web-based, mobile-friendly)
+- [ ] AI2UI integration (https://github.com/google/A2UI/)
+- [ ] MCP Apps (https://github.com/modelcontextprotocol/ext-apps)
 - [ ] Tool dependency injection (support tools that require constructor arguments like engine, config, etc.)
 - [ ] Add pipe support (e.g. `ls | grep foo`) to CommandTool
 - [ ] Parallel tool execution (run multiple tools in parallel and wait for all of them to finish)
@@ -57,7 +60,6 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - [ ] Dynamic model selection (e.g. use a different model for different tasks)
 - [ ] Computer use (browser and debugging in the IDE!)
 - [ ] Voice UI
-
 
 ## Tools
 
@@ -72,23 +74,26 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 ### Tool Discovery System
 
 **Current Implementation:**
+
 - Auto-discovery scans tool directories for Tool subclasses
 - Assumes all discoverable tools have no-argument constructors (`tool = ToolClass()`)
-- Memory tools (ListSessions, etc.) are discovered with `engine=None` but manually overridden with proper engine reference
+- Memory tools (ListSessions, etc.) are discovered with `engine=None` but manually overridden with proper engine
+  reference
 - Base classes (MCPTool, CommandTool) are explicitly skipped to avoid instantiation errors
 
 **Limitations:**
+
 - Tools requiring constructor arguments (dependencies) cannot be auto-discovered
 - Circular dependency: engine needs tools, but tools need engine reference
 - Memory tools are discovered twice (broken + working versions)
 - No support for tools requiring configuration, user parameters, etc.
 
 **Future Enhancement - Dependency Injection:**
+
 - Two-phase initialization: create engine core → discover tools with DI
 - Use inspection to detect constructor dependencies (engine, config, user, etc.)
 - Factory pattern with dependency providers
 - Would enable proper support for tools requiring arguments while maintaining auto-discovery
-
 
 ## Permission model
 
@@ -96,6 +101,96 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
     - OS user based, access to remote services credentials and k8s clusters, run in a container
 - [] Dedicated tool support for defining OS model and permissions for AI-6 and specific tools
 - [] Run in a container (mounting directories and config files like .kube/config and .aws/config)
+
+## Sibling Projects
+
+Putting it here for now, so we have a one-stop shop for planning. The `Brain` and `Issue Manager` can be utilized by AI-6. The `Claudenetes` project may or may not have synergy with AI-6.
+
+### Brain
+
+Continuous learning for agents. Hierarchical memory system with pluggable backend for different types of memory:
+
+- session memory (in-memory + complete log with option for long-term storage in cloud storage)
+- agent role memory (synthesized knowledge for specific roles like architect, coder, tester)
+- agent instance memory ((synthesized knowledge for specific instance of a roles like architect planning a specific project)
+- project memory (project-specific synthesized knowledge that cuts across agents)
+- cross-project memory (knowledge relevant for multiple projects)
+- user memory (user-specific knowledge)
+
+Different stores for different kinds of memory. Multiple stores may be used for any type of memory. Agents will be able to access all relevant memory types. There will be dedicated tools for querying and updating the brain.
+
+Stores:
+
+- in-memory
+- JSONL files (for session logs)
+- Markdown files (local or in the cloud)
+- Sqlite
+- Postgres with pgvector for RAG
+- Kubernetes custom resources (maybe for Claudenetes)
+
+Problem: thinking about managing sensitive information
+
+TBD: do we need forget APIs
+
+Implement in Rust, because why not?
+
+### Agentic Issue Manager
+
+Generic issue manager for agents with pluggable backends. Inspired by Steve
+Yegge's [beads](https://steve-yegge.medium.com/introducing-beads-a-coding-agent-memory-system-637d7d92514a)
+
+Synergy with the Brain project is TBD. Seems like it should be part of the project memory and/or agent instance memory.
+
+Operations include:
+
+- Create hierarchical issues (limited by backend only, e.g. Github Issues can do eight levels of hierarchy)
+- Labels
+- Drill down and search
+- Assign
+- Status (New, Assigned, In-progress, In-review, Done)
+- Search by any attribute
+
+Backends as plugins:
+
+- GitHub issues
+- Linear
+- Kubernetes custom resources (for Claudenetes)
+- even beads :-)
+
+Interface:
+  - API
+  - CLI
+  - MCP
+
+Implement in Rust, because why not?
+
+### Claudenetes
+
+Agentic software development. Inspired (and horrified) by Steve Yegge's [Gas Town](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04)
+
+The idea is to run multiple AI agents that will automatically take over large projects and drive them to completion. The orchestration will be done by Kubernetes.
+
+There will be persistent agent role and agent instance CRs (custom resources) that will maintain long term learning and task state
+
+Agent instances will be assigned to issues and will be able to break them down to sub-issues and assign them to themselves, other agents or humans (or a dedicated issue manager will be responsible for assignment)
+
+Kubernetes normal reconciliation loop will keep everything moving alog. Agents will watch relevant issue CRs, take action and update their CRs. Parent agents will watch their children's CRs and take proper action when all sub-issues are done or when an issue is in a bad state (failure or no update for a long time).
+
+The entire state of the project is always reflected in the issue manager. 
+Agent learnings are saved in the Brain.
+
+Claudenetes can run locally on a KinD cluster or on a remote cluster. Target git repo/repos are cloned to node local storage, or in KinD just use mapping host path. 
+Agents use git worktrees to work in parallel on the same git repo without stepping on each other's toes. 
+
+TBD:
+ - PR management (rebase, resolve conflicts, merge). is it the job of a dedicated agent or each agent is responsible? probably a sub-task
+ - How to run Claude exactly? via [Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk) or with `-p` ?
+ - Do we even need Claude Code or can just hit LLMs directly with AI-6? it's probably best to use Claude Code.
+ - Implement in Golang or Rust (or both)?
+
+See prior art:
+ - [kagent + kmcp](https://kagent.dev)
+ - [ARK](https://mckinsey.github.io/agents-at-scale-ark/)
 
 
 ## Demo projects
@@ -122,27 +217,39 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 # Meetings
 
+## Project Meeting 4-January-2026
+
+### Agenda
+
+- [√] Happy New Year 🎉
+- [√] Book update
+- [ ] Sibling projects
+- [ ] Claude Code Deep Dive (CCDD) blog series
+
+### Actions items
+
+- [ ] Gigi - continue CCDD (one blog per week?)
+- [ ] Gigi - start working on Brain, check out neon DB free offering for Postgres + pgvector.
+
+
 ## Project Meeting 21-September-2025
 
 ### Agenda
 
-
-- [√] Gigi - switch to [uv](https://docs.astral.sh/uv/) (postpone until the book is done to avoid confusing the readers with two setups switching in the middle of the book)
-- 
+- [√] Gigi - switch to [uv](https://docs.astral.sh/uv/) (postpone until the book is done to avoid confusing the readers
+  with two setups switching in the middle of the book)
+-
 - [ ] Read the docs integration
- 
+
 ### Actions items
-
-
 
 ## Project Meeting 7-September-2025
 
 ### Agenda
 
 - [ ] Read the docs integration
- 
-### Actions items
 
+### Actions items
 
 ## Project Meeting 31-August-2025
 
@@ -153,16 +260,15 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - Chainlit UI inspiration
     - https://github.com/OpenAgentPlatform/Dive
 - Check out:
-  - https://github.com/SuperClaude-Org/SuperClaude_Framework
-  - https://martinfowler.com/articles/build-own-coding-agent.html
- 
+    - https://github.com/SuperClaude-Org/SuperClaude_Framework
+    - https://martinfowler.com/articles/build-own-coding-agent.html
+
 ### Actions items
 
 - [√] Gigi - extend Github analyzer example to use sub-agents
 - [√] Gigi - get A2A into working shape
 - [√] Gigi - Add auth support for A2A
-- [ ] Saar - Generate docs for AI-6. Continue with Sphinx / ReadTheDocs 
-
+- [ ] Saar - Generate docs for AI-6. Continue with Sphinx / ReadTheDocs
 
 ## Project Meeting 11-August-2025
 
@@ -176,7 +282,8 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 - [√] Gigi - implement agent concept, move AgentTool instantiation to the ToolManager
 - [√] Gigi - Fix ollama local models - DeepSeek R1 and OpenAI OSS models
-- [ ] Saar - generate docs for AI-6. See https://deepwiki.com/search/as-an-ai-system-developer-what_23e6420c-750a-4a5a-8ecb-98b6e8f0e946
+- [ ] Saar - generate docs for AI-6.
+  See https://deepwiki.com/search/as-an-ai-system-developer-what_23e6420c-750a-4a5a-8ecb-98b6e8f0e946
 
 ## Project Meeting 2-August-2025
 
@@ -188,7 +295,9 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ### Action Items
 
-- [] Saar - generate docs for AI-6. See https://deepwiki.com/search/as-an-ai-system-developer-what_23e6420c-750a-4a5a-8ecb-98b6e8f0e946 
+- [] Saar - generate docs for AI-6.
+  See https://deepwiki.com/search/as-an-ai-system-developer-what_23e6420c-750a-4a5a-8ecb-98b6e8f0e946
+
 ## Project Meeting 10-may-2025
 
 ### AI-6 Status
@@ -202,7 +311,7 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 - Saar is hitting rate limits, explore dynamic + automatic provider switching (rotate calls to different providers under
   the covers)
-- Explore local models - Qwen 2.5 is too slow. 
+- Explore local models - Qwen 2.5 is too slow.
 
 ### Agenda
 
@@ -211,12 +320,11 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 - CI/CD - Github actions to run linters, formatters, tests, etc on PRs
 - Async I/O ???
 
-
 ### Action Items
 
 - [x] Gigi - fix unit tests (some failing)
 - [x] Gigi - run linters, formatters, etc on PRs
-- [ ] Gigi - Engine should reject command tool calls with pipes gracefully (later may be support pipes)  
+- [ ] Gigi - Engine should reject command tool calls with pipes gracefully (later may be support pipes)
 - [ ] Gigi - Finalize MCP integration
 - [ ] Gigi - Github actions workflo to run tests on PRs and direct push to main
 
