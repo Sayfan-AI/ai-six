@@ -21,7 +21,7 @@ Look into the Google ecosystem for LLMs and tools.
 On the OpenAI side, look into the following:
 
 - [OpenAI Agents SDK](https://openai.github.io/openai-agents-python/quickstart/)
-- [Responses API](https://platform.openai.com/docs/api-reference/responses)
+- [Responses API](https://www.openresponses.org/)
 - [Voice Agents](https://openai.github.io/openai-agents-python/voice/quickstart/)
 
 For voice in general, ElvenLabs is highly recommended, but only 10K credits per month, which are you good for about 15
@@ -29,6 +29,8 @@ minutes of conversational AI.
 https://elevenlabs.io
 
 They have a free plan of 10-15 minutes per month, which is good for testing.
+
+Check out [DevSpace](https://www.devspace.sh) for hot reloading k8s workloads
 
 ## Software Development Life Cycle
 
@@ -104,7 +106,8 @@ They have a free plan of 10-15 minutes per month, which is good for testing.
 
 ## Sibling Projects
 
-Putting it here for now, so we have a one-stop shop for planning. The `Brain` and `Issue Manager` can be utilized by AI-6. The `Claudenetes` project may or may not have synergy with AI-6.
+Putting it here for now, so we have a one-stop shop for planning. The `Brain` and `Issue Manager` can be utilized by
+AI-6. The `Claudenetes` project may or may not have synergy with AI-6.
 
 ### Brain
 
@@ -112,12 +115,14 @@ Continuous learning for agents. Hierarchical memory system with pluggable backen
 
 - session memory (in-memory + complete log with option for long-term storage in cloud storage)
 - agent role memory (synthesized knowledge for specific roles like architect, coder, tester)
-- agent instance memory ((synthesized knowledge for specific instance of a roles like architect planning a specific project)
+- agent instance memory ((synthesized knowledge for specific instance of a roles like architect planning a specific
+  project)
 - project memory (project-specific synthesized knowledge that cuts across agents)
 - cross-project memory (knowledge relevant for multiple projects)
 - user memory (user-specific knowledge)
 
-Different stores for different kinds of memory. Multiple stores may be used for any type of memory. Agents will be able to access all relevant memory types. There will be dedicated tools for querying and updating the brain.
+Different stores for different kinds of memory. Multiple stores may be used for any type of memory. Agents will be able
+to access all relevant memory types. There will be dedicated tools for querying and updating the brain.
 
 Stores:
 
@@ -158,40 +163,57 @@ Backends as plugins:
 - even beads :-)
 
 Interface:
-  - API
-  - CLI
-  - MCP
+
+- API
+- CLI
+- MCP
 
 Implement in Rust, because why not?
 
 ### Claudenetes
 
-Agentic software development. Inspired (and horrified) by Steve Yegge's [Gas Town](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04)
+Agentic software development. Inspired (and horrified) by Steve
+Yegge's [Gas Town](https://steve-yegge.medium.com/welcome-to-gas-town-4f25ee16dd04)
 
-The idea is to run multiple AI agents that will automatically take over large projects and drive them to completion. The orchestration will be done by Kubernetes.
+The idea is to run multiple AI agents that will automatically take over large projects and drive them to completion. The
+orchestration will be done by Kubernetes.
 
-There will be persistent agent role and agent instance CRs (custom resources) that will maintain long term learning and task state
+There will be persistent agent role and agent instance CRs (custom resources) that will maintain long term learning and
+task state
 
-Agent instances will be assigned to issues and will be able to break them down to sub-issues and assign them to themselves, other agents or humans (or a dedicated issue manager will be responsible for assignment)
+Agent instances will be assigned to issues and will be able to break them down to sub-issues and assign them to
+themselves, other agents or humans (or a dedicated issue manager will be responsible for assignment)
 
-Kubernetes normal reconciliation loop will keep everything moving alog. Agents will watch relevant issue CRs, take action and update their CRs. Parent agents will watch their children's CRs and take proper action when all sub-issues are done or when an issue is in a bad state (failure or no update for a long time).
+Kubernetes normal reconciliation loop will keep everything moving alog. Agents will watch relevant issue CRs, take
+action and update their CRs. Parent agents will watch their children's CRs and take proper action when all sub-issues
+are done or when an issue is in a bad state (failure or no update for a long time).
 
-The entire state of the project is always reflected in the issue manager. 
+The entire state of the project is always reflected in the issue manager.
 Agent learnings are saved in the Brain.
 
-Claudenetes can run locally on a KinD cluster or on a remote cluster. Target git repo/repos are cloned to node local storage, or in KinD just use mapping host path. 
-Agents use git worktrees to work in parallel on the same git repo without stepping on each other's toes. 
+Claudenetes can run locally on a KinD cluster or on a remote cluster. Target git repo/repos are cloned to node local
+storage, or in KinD just use mapping host path.
+Agents use git worktrees to work in parallel on the same git repo without stepping on each other's toes.
+
+Other ideas: CoW - [Council of Wells](https://dc.fandom.com/wiki/Council_of_Wells) - Multiple models gang up and perform
+reviews of planning, architecture, implementation and tests and discuss between them to identify problems and suggest
+improvements.
+
+See https://www.youtube.com/shorts/wvURinjb5Zk
 
 TBD:
- - PR management (rebase, resolve conflicts, merge). is it the job of a dedicated agent or each agent is responsible? probably a sub-task
- - How to run Claude exactly? via [Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk) or with `-p` ?
- - Do we even need Claude Code or can just hit LLMs directly with AI-6? it's probably best to use Claude Code.
- - Implement in Golang or Rust (or both)?
+
+- PR management (rebase, resolve conflicts, merge). is it the job of a dedicated agent or each agent is responsible?
+  probably a sub-task
+- How to run Claude exactly?
+  via [Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk) or with `-p` ?
+- Do we even need Claude Code or can just hit LLMs directly with AI-6? it's probably best to use Claude Code.
+- Implement in Golang or Rust (or both)?
 
 See prior art:
- - [kagent + kmcp](https://kagent.dev)
- - [ARK](https://mckinsey.github.io/agents-at-scale-ark/)
 
+- [kagent + kmcp](https://kagent.dev)
+- [ARK](https://mckinsey.github.io/agents-at-scale-ark/)
 
 ## Demo projects
 
@@ -230,7 +252,6 @@ See prior art:
 
 - [ ] Gigi - continue CCDD (one blog per week?)
 - [ ] Gigi - start working on Brain, check out neon DB free offering for Postgres + pgvector.
-
 
 ## Project Meeting 21-September-2025
 
