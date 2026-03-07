@@ -1,5 +1,5 @@
 # AI-6
-Agentic AI focused on ubiquitous tool using.
+Agentic AI framework focused on ubiquitous tool using.
 
 ![](ai-6.png)
 
